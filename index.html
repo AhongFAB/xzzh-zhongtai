@@ -3,82 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="中台-财务工具箱 - 非税工具箱、财税工具箱、汇报工具箱">
+    <meta name="description" content="财务工具箱 - 非税工具箱、财税工具箱、汇报工具箱">
     <meta name="theme-color" content="#0f172a">
-    <title>中台-财务工具箱</title>
+    <title>财务工具箱</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
     <style>
         *{box-sizing:border-box;margin:0;padding:0}
         body{font-family:'PingFang SC','Microsoft YaHei',-apple-system,BlinkMacSystemFont,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;overflow-x:hidden}
 
-        /* 星空粒子背景 */
         .bg-particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
         .bg-particles span{position:absolute;border-radius:50%;background:rgba(147,197,253,.15);animation:float linear infinite}
         @keyframes float{0%{transform:translateY(100vh) scale(0);opacity:0}50%{opacity:1}100%{transform:translateY(-10vh) scale(1);opacity:0}}
 
-        /* 顶部 */
-        .hero{position:relative;z-index:1;text-align:center;padding:60px 20px 30px}
+        .hero{position:relative;z-index:1;text-align:center;padding:80px 20px 50px}
         .hero-logo{display:inline-flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,#3b82f6,#06b6d4);font-size:40px;margin-bottom:24px;box-shadow:0 8px 32px rgba(59,130,246,.3)}
-        .hero h1{font-size:38px;font-weight:800;background:linear-gradient(135deg,#fff 0%,#93c5fd 50%,#06b6d4 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:3px;margin-bottom:12px}
-        .hero .subtitle{font-size:16px;color:#94a3b8;letter-spacing:4px;font-weight:300}
-        .hero .divider{width:60px;height:3px;background:linear-gradient(90deg,#3b82f6,#06b6d4);border-radius:2px;margin:24px auto 0}
+        .hero h1{font-size:40px;font-weight:800;background:linear-gradient(135deg,#fff 0%,#93c5fd 50%,#06b6d4 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:3px;margin-bottom:12px}
+        .hero .subtitle{font-size:17px;color:#94a3b8;letter-spacing:6px;font-weight:300}
+        .hero .divider{width:60px;height:3px;background:linear-gradient(90deg,#3b82f6,#06b6d4);border-radius:2px;margin:28px auto 0}
 
-        /* 分区 */
-        .section{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:30px 20px}
-        .section-header{display:flex;align-items:center;gap:14px;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid rgba(148,163,184,.1)}
-        .section-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-        .section-title{font-size:22px;font-weight:700;color:#f1f5f9;letter-spacing:1px}
-        .section-subtitle{font-size:13px;color:#64748b;margin-top:2px}
+        .main{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:40px 20px 60px}
+        .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+        @media(max-width:900px){.cards{grid-template-columns:1fr;gap:24px}.hero h1{font-size:28px}.hero .subtitle{font-size:14px;letter-spacing:4px}}
 
-        /* 非税 */
-        .non-tax .section-icon{background:linear-gradient(135deg,rgba(16,185,129,.2),rgba(6,182,212,.2));border:1px solid rgba(16,185,129,.3)}
-        .non-tax .section-title{color:#34d399}
-        /* 财税 */
-        .tax .section-icon{background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(139,92,246,.2));border:1px solid rgba(59,130,246,.3)}
-        .tax .section-title{color:#60a5fa}
-        /* 汇报 */
-        .report .section-icon{background:linear-gradient(135deg,rgba(249,115,22,.2),rgba(239,68,68,.2));border:1px solid rgba(249,115,22,.3)}
-        .report .section-title{color:#fb923c}
-
-        /* 工具卡片 */
-        .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-        @media(max-width:900px){.cards{grid-template-columns:1fr;gap:18px}.hero h1{font-size:26px}.hero .subtitle{font-size:13px;letter-spacing:3px}}
-
-        .card{background:linear-gradient(145deg,rgba(30,41,59,.8),rgba(15,23,42,.9));border:1px solid rgba(148,163,184,.1);border-radius:18px;padding:30px 26px;cursor:pointer;transition:all .4s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;backdrop-filter:blur(10px);text-decoration:none;display:block}
-        .card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:18px 18px 0 0;opacity:0;transition:opacity .4s}
-        .card:hover{transform:translateY(-6px);border-color:rgba(148,163,184,.25);box-shadow:0 16px 48px rgba(0,0,0,.3)}
+        .card{background:linear-gradient(145deg,rgba(30,41,59,.8),rgba(15,23,42,.9));border:1px solid rgba(148,163,184,.1);border-radius:22px;padding:48px 32px;cursor:pointer;transition:all .4s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;backdrop-filter:blur(10px);text-decoration:none;display:block;text-align:center}
+        .card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;border-radius:22px 22px 0 0;opacity:0;transition:opacity .4s}
+        .card:hover{transform:translateY(-8px);border-color:rgba(148,163,184,.25);box-shadow:0 20px 60px rgba(0,0,0,.3)}
         .card:hover::before{opacity:1}
-        .card:active{transform:translateY(-2px)}
+        .card:active{transform:translateY(-3px)}
 
-        /* 卡片顶部色条 */
-        .non-tax .card::before{background:linear-gradient(90deg,#10b981,#06b6d4)}
-        .tax .card::before{background:linear-gradient(90deg,#3b82f6,#8b5cf6)}
-        .report .card::before{background:linear-gradient(90deg,#f97316,#ef4444)}
+        .card:nth-child(1)::before{background:linear-gradient(90deg,#10b981,#06b6d4)}
+        .card:nth-child(2)::before{background:linear-gradient(90deg,#3b82f6,#8b5cf6)}
+        .card:nth-child(3)::before{background:linear-gradient(90deg,#f97316,#ef4444)}
 
-        /* 光晕 */
         .card .glow{position:absolute;top:-50%;left:-50%;width:200%;height:200%;border-radius:50%;opacity:0;transition:opacity .4s;pointer-events:none}
-        .non-tax .card .glow{background:radial-gradient(circle,rgba(16,185,129,.05),transparent 60%)}
-        .tax .card .glow{background:radial-gradient(circle,rgba(59,130,246,.05),transparent 60%)}
-        .report .card .glow{background:radial-gradient(circle,rgba(249,115,22,.05),transparent 60%)}
+        .card:nth-child(1) .glow{background:radial-gradient(circle,rgba(16,185,129,.06),transparent 60%)}
+        .card:nth-child(2) .glow{background:radial-gradient(circle,rgba(59,130,246,.06),transparent 60%)}
+        .card:nth-child(3) .glow{background:radial-gradient(circle,rgba(249,115,22,.06),transparent 60%)}
         .card:hover .glow{opacity:1}
 
-        .card-icon{font-size:42px;margin-bottom:16px;display:block}
-        .card-title{font-size:18px;font-weight:700;color:#f1f5f9;margin-bottom:8px;letter-spacing:.5px}
-        .card-desc{font-size:13px;color:#94a3b8;line-height:1.7;margin-bottom:18px}
-        .card-link{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px;transition:all .3s}
-        .non-tax .card-link{color:#34d399}
-        .tax .card-link{color:#60a5fa}
-        .report .card-link{color:#fb923c}
-        .card-link .arrow{display:inline-block;transition:transform .3s}.card:hover .card-link .arrow{transform:translateX(5px)}
+        .card-icon{font-size:64px;margin-bottom:24px;display:block}
+        .card-title{font-size:24px;font-weight:700;color:#f1f5f9;margin-bottom:10px;letter-spacing:2px}
+        .card-desc{font-size:14px;color:#94a3b8;line-height:1.7;margin-bottom:28px}
+        .card-link{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:15px;transition:all .3s}
+        .card:nth-child(1) .card-link{color:#34d399}
+        .card:nth-child(2) .card-link{color:#60a5fa}
+        .card:nth-child(3) .card-link{color:#fb923c}
+        .card-link .arrow{display:inline-block;transition:transform .3s}.card:hover .card-link .arrow{transform:translateX(6px)}
 
-        /* 开发中状态 */
-        .card.dev{cursor:default;opacity:.6}
-        .card.dev:hover{transform:none;border-color:rgba(148,163,184,.1);box-shadow:none}
-        .card.dev:hover::before{opacity:0}
-        .card.dev:hover .glow{opacity:0}
-        .dev-badge{display:inline-block;background:rgba(148,163,184,.15);color:#94a3b8;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;letter-spacing:1px;border:1px solid rgba(148,163,184,.2)}
-
-        /* 底部 */
         footer{position:relative;z-index:1;text-align:center;padding:40px 20px 24px;color:#475569;font-size:12px;letter-spacing:1px;line-height:1.8}
         footer .copyright-line1{color:#64748b}
         footer .copyright-line2{margin-top:4px;font-size:11px;opacity:.7}
@@ -86,125 +57,47 @@
 </head>
 <body>
 
-<!-- 粒子背景 -->
 <div class="bg-particles" id="particles"></div>
 
 <div class="hero">
     <div class="hero-logo">🧰</div>
-    <h1>中台-财务工具箱</h1>
-    <p class="subtitle">非税工具箱 · 财税工具箱 · 汇报工具箱</p>
+    <h1>财务工具箱</h1>
+    <p class="subtitle">非税 · 财税 · 汇报</p>
     <div class="divider"></div>
 </div>
 
-<!-- 非税工具箱 -->
-<div class="section non-tax">
-    <div class="section-header">
-        <div class="section-icon">💼</div>
-        <div>
-            <div class="section-title">非税工具箱</div>
-            <div class="section-subtitle">应收应付 · 对账管理</div>
-        </div>
-    </div>
+<div class="main">
     <div class="cards">
-        <a class="card" href="https://ahongfab.github.io/xzzh-yingshou/" target="_blank">
+        <a class="card" href="non-tax.html">
             <div class="glow"></div>
-            <span class="card-icon">📊</span>
-            <div class="card-title">应收账款分析工具</div>
-            <div class="card-desc">智能分析销售出库单数据，账龄预警与业务员汇总，多维度洞察应收账款结构。</div>
-            <span class="card-link">进入工具 <span class="arrow">→</span></span>
+            <span class="card-icon">💼</span>
+            <div class="card-title">非税工具箱</div>
+            <div class="card-desc">应收应付 · 对账管理</div>
+            <span class="card-link">进入 <span class="arrow">→</span></span>
         </a>
-        <div class="card dev">
+        <a class="card" href="tax.html">
             <div class="glow"></div>
-            <span class="card-icon">📋</span>
-            <div class="card-title">应付账款分析工具</div>
-            <div class="card-desc">供应商应付账款账龄分析，付款计划与到期提醒。</div>
-            <span class="dev-badge">开发中</span>
-        </div>
-        <div class="card dev">
-            <div class="glow"></div>
-            <span class="card-icon">🧾</span>
-            <div class="card-title">对账单生成器</div>
-            <div class="card-desc">自动生成客户/供应商对账单，一键发送确认。</div>
-            <span class="dev-badge">开发中</span>
-        </div>
-    </div>
-</div>
-
-<!-- 财税工具箱 -->
-<div class="section tax">
-    <div class="section-header">
-        <div class="section-icon">🔧</div>
-        <div>
-            <div class="section-title">财税工具箱</div>
-            <div class="section-subtitle">进项核查 · 开票建议 · 合同生成</div>
-        </div>
-    </div>
-    <div class="cards">
-        <a class="card" href="https://ahongfab.github.io/xzzh-jinxiang/" target="_blank">
-            <div class="glow"></div>
-            <span class="card-icon">🔍</span>
-            <div class="card-title">进项核查工具</div>
-            <div class="card-desc">核查历史进销项发票，精准比对销项与进项匹配情况，快速定位开超、缺票及异常明细。</div>
-            <span class="card-link">进入工具 <span class="arrow">→</span></span>
+            <span class="card-icon">🔧</span>
+            <div class="card-title">财税工具箱</div>
+            <div class="card-desc">进项核查 · 开票建议 · 合同生成</div>
+            <span class="card-link">进入 <span class="arrow">→</span></span>
         </a>
-        <a class="card" href="https://ahongfab.github.io/xzzh-kaipiao/" target="_blank">
+        <a class="card" href="report.html">
             <div class="glow"></div>
-            <span class="card-icon">💡</span>
-            <div class="card-title">开票建议工具</div>
-            <div class="card-desc">智能匹配开票清单与进项明细，三级可信度分类，逐行对应生成开票建议。</div>
-            <span class="card-link">进入工具 <span class="arrow">→</span></span>
+            <span class="card-icon">📈</span>
+            <div class="card-title">汇报工具箱</div>
+            <div class="card-desc">日报 · 周报 · 月报</div>
+            <span class="card-link">进入 <span class="arrow">→</span></span>
         </a>
-        <a class="card" href="https://ahongfab.github.io/xzzh-contract/" target="_blank">
-            <div class="glow"></div>
-            <span class="card-icon">📝</span>
-            <div class="card-title">销售单及合同生成器</div>
-            <div class="card-desc">上传销售清单自动生成规范销售单及购销合同，甲乙方信息一键填写，支持打印和导出。</div>
-            <span class="card-link">进入工具 <span class="arrow">→</span></span>
-        </a>
-    </div>
-</div>
-
-<!-- 汇报工具箱 -->
-<div class="section report">
-    <div class="section-header">
-        <div class="section-icon">📈</div>
-        <div>
-            <div class="section-title">汇报工具箱</div>
-            <div class="section-subtitle">日报 · 周报 · 月报</div>
-        </div>
-    </div>
-    <div class="cards">
-        <a class="card" href="https://ahongfab.github.io/xzzh-xiaoshou/" target="_blank">
-            <div class="glow"></div>
-            <span class="card-icon">📊</span>
-            <div class="card-title">日报生成器</div>
-            <div class="card-desc">每日销售数据自动汇总，核心指标卡片与可视化图表，一键生成日报看板。</div>
-            <span class="card-link">进入工具 <span class="arrow">→</span></span>
-        </a>
-        <div class="card dev">
-            <div class="glow"></div>
-            <span class="card-icon">📑</span>
-            <div class="card-title">周报生成器</div>
-            <div class="card-desc">每周经营数据汇总分析，预算对比与趋势追踪。</div>
-            <span class="dev-badge">开发中</span>
-        </div>
-        <div class="card dev">
-            <div class="glow"></div>
-            <span class="card-icon">📑</span>
-            <div class="card-title">月报生成器</div>
-            <div class="card-desc">月度经营分析报表，预算执行与现金流全景。</div>
-            <span class="dev-badge">开发中</span>
-        </div>
     </div>
 </div>
 
 <footer>
-    <div class="copyright-line1">© 2026 中台-财务工具箱 · 开发者：张洪杰</div>
+    <div class="copyright-line1">© 2026 财务工具箱 · 开发者：张洪杰</div>
     <div class="copyright-line2">版权所有 · 未经授权禁止复制、传播或商业使用 · 侵权必究</div>
 </footer>
 
 <script>
-// 生成粒子
 const pc=document.getElementById('particles');
 for(let i=0;i<20;i++){
     const s=document.createElement('span');
