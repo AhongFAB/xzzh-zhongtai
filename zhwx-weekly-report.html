@@ -202,7 +202,8 @@ function parseWorkbook(wb) {
     if(s2) {
         for(let r=6;r<=11;r++) { const week=v(s2,r,1); if(week) d.weekly.sales.push({week,date:v(s2,r,2),bSales:n(s2,r,3),cSales:n(s2,r,4),lyhSales:n(s2,r,5),totalSales:n(s2,r,6),totalReturn:n(s2,r,7),monthReturn:n(s2,r,8)}); }
         for(let r=16;r<=21;r++) { const week=v(s2,r,1); if(week) d.weekly.cost.push({week,mainCost:n(s2,r,2),logistics:n(s2,r,3),depreciation:n(s2,r,4),rent:n(s2,r,5),labor:n(s2,r,6),otherFixed:n(s2,r,7),total:n(s2,r,8)}); }
-        for(let r=25;r<=30;r++) { const week=v(s2,r,1); if(week) d.weekly.expense.push({week,entertainment:n(s2,r,2),maintenance:n(s2,r,3),travel:n(s2,r,4),transport:n(s2,r,5),vehicle:n(s2,r,6),office:n(s2,r,7),service:n(s2,r,8),welfare:n(s2,r,9),telecom:n(s2,r,10),otherExp:n(s2,r,11),total:n(s2,r,12)}); }
+        // 新模板Sheet2已无费用数据，费用来自Sheet4审批数据
+        d.weekly.expense = [];
     }
 
     // ===== Sheet3 应收账款 =====
@@ -274,7 +275,7 @@ function parseWorkbook(wb) {
 
     // 成本费用汇总
     d.monthTotalCost = d.weekly.cost.reduce((s,w)=>s+w.total,0);
-    d.monthTotalExpense = d.weekly.expense.reduce((s,w)=>s+w.total,0);
+    d.monthTotalExpense = d.approval.expenseTypes.filter(e=>e.item!=='运杂物流费').reduce((s,e)=>s+e.amount,0);
     // 审批金额（Sheet4审批类别的成本/费用）
     d.approvedCost = d.approval.categories.find(c=>c.category==='成本')?.amount || 0;
     d.approvedExpense = d.approval.categories.find(c=>c.category==='费用')?.amount || 0;
@@ -517,105 +518,69 @@ function renderExpense(d) {
     const td=d.totalDays,ed=d.elapsedDays;
     const expBudgetTotal=d.budget.expense.reduce((s,i)=>s+i.amount,0);
     const expRoll=rollingBudget(expBudgetTotal,d.monthTotalExpense,td,ed);
-    const dailyRate=td>0?expBudgetTotal/td:0;
-
-    // 费用预算子项映射到周度数据（注意：名称不完全对应）
-    const expMapping=[
-        {budgetItem:'业务招待费',weeklyKey:'entertainment'},
-        {budgetItem:'差旅费',weeklyKey:'travel'},
-        {budgetItem:'车辆费',weeklyKey:'vehicle'},  // 车辆费→车辆使用费
-        {budgetItem:'办公用品',weeklyKey:'office'},
-        {budgetItem:'通讯费',weeklyKey:'telecom'}
-    ];
-    // 周度有但预算没有的费用项
-    const weeklyOnlyKeys=[
-        {key:'maintenance',label:'维修维护费'},
-        {key:'transport',label:'交通费'},
-        {key:'service',label:'服务费'},
-        {key:'welfare',label:'福利费'},
-        {key:'otherExp',label:'其它'}
-    ];
-    // 预算有但周度没有的费用项
-    const budgetOnlyItems=['生活费','宿舍费','其他费用','水电费'];
 
     // KPI
     html+='<div class="kpi-grid">';
     html+='<div class="kpi-card"><div class="kpi-label">费用总预算</div><div class="kpi-value blue">'+fmt(expBudgetTotal)+'</div></div>';
-    html+='<div class="kpi-card"><div class="kpi-label">费用累计</div><div class="kpi-value '+(expRoll.onTrack?'green':'yellow')+'">'+fmt(d.monthTotalExpense)+'</div><div class="kpi-sub">达成率'+pct(expRoll.progressRate)+' | 时间进度'+pct(expRoll.timeRate)+'</div></div>';
+    html+='<div class="kpi-card"><div class="kpi-label">费用实际(审批)</div><div class="kpi-value '+(expRoll.onTrack?'green':'yellow')+'">'+fmt(d.monthTotalExpense)+'</div><div class="kpi-sub">达成率'+pct(expRoll.progressRate)+' | 时间进度'+pct(expRoll.timeRate)+'</div></div>';
     html+='<div class="kpi-card"><div class="kpi-label">剩余预算</div><div class="kpi-value yellow">'+fmt(expRoll.remaining)+'</div><div class="kpi-sub">剩余每天需'+fmt(expRoll.dailyNeed)+'</div></div>';
+    html+='<div class="kpi-card"><div class="kpi-label">审批费用(含物流)</div><div class="kpi-value yellow">'+fmt(d.approvedExpense)+'</div><div class="kpi-sub">运杂物流费属成本，不计入费用</div></div>';
     html+='<div class="kpi-card"><div class="kpi-label">费用占销售比</div><div class="kpi-value blue">'+pct(d.monthTotalSales>0?d.monthTotalExpense/d.monthTotalSales:0)+'</div></div>';
-    html+='<div class="kpi-card"><div class="kpi-label">审批费用</div><div class="kpi-value '+(d.approvedExpense>0?'yellow':'blue')+'">'+fmt(d.approvedExpense)+'</div><div class="kpi-sub">来自审批系统(Sheet4)</div></div>';
     html+='</div>';
 
-    // 费用结构图
-    html+='<div class="two-col"><div class="card"><div class="card-title">&#128184; 费用结构（预算）</div><div class="chart-container small"><canvas id="expensePieChart"></canvas></div></div>';
-    html+='<div class="card"><div class="card-title">&#128200; 周度费用趋势</div><div class="chart-container small"><canvas id="expenseTrendChart"></canvas></div></div></div>';
+    // 费用分类明细（来自Sheet4审批）+ 预算对比
+    html+='<div class="card"><div class="card-title">&#128184; 费用分类明细（来自审批系统 Sheet4）</div><div class="scroll-table"><table><thead><tr><th>科目</th><th class="text-right">笔数</th><th class="text-right">审批金额</th><th class="text-center">占审批总额比</th><th class="text-right">月预算</th><th class="text-center">达成率</th><th>备注</th></tr></thead><tbody>';
 
-    // 费用滚动预算 - 含子项
+    const expBudgetMap = {'业务招待费':'业务招待费','差旅费':'差旅费','车辆使用费':'车辆费','办公费':'办公用品','通讯费':'通讯费','服务费':null,'福利费':null,'维修维护费':null,'交通费':null,'其他':'其他费用'};
+    const budgetUsed = new Set();
+    d.approval.expenseTypes.forEach(e=>{
+        const isCostItem = e.item==='运杂物流费';
+        const budgetName = expBudgetMap[e.item];
+        let budgetItem = null;
+        if(budgetName) budgetItem = d.budget.expense.find(b=>b.item===budgetName);
+        if(budgetItem) budgetUsed.add(budgetItem.item);
+        const budget = budgetItem?budgetItem.amount:0;
+        const achieveRate = budget>0?e.amount/budget:0;
+        const rowStyle = isCostItem?'style="opacity:0.5"':'';
+        html+='<tr '+rowStyle+'><td>'+(isCostItem?'⚠️ ':'')+e.item+'</td><td class="text-right">'+e.count+'</td><td class="text-right" style="color:#fbbf24;font-weight:600">'+fmt(e.amount)+'</td><td class="text-center">'+fmtRatio(e.ratio)+'</td><td class="text-right">'+(budget>0?fmt(budget):'-')+'</td><td class="text-center">'+(budget>0?'<span class="badge '+(achieveRate<=1?'badge-green':'badge-red')+'">'+pct(achieveRate)+'</span>':'-')+'</td><td>'+(isCostItem?'属成本项，不计入费用':budget>0?'':'无对应预算')+'</td></tr>';
+    });
+    d.budget.expense.forEach(b=>{
+        if(!budgetUsed.has(b.item) && b.amount>0) {
+            html+='<tr style="color:#64748b"><td>'+b.item+'</td><td class="text-right">-</td><td class="text-right">0.00</td><td class="text-center">-</td><td class="text-right">'+fmt(b.amount)+'</td><td class="text-center"><span class="badge badge-green">0.0%</span></td><td>暂无审批</td></tr>';
+        }
+    });
+    html+='<tr style="background:rgba(14,165,233,0.1);font-weight:600"><td>费用合计(排除物流)</td><td class="text-right">-</td><td class="text-right" style="color:#38bdf8">'+fmt(d.monthTotalExpense)+'</td><td class="text-center">-</td><td class="text-right">'+fmt(expBudgetTotal)+'</td><td class="text-center"><span class="badge '+(expRoll.onTrack?'badge-green':'badge-red')+'">'+pct(expRoll.progressRate)+'</span></td><td></td></tr>';
+    html+='<tr style="background:rgba(245,158,11,0.1)"><td>审批费用(含物流)</td><td class="text-right">-</td><td class="text-right" style="color:#fbbf24">'+fmt(d.approvedExpense)+'</td><td class="text-center">-</td><td class="text-right">-</td><td class="text-center">-</td><td>含运杂物流费(属成本)</td></tr>';
+    html+='</tbody></table></div></div>';
+
+    // 费用滚动预算
     html+='<div class="card"><div class="card-title">&#128202; 费用滚动预算达成（第'+ed+'/'+td+'天）</div><div class="scroll-table"><table><thead><tr><th>科目</th><th class="text-right">月预算</th><th class="text-right">日均</th><th class="text-right">应达成</th><th class="text-right">实际达成</th><th class="text-center">达成率</th><th class="text-center">时间进度</th><th class="text-right">剩余每天需</th></tr></thead><tbody>';
-    expMapping.forEach(m=>{
-        const budgetItem=d.budget.expense.find(b=>b.item===m.budgetItem);
-        const budget=budgetItem?budgetItem.amount:0;
-        const actual=d.weekly.expense.reduce((s,w)=>s+(w[m.weeklyKey]||0),0);
-        const roll=rollingBudget(budget,actual,td,ed);
-        html+='<tr><td>'+m.budgetItem+'</td><td class="text-right">'+fmt(budget)+'</td><td class="text-right">'+fmt(roll.dailyBudget)+'</td><td class="text-right">'+fmt(roll.shouldAchieve)+'</td><td class="text-right" style="'+(roll.progressRate<=roll.timeRate?'color:#4ade80':'color:#f87171')+';font-weight:600">'+fmt(roll.achieved)+'</td><td class="text-center"><span class="badge '+(roll.progressRate<=roll.timeRate?'badge-green':'badge-red')+'">'+pct(roll.progressRate)+'</span></td><td class="text-center">'+pct(roll.timeRate)+'</td><td class="text-right '+(roll.progressRate<=roll.timeRate?'budget-ok':'budget-gap')+'">'+(roll.remaining>0?fmt(roll.dailyNeed):'已完成')+'</td></tr>';
-    });
-    // 预算有但周度没有的
-    budgetOnlyItems.forEach(name=>{
-        const budgetItem=d.budget.expense.find(b=>b.item===name);
-        const budget=budgetItem?budgetItem.amount:0;
-        const roll=rollingBudget(budget,0,td,ed);
-        html+='<tr><td>'+name+'</td><td class="text-right">'+fmt(budget)+'</td><td class="text-right">'+fmt(roll.dailyBudget)+'</td><td class="text-right">'+fmt(roll.shouldAchieve)+'</td><td class="text-right">-</td><td class="text-center">-</td><td class="text-center">'+pct(roll.timeRate)+'</td><td class="text-right">-</td></tr>';
-    });
-    // 周度有但预算没有的
-    weeklyOnlyKeys.forEach(wk=>{
-        const actual=d.weekly.expense.reduce((s,w)=>s+(w[wk.key]||0),0);
-        if(actual>0) html+='<tr><td>'+wk.label+'（无预算）</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right">'+fmt(actual)+'</td><td class="text-center">-</td><td class="text-center">-</td><td class="text-right">-</td></tr>';
-    });
-    // 合计
-    html+='<tr style="background:rgba(14,165,233,0.1);font-weight:600"><td>费用合计</td><td class="text-right">'+fmt(expBudgetTotal)+'</td><td class="text-right">'+fmt(expRoll.dailyBudget)+'</td><td class="text-right">'+fmt(expRoll.shouldAchieve)+'</td><td class="text-right" style="'+(expRoll.onTrack?'color:#4ade80':'color:#f87171')+'">'+fmt(d.monthTotalExpense)+'</td><td class="text-center"><span class="badge '+(expRoll.onTrack?'badge-green':'badge-red')+'">'+pct(expRoll.progressRate)+'</span></td><td class="text-center">'+pct(expRoll.timeRate)+'</td><td class="text-right '+(expRoll.onTrack?'budget-ok':'budget-gap')+'">'+(expRoll.remaining>0?fmt(expRoll.dailyNeed):'已完成')+'</td></tr>';
-    // 审批金额对比
-    if(d.approvedExpense>0) {
-        const appExpRate=expBudgetTotal>0?d.approvedExpense/expBudgetTotal:0;
-        html+='<tr style="background:rgba(245,158,11,0.1)"><td>审批费用</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right" style="color:#fbbf24;font-weight:600">'+fmt(d.approvedExpense)+'</td><td class="text-center"><span class="badge badge-yellow">'+pct(appExpRate)+'</span></td><td class="text-center">审批达成</td><td class="text-right">-</td></tr>';
-    }
-    html+='</tbody></table></div></div>';
-    // Sheet4 费用分类明细（审批实际）
-    if(d.approval.expenseTypes.length) {
-        html+='<div class="card"><div class="card-title">&#128203; 审批费用分类明细（来自审批系统 Sheet4）</div><div class="scroll-table"><table><thead><tr><th>科目</th><th class="text-right">笔数</th><th class="text-right">审批金额</th><th class="text-center">占审批总额比</th></tr></thead><tbody>';
-        d.approval.expenseTypes.forEach(e=>{html+='<tr><td>'+e.item+'</td><td class="text-right">'+e.count+'</td><td class="text-right" style="color:#fbbf24;font-weight:600">'+fmt(e.amount)+'</td><td class="text-center">'+fmtRatio(e.ratio)+'</td></tr>';});
-        html+='</tbody></table></div></div>';
-    }
 
-    // 周度费用明细 + 环比
-    html+='<div class="card"><div class="card-title">&#128203; 周度费用明细（含环比）</div><div class="scroll-table"><table><thead><tr><th>周次</th><th class="text-right">周预算</th><th class="text-right">业务招待费</th><th class="text-right">维修维护费</th><th class="text-right">差旅费</th><th class="text-right">交通费</th><th class="text-right">车辆使用费</th><th class="text-right">办公费</th><th class="text-right">服务费</th><th class="text-right">福利费</th><th class="text-right">通讯费</th><th class="text-right">其它</th><th class="text-right">合计</th><th class="text-center">环比</th></tr></thead><tbody>';
-    let prevExpense=0;
-    d.weekly.expense.forEach(w=>{
-        const weekBudget=dailyRate*(d.weekly.sales.find(s=>s.week===w.week)?.days||7);
-        html+='<tr><td>'+w.week+'</td><td class="text-right">'+fmt(weekBudget)+'</td><td class="text-right">'+fmt(w.entertainment)+'</td><td class="text-right">'+fmt(w.maintenance)+'</td><td class="text-right">'+fmt(w.travel)+'</td><td class="text-right">'+fmt(w.transport)+'</td><td class="text-right">'+fmt(w.vehicle)+'</td><td class="text-right">'+fmt(w.office)+'</td><td class="text-right">'+fmt(w.service)+'</td><td class="text-right">'+fmt(w.welfare)+'</td><td class="text-right">'+fmt(w.telecom)+'</td><td class="text-right">'+fmt(w.otherExp)+'</td><td class="text-right" style="font-weight:600;color:#38bdf8">'+fmt(w.total)+'</td><td class="text-center"><span class="badge '+huanbiClass(w.total,prevExpense,true)+'">'+huanbi(w.total,prevExpense)+'</span></td></tr>';
-        if(w.total>0) prevExpense=w.total;
+    const budgetToApproval = {'业务招待费':'业务招待费','差旅费':'差旅费','车辆费':'车辆使用费','办公用品':'办公费','生活费':null,'宿舍费':null,'其他费用':'其他','通讯费':'通讯费','水电费':null};
+    d.budget.expense.forEach(b=>{
+        const approvalName = budgetToApproval[b.item];
+        let actual = 0;
+        if(approvalName) { const ae=d.approval.expenseTypes.find(e=>e.item===approvalName); actual=ae?ae.amount:0; }
+        const roll = rollingBudget(b.amount, actual, td, ed);
+        html+='<tr><td>'+b.item+'</td><td class="text-right">'+fmt(b.amount)+'</td><td class="text-right">'+fmt(roll.dailyBudget)+'</td><td class="text-right">'+fmt(roll.shouldAchieve)+'</td><td class="text-right" style="'+(roll.progressRate<=roll.timeRate?'color:#4ade80':'color:#f87171')+';font-weight:600">'+(actual>0?fmt(actual):'-')+'</td><td class="text-center">'+(actual>0?'<span class="badge '+(roll.progressRate<=roll.timeRate?'badge-green':'badge-red')+'">'+pct(roll.progressRate)+'</span>':'-')+'</td><td class="text-center">'+pct(roll.timeRate)+'</td><td class="text-right '+(roll.progressRate<=roll.timeRate?'budget-ok':'budget-gap')+'">'+(actual>0&&roll.remaining>0?fmt(roll.dailyNeed):'-')+'</td></tr>';
     });
-    html+='<tr style="background:rgba(14,165,233,0.1);font-weight:600"><td>合计</td><td class="text-right">'+fmt(expBudgetTotal)+'</td><td class="text-right">'+fmt(d.weekly.expense.reduce((s,w)=>s+w.entertainment,0))+'</td><td class="text-right">'+fmt(d.weekly.expense.reduce((s,w)=>s+w.maintenance,0))+'</td><td class="text-right">'+fmt(d.weekly.expense.reduce((s,w)=>s+w.travel,0))+'</td><td class="text-right">'+fmt(d.weekly.expense.reduce((s,w)=>s+w.transport,0))+'</td><td class="text-right">'+fmt(d.weekly.expense.reduce((s,w)=>s+w.vehicle,0))+'</td><td class="text-right">'+fmt(d.weekly.expense.reduce((s,w)=>s+w.office,0))+'</td><td class="text-right">'+fmt(d.weekly.expense.reduce((s,w)=>s+w.service,0))+'</td><td class="text-right">'+fmt(d.weekly.expense.reduce((s,w)=>s+w.welfare,0))+'</td><td class="text-right">'+fmt(d.weekly.expense.reduce((s,w)=>s+w.telecom,0))+'</td><td class="text-right">'+fmt(d.weekly.expense.reduce((s,w)=>s+w.otherExp,0))+'</td><td class="text-right" style="color:#38bdf8">'+fmt(d.monthTotalExpense)+'</td><td></td></tr>';
+    html+='<tr style="background:rgba(14,165,233,0.1);font-weight:600"><td>费用合计</td><td class="text-right">'+fmt(expBudgetTotal)+'</td><td class="text-right">'+fmt(expRoll.dailyBudget)+'</td><td class="text-right">'+fmt(expRoll.shouldAchieve)+'</td><td class="text-right" style="'+(expRoll.onTrack?'color:#4ade80':'color:#f87171')+'">'+fmt(d.monthTotalExpense)+'</td><td class="text-center"><span class="badge '+(expRoll.onTrack?'badge-green':'badge-red')+'">'+pct(expRoll.progressRate)+'</span></td><td class="text-center">'+pct(expRoll.timeRate)+'</td><td class="text-right '+(expRoll.onTrack?'budget-ok':'budget-gap')+'">'+(expRoll.remaining>0?fmt(expRoll.dailyNeed):'已完成')+'</td></tr>';
     html+='</tbody></table></div></div>';
+
+    // 费用饼图
+    html+='<div class="card"><div class="card-title">&#128184; 费用结构（排除运杂物流费）</div><div class="chart-container small"><canvas id="expensePieChart"></canvas></div></div>';
 
     document.getElementById('tab-expense').innerHTML=html;
+}
+
 
     setTimeout(()=>{
         const ep=document.getElementById('expensePieChart');
         if(ep) {
-            const filtered=d.budget.expense.filter(i=>i.amount>0);
-            createChart('expensePieChart',ep,{type:'doughnut',data:{labels:filtered.map(i=>i.item),datasets:[{data:filtered.map(i=>i.amount),backgroundColor:['#0ea5e9','#f59e0b','#ef4444','#10b981','#8b5cf6','#64748b','#f97316','#06b6d4','#a855f7']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94a3b8',font:{size:11}}}}}});
+            const expData=d.approval.expenseTypes.filter(e=>e.item!=='运杂物流费'&&e.amount>0);
+            createChart('expensePieChart',ep,{type:'doughnut',data:{labels:expData.map(e=>e.item),datasets:[{data:expData.map(e=>e.amount),backgroundColor:['#0ea5e9','#f59e0b','#ef4444','#10b981','#8b5cf6','#64748b','#f97316','#06b6d4','#a855f7','#ec4899']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94a3b8',font:{size:11}}}}}});
         }
-        const et=document.getElementById('expenseTrendChart');
-        if(et) createChart('expenseTrendChart',et,{type:'bar',data:{labels:d.weekly.expense.map(w=>w.week),datasets:[
-            {label:'业务招待费',data:d.weekly.expense.map(w=>w.entertainment),backgroundColor:'rgba(14,165,233,0.7)'},
-            {label:'维修维护费',data:d.weekly.expense.map(w=>w.maintenance),backgroundColor:'rgba(245,158,11,0.7)'},
-            {label:'车辆使用费',data:d.weekly.expense.map(w=>w.vehicle),backgroundColor:'rgba(239,68,68,0.7)'},
-            {label:'办公费',data:d.weekly.expense.map(w=>w.office),backgroundColor:'rgba(16,185,129,0.7)'},
-            {label:'其他',data:d.weekly.expense.map(w=>w.travel+w.transport+w.service+w.welfare+w.telecom+w.otherExp),backgroundColor:'rgba(100,116,139,0.7)'}
-        ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8'}}},scales:{x:{stacked:true,grid:{color:'rgba(148,163,184,0.1)'},ticks:{color:'#94a3b8'}},y:{stacked:true,grid:{color:'rgba(148,163,184,0.1)'},ticks:{color:'#94a3b8'}}}}});
     },100);
-}
 
 // ===== Tab5: 应收账款 =====
 function renderAR(d) {
