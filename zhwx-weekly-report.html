@@ -225,16 +225,16 @@ function parseWorkbook(wb) {
     // Sheet1 月度预算
     if(s1) {
         d.basic = {year:v(s1,5,2), month:v(s1,6,2), company:v(s1,7,2), reporter:v(s1,8,2), dept:v(s1,9,2), headcount:v(s1,10,2)};
-        for(let r=14;r<=20;r++) d.budget.income.push({item:v(s1,r,1), amount:n(s1,r,2)});
+        for(let r=16;r<=21;r++) d.budget.income.push({item:v(s1,r,1), amount:n(s1,r,2)});
         for(let r=24;r<=29;r++) d.budget.cost.push({item:v(s1,r,1), amount:n(s1,r,2)});
         for(let r=33;r<=47;r++) d.budget.expense.push({item:v(s1,r,1), amount:n(s1,r,2)});
     }
 
     // Sheet2 周度数据
     if(s2) {
-        for(let r=6;r<=11;r++) { const week=v(s2,r,1); if(week) d.weekly.sales.push({week,date:v(s2,r,2),bSales:n(s2,r,3),cSales:n(s2,r,4),lyhSales:n(s2,r,5),totalSales:n(s2,r,6),bankReturn:n(s2,r,7),cashReturn:n(s2,r,8),wechatReturn:n(s2,r,9),totalReturn:n(s2,r,10)}); }
+        for(let r=6;r<=11;r++) { const week=v(s2,r,1); if(week) d.weekly.sales.push({week,date:v(s2,r,2),bSales:n(s2,r,3),cSales:n(s2,r,4),lyhSales:n(s2,r,5),totalSales:n(s2,r,6),totalReturn:n(s2,r,7)}); }
         for(let r=15;r<=20;r++) { const week=v(s2,r,1); if(week) d.weekly.cost.push({week,mainCost:n(s2,r,2),logistics:n(s2,r,3),depreciation:n(s2,r,4),rent:n(s2,r,5),labor:n(s2,r,6),otherFixed:n(s2,r,7),total:n(s2,r,8)}); }
-        for(let r=24;r<=29;r++) { const week=v(s2,r,1); if(week) d.weekly.expense.push({week,entertainment:n(s2,r,2),travel:n(s2,r,3),vehicle:n(s2,r,4),office:n(s2,r,5),living:n(s2,r,6),dorm:n(s2,r,7),other:n(s2,r,8),total:n(s2,r,9)}); }
+        for(let r=25;r<=30;r++) { const week=v(s2,r,1); if(week) d.weekly.expense.push({week,entertainment:n(s2,r,2),maintenance:n(s2,r,3),travel:n(s2,r,4),transport:n(s2,r,5),vehicle:n(s2,r,6),office:n(s2,r,7),service:n(s2,r,8),welfare:n(s2,r,9),telecom:n(s2,r,10),otherExp:n(s2,r,11),total:n(s2,r,12)}); }
     }
 
     // Sheet3 应收账款 (V1简单结构：只有未结算数据)
@@ -261,6 +261,14 @@ function parseWorkbook(wb) {
         for(let r=14;r<=18;r++) { const val=v(s5,r,2); if(val) d.report.nextWeek.push(val); }
         d.report.special = v(s5,19,2);
     }
+    // 应收余额和目标 - 直接从Sheet1读取，不自行计算
+    d.arBalance = d.budget.income.find(i=>i.item==='应收余额')?.amount || 0;
+    d.arTarget = d.budget.income.find(i=>i.item==='应收余额目标')?.amount || 0;
+    // 当月销售总额和回款总额 - 从Sheet2周度数据汇总
+    d.monthTotalSales = d.weekly.sales.reduce((s,w)=>s+w.totalSales,0);
+    d.monthTotalReturn = d.weekly.sales.reduce((s,w)=>s+w.totalReturn,0);
+    // 当月回款率 = 当月回款总额/当月销售总额
+    d.monthReturnRate = d.monthTotalSales > 0 ? d.monthTotalReturn / d.monthTotalSales : 0;
     return d;
 }
 
@@ -295,18 +303,15 @@ function renderOverview(d) {
     const bTarget = d.budget.income.find(i=>i.item&&i.item.includes('B端'))?.amount || 0;
     const cTarget = d.budget.income.find(i=>i.item&&i.item.includes('C端'))?.amount || 0;
     const lyhTarget = d.budget.income.find(i=>i.item&&i.item==='刘义虎')?.amount || 0;
-    const receivableTarget = d.budget.income.find(i=>i.item&&i.item.includes('应收余额'))?.amount || 0;
+    const receivableTarget = d.arTarget || 0;
     const returnTarget = d.budget.income.find(i=>i.item&&i.item.includes('回款目标'))?.amount || 0;
 
     const bAchieved = d.weekly.sales.reduce((s,w)=>s+w.bSales,0);
     const cAchieved = d.weekly.sales.reduce((s,w)=>s+w.cSales,0);
     const lyhAchieved = d.weekly.sales.reduce((s,w)=>s+w.lyhSales,0);
     const totalAchieved = bAchieved + cAchieved + lyhAchieved;
-    const totalReturn = d.weekly.sales.reduce((s,w)=>s+w.totalReturn,0);
-    const unsettled = d.ar.staff.reduce((s,st)=>s+st.unsettled,0);
-
-    // 回款率 = 周度总回款/周度总销售额
-    const returnRate = totalAchieved > 0 ? totalReturn / totalAchieved : 0;
+    const arBalance = d.arBalance || 0;
+    const monthReturnRate = d.monthReturnRate || 0;
     // 毛利率 = (收入-成本)/收入, 成本用预算成本占比近似
     const costBudget = d.budget.cost.find(i=>i.item&&i.item.includes('主营业务'))?.amount || 0;
     const marginRate = salesTarget > 0 ? (salesTarget - costBudget) / salesTarget : 0;
@@ -317,8 +322,8 @@ function renderOverview(d) {
     // KPI卡片
     html += `<div class="kpi-grid">
         <div class="kpi-card"><div class="kpi-label">销售达成率</div><div class="kpi-value blue">${pct(salesRate)}</div><div class="kpi-sub">目标 ${fmt(salesTarget)} | 达成 ${fmt(totalAchieved)}</div><div class="progress-bar"><div class="progress-fill ${progressClass(salesRate)}" style="width:${Math.min(salesRate*100,100)}%"></div></div></div>
-        <div class="kpi-card"><div class="kpi-label">应收余额</div><div class="kpi-value ${unsettled<=receivableTarget?'green':'red'}">${fmt(unsettled)}</div><div class="kpi-sub">控制目标 ${fmt(receivableTarget)}</div><div class="progress-bar"><div class="progress-fill ${unsettled<=receivableTarget?'high':'low'}" style="width:${receivableTarget>0?Math.min(unsettled/receivableTarget*100,100):0}%"></div></div></div>
-        <div class="kpi-card"><div class="kpi-label">周度回款率</div><div class="kpi-value ${returnRate>=0.5?'green':returnRate>=0.3?'yellow':'red'}">${pct(returnRate)}</div><div class="kpi-sub">回款 ${fmt(totalReturn)} / 销售 ${fmt(totalAchieved)}</div><div class="progress-bar"><div class="progress-fill ${progressClass(returnRate)}" style="width:${Math.min(returnRate*100,100)}%"></div></div></div>
+        <div class="kpi-card"><div class="kpi-label">应收余额</div><div class="kpi-value ${arBalance<=receivableTarget?'green':'red'}">${fmt(arBalance)}</div><div class="kpi-sub">控制目标 ${fmt(receivableTarget)}</div><div class="progress-bar"><div class="progress-fill ${arBalance<=receivableTarget?'high':'low'}" style="width:${receivableTarget>0?Math.min(arBalance/receivableTarget*100,100):0}%"></div></div></div>
+        <div class="kpi-card"><div class="kpi-label">当月回款率</div><div class="kpi-value ${monthReturnRate>=0.5?'green':monthReturnRate>=0.3?'yellow':'red'}">${pct(monthReturnRate)}</div><div class="kpi-sub">回款 ${fmt(d.monthTotalReturn)} / 销售 ${fmt(d.monthTotalSales)}</div><div class="progress-bar"><div class="progress-fill ${progressClass(monthReturnRate)}" style="width:${Math.min(monthReturnRate*100,100)}%"></div></div></div>
         <div class="kpi-card"><div class="kpi-label">预算毛利率</div><div class="kpi-value ${marginRate>=0.1?'green':'yellow'}">${pct(marginRate)}</div><div class="kpi-sub">收入 ${fmt(salesTarget)} | 成本 ${fmt(costBudget)}</div></div>
     </div>`;
 
@@ -341,7 +346,7 @@ function renderOverview(d) {
     // 风险预警
     const warnings = [];
     if(salesRate < 0.5) warnings.push({icon:'⚠️',title:'销售达成率偏低',desc:`当前${pct(salesRate)}，时间过半需加速`,level:'warn'});
-    if(unsettled > receivableTarget) warnings.push({icon:'🔴',title:'应收余额超标',desc:`未结算${fmt(unsettled)}，超出控制目标${fmt(unsettled-receivableTarget)}`,level:'risk'});
+    if(arBalance > receivableTarget) warnings.push({icon:'🔴',title:'应收余额超标',desc:`应收余额${fmt(arBalance)}，超出控制目标${fmt(arBalance-receivableTarget)}`,level:'risk'});
     const over30Staff = d.ar.staff.filter(s => parseFloat(s.over30Rate) > 50);
     if(over30Staff.length > 0) warnings.push({icon:'⚠️',title:'多业务员30天以上应收占比过高',desc:over30Staff.map(s=>`${s.name}(${s.over30Rate})`).join('、'),level:'warn'});
 
@@ -364,8 +369,8 @@ function renderSales(d) {
     // 周度销售趋势图
     html += `<div class="card"><div class="card-title">📈 周度销售趋势</div><div class="chart-container"><canvas id="salesChart"></canvas></div></div>`;
 
-    // 周度回款趋势图
-    html += `<div class="card"><div class="card-title">💳 周度回款趋势</div><div class="chart-container"><canvas id="returnChart"></canvas></div></div>`;
+    // 周度回款趋势图（含回款率）
+    html += `<div class="card"><div class="card-title">💳 周度回款与回款率</div><div class="chart-container"><canvas id="returnChart"></canvas></div></div>`;
 
     // 销售明细表
     html += `<div class="card"><div class="card-title">📋 周度销售明细</div><table><thead><tr><th>周次</th><th>日期</th><th class="text-right">B端</th><th class="text-right">C端</th><th class="text-right">刘义虎</th><th class="text-right">总销售额</th></tr></thead><tbody>`;
@@ -375,10 +380,12 @@ function renderSales(d) {
     html += `</tbody></table></div>`;
 
     // 回款明细表
-    html += `<div class="card"><div class="card-title">📋 周度回款明细</div><table><thead><tr><th>周次</th><th class="text-right">银行回款</th><th class="text-right">现金回款</th><th class="text-right">微信回款</th><th class="text-right">总回款</th></tr></thead><tbody>`;
+    html += `<div class="card"><div class="card-title">📋 周度回款明细</div><table><thead><tr><th>周次</th><th class="text-right">总回款</th><th class="text-right">总销售</th><th class="text-center">周回款率</th></tr></thead><tbody>`;
     d.weekly.sales.forEach(w => {
-        if(w.week) html += `<tr><td>${w.week}</td><td class="text-right">${fmt(w.bankReturn)}</td><td class="text-right">${fmt(w.cashReturn)}</td><td class="text-right">${fmt(w.wechatReturn)}</td><td class="text-right" style="font-weight:600;color:#4ade80">${fmt(w.totalReturn)}</td></tr>`;
+        if(w.week) { const wr = w.totalSales > 0 ? w.totalReturn / w.totalSales : 0; html += `<tr><td>${w.week}</td><td class="text-right" style="font-weight:600;color:#4ade80">${fmt(w.totalReturn)}</td><td class="text-right">${fmt(w.totalSales)}</td><td class="text-center"><span class="badge ${wr>=0.5?'badge-green':wr>=0.3?'badge-yellow':'badge-red'}">${pct(wr)}</span></td></tr>`; }
     });
+    // 合计行
+    { const wr = d.monthTotalSales > 0 ? d.monthTotalReturn / d.monthTotalSales : 0; html += `<tr style="background:rgba(14,165,233,0.1);font-weight:600"><td>合计</td><td class="text-right" style="color:#4ade80">${fmt(d.monthTotalReturn)}</td><td class="text-right">${fmt(d.monthTotalSales)}</td><td class="text-center"><span class="badge ${wr>=0.5?'badge-green':wr>=0.3?'badge-yellow':'badge-red'}">${pct(wr)}</span></td></tr>`; }
     html += `</tbody></table></div>`;
 
     document.getElementById('tab-sales').innerHTML = html;
@@ -400,11 +407,11 @@ function renderSales(d) {
 
         const rc = document.getElementById('returnChart');
         if(rc && salesWithData.length > 0) {
+            const returnRateData = d.weekly.sales.map(w=> w.totalSales>0 ? (w.totalReturn/w.totalSales*100).toFixed(1) : 0);
             chartInstances.returnChart = new Chart(rc, {type:'bar',data:{labels:labels,datasets:[
-                {label:'银行',data:d.weekly.sales.map(w=>w.bankReturn),backgroundColor:'rgba(14,165,233,0.7)'},
-                {label:'现金',data:d.weekly.sales.map(w=>w.cashReturn),backgroundColor:'rgba(74,222,128,0.7)'},
-                {label:'微信',data:d.weekly.sales.map(w=>w.wechatReturn),backgroundColor:'rgba(139,92,246,0.7)'}
-            ]},options:{...chartOpts,plugins:{legend:{labels:{color:'#94a3b8'}}}}});
+                {label:'总回款',data:d.weekly.sales.map(w=>w.totalReturn),backgroundColor:'rgba(74,222,128,0.7)',yAxisID:'y'},
+                {label:'回款率(%)',data:returnRateData,type:'line',borderColor:'#f59e0b',backgroundColor:'transparent',yAxisID:'y1',tension:0.3}
+            ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8'}}},scales:{x:{grid:{color:'rgba(148,163,184,0.1)'},ticks:{color:'#94a3b8'}},y:{grid:{color:'rgba(148,163,184,0.1)'},ticks:{color:'#94a3b8'},position:'left'},y1:{grid:{display:false},ticks:{color:'#f59e0b',callback:v=>v+'%'},position:'right',min:0,max:150}}}});
         }
     }, 100);
 }
@@ -417,7 +424,7 @@ function renderCost(d) {
     const costAchieved = d.weekly.cost.reduce((s,w) => s + w.mainCost + w.logistics + w.depreciation + w.rent + w.labor + w.otherFixed, 0);
     const totalCostBudget = d.budget.cost.reduce((s,i) => s + i.amount, 0);
     const totalExpBudget = d.budget.expense.reduce((s,i) => s + i.amount, 0);
-    const totalExpAchieved = d.weekly.expense.reduce((s,w) => s + w.entertainment + w.travel + w.vehicle + w.office + w.living + w.dorm + w.other, 0);
+    const totalExpAchieved = d.weekly.expense.reduce((s,w) => s + w.entertainment + w.maintenance + w.travel + w.transport + w.vehicle + w.office + w.service + w.welfare + w.telecom + w.otherExp, 0);
 
     html += `<div class="two-col">`;
     // 成本结构图
@@ -493,14 +500,16 @@ function renderCost(d) {
 function renderAR(d) {
     let html = '';
     const totalUnsettled = d.ar.staff.reduce((s,st)=>s+st.unsettled,0);
+    const arBalance = d.arBalance || 0;
+    const receivableTarget = d.arTarget || 0;
 
     // 汇总统计
     html += `<div class="card"><div class="card-title">📊 应收汇总</div><div class="summary-grid">
-        <div class="summary-item"><div class="label">未结算总额</div><div class="value" style="color:#f87171">${fmt(totalUnsettled)}</div></div>
-        <div class="summary-item"><div class="label">客户数</div><div class="value">${d.ar.staff.reduce((s,st)=>s+st.customers,0)}</div></div>
+        <div class="summary-item"><div class="label">应收余额</div><div class="value" style="color:#f87171">${fmt(arBalance)}</div></div>
+        <div class="summary-item"><div class="label">控制目标</div><div class="value">${fmt(receivableTarget)}</div></div>
+        <div class="summary-item"><div class="label">超标金额</div><div class="value" style="color:${arBalance>receivableTarget?'#f87171':'#4ade80'}">${fmt(arBalance-receivableTarget)}</div></div>
+        <div class="summary-item"><div class="label">业务员未结算合计</div><div class="value" style="color:#fbbf24">${fmt(totalUnsettled)}</div></div>
         <div class="summary-item"><div class="label">业务员数</div><div class="value">${d.ar.staff.length}</div></div>
-        <div class="summary-item"><div class="label">控制目标</div><div class="value">${fmt(d.budget.income.find(i=>i.item&&i.item.includes('应收余额'))?.amount||0)}</div></div>
-        <div class="summary-item"><div class="label">超标金额</div><div class="value" style="color:${totalUnsettled>(d.budget.income.find(i=>i.item&&i.item.includes('应收余额'))?.amount||0)?'#f87171':'#4ade80'}">${fmt(totalUnsettled-(d.budget.income.find(i=>i.item&&i.item.includes('应收余额'))?.amount||0))}</div></div>
         <div class="summary-item"><div class="label">30天以上紧急</div><div class="value" style="color:#fbbf24">${fmt(d.ar.aging.filter(a=>!a.range.includes('0-30')&&!a.range.includes('合计')).reduce((s,a)=>s+a.amount,0))}</div></div>
     </div></div>`;
 
