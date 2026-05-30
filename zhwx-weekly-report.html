@@ -238,15 +238,35 @@ function parseWorkbook(wb) {
         for(let r=25;r<=30;r++) { const week=v(s2,r,1); if(week) d.weekly.expense.push({week,entertainment:n(s2,r,2),maintenance:n(s2,r,3),travel:n(s2,r,4),transport:n(s2,r,5),vehicle:n(s2,r,6),office:n(s2,r,7),service:n(s2,r,8),welfare:n(s2,r,9),telecom:n(s2,r,10),otherExp:n(s2,r,11),total:n(s2,r,12)}); }
     }
 
-    // ===== Sheet3 应收账款 =====
+    // ===== Sheet3 应收账款 =====（动态解析，支持模板行数变化）
     if(s3) {
-        // Row2-3: 累计(跟Sheet1一致)
-        // Row7-20: 业务员应收(14人)
-        for(let r=7;r<=20;r++) { const name=v(s3,r,1); if(name) d.ar.staff.push({name,customers:n(s3,r,2),unsettled:n(s3,r,3),d0_30:n(s3,r,4),d31_90:n(s3,r,5),d91_180:n(s3,r,6),d180plus:n(s3,r,7),over30Rate:v(s3,r,8)}); }
-        // Row25-29: 账龄分布(含合计)
-        for(let r=25;r<=29;r++) { const range=v(s3,r,1); if(range) d.ar.aging.push({range,count:n(s3,r,2),amount:n(s3,r,3),ratio:v(s3,r,4)}); }
-        // Row33-42: TOP10客户
-        for(let r=33;r<=42;r++) { const rank=v(s3,r,1); if(rank) d.ar.top10.push({rank,customer:v(s3,r,2),salesman:v(s3,r,3),amount:n(s3,r,4),agingRange:v(s3,r,5),docCount:n(s3,r,6),earliest:v(s3,r,7),latest:v(s3,r,8)}); }
+        // 找业务员列表的表头行（C1=业务员 且 C2=客户数），动态读取业务员数据
+        let staffHeaderRow = 0;
+        for(let r=1;r<=50;r++) { if(String(v(s3,r,1)).includes('业务员')&&String(v(s3,r,2)).includes('客户')) { staffHeaderRow=r; break; } }
+        if(staffHeaderRow) {
+            for(let r=staffHeaderRow+1;r<=staffHeaderRow+30;r++) {
+                const name=v(s3,r,1); if(!name) break;
+                d.ar.staff.push({name,customers:n(s3,r,2),unsettled:n(s3,r,3),d0_30:n(s3,r,4),d31_90:n(s3,r,5),d91_180:n(s3,r,6),d180plus:n(s3,r,7),over30Rate:v(s3,r,8)});
+            }
+        }
+        // 找"区间"表头行(账龄分布)，动态读取账龄数据
+        let agingHeaderRow = 0;
+        for(let r=1;r<=50;r++) { if(String(v(s3,r,1)).includes('区间')) { agingHeaderRow=r; break; } }
+        if(agingHeaderRow) {
+            for(let r=agingHeaderRow+1;r<=agingHeaderRow+10;r++) {
+                const range=v(s3,r,1); if(!range) break;
+                d.ar.aging.push({range,count:n(s3,r,2),amount:n(s3,r,3),ratio:v(s3,r,4)});
+            }
+        }
+        // 找"排名"表头行(TOP10客户)，动态读取客户数据
+        let top10HeaderRow = 0;
+        for(let r=1;r<=60;r++) { if(String(v(s3,r,1)).includes('排名')&&String(v(s3,r,2)).includes('客户')) { top10HeaderRow=r; break; } }
+        if(top10HeaderRow) {
+            for(let r=top10HeaderRow+1;r<=top10HeaderRow+15;r++) {
+                const rank=v(s3,r,1); if(!rank) break;
+                d.ar.top10.push({rank,customer:v(s3,r,2),salesman:v(s3,r,3),amount:n(s3,r,4),agingRange:v(s3,r,5),docCount:n(s3,r,6),earliest:v(s3,r,7),latest:v(s3,r,8)});
+            }
+        }
     }
 
     // ===== Sheet4 审批数据 =====
@@ -724,9 +744,19 @@ function renderAR(d) {
 
     setTimeout(() => {
         const ac = document.getElementById('agingChart');
-        if(ac && d.ar.aging.filter(a=>!a.range.includes('合计')).length) {
-            const filtered = d.ar.aging.filter(a=>!a.range.includes('合计'));
-            createChart('agingChart', ac, {type:'doughnut',data:{labels:filtered.map(a=>a.range),datasets:[{data:filtered.map(a=>a.amount),backgroundColor:['#4ade80','#fbbf24','#f87171','#64748b']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94a3b8',font:{size:11}}}}}});
+        // 过滤掉"合计"行，只保留实际账龄区间
+        const filtered = d.ar.aging.filter(a => a.range && !String(a.range).includes('合计') && a.amount > 0);
+        if(ac && filtered.length) {
+            // 动态颜色：0-30天绿色，31-90天黄色，91-180天橙色，180天+红色，其余用备用色
+            const agingColors = filtered.map(a => {
+                const r = String(a.range);
+                if(r.includes('0-30') || r.includes('0～30')) return '#4ade80';
+                if(r.includes('31-90') || r.includes('31～90')) return '#fbbf24';
+                if(r.includes('91-180') || r.includes('91～180')) return '#fb923c';
+                if(r.includes('180')) return '#f87171';
+                return '#64748b';
+            });
+            createChart('agingChart', ac, {type:'doughnut',data:{labels:filtered.map(a=>a.range),datasets:[{data:filtered.map(a=>a.amount),backgroundColor:agingColors}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94a3b8',font:{size:11}}}}}});
         }
     }, 100);
 }
