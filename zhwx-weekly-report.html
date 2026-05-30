@@ -525,10 +525,38 @@
         .hidden {
             display: none !important;
         }
+    
+        .back-btn {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 9999;
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: #38bdf8;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .back-btn:hover {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: rgba(56, 189, 248, 0.6);
+            box-shadow: 0 4px 20px rgba(56, 189, 248, 0.2);
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <a class="back-btn" onclick="if(window.history.length>1){history.back()}else{location.href='report.html'}" href="javascript:void(0)">← 返回</a>
+<div class="container">
         <!-- Header -->
         <div class="header">
             <h1>🏢 中合五金经营周报生成器</h1>
