@@ -569,7 +569,7 @@
             <div class="upload-text">拖拽Excel文件到此处，或点击选择文件</div>
             <div class="upload-hint">支持 .xlsx 格式 · SheetJS解析 · 数据不上传服务器</div>
             <button class="btn" onclick="document.getElementById('fileInput').click()">选择Excel文件</button>
-            <input type="file" id="fileInput" accept=".xlsx,.xls">
+            <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;position:absolute;opacity:0;">
         </div>
 
         <!-- Loading -->
@@ -871,17 +871,28 @@
         const loading = document.getElementById('loading');
         const reportContent = document.getElementById('reportContent');
 
+        // 点击上传区域触发文件选择
+        uploadArea.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON') {
+                fileInput.click();
+            }
+        });
+
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             uploadArea.classList.add('drag-over');
         });
 
-        uploadArea.addEventListener('dragleave', () => {
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             uploadArea.classList.remove('drag-over');
         });
 
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             uploadArea.classList.remove('drag-over');
             const files = e.dataTransfer.files;
             if (files.length > 0) {
@@ -896,8 +907,9 @@
         });
 
         async function handleFile(file) {
+            if (!file) return;
             if (!file.name.match(/\.(xlsx|xls)$/i)) {
-                alert('请上传Excel文件 (.xlsx 或 .xls)');
+                alert('请上传Excel文件 (.xlsx 或 .xls)\n当前文件: ' + file.name);
                 return;
             }
 
@@ -906,7 +918,13 @@
 
             try {
                 const arrayBuffer = await file.arrayBuffer();
+                if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+                    throw new Error('文件内容为空');
+                }
                 workbookData = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+                if (!workbookData || !workbookData.SheetNames || workbookData.SheetNames.length === 0) {
+                    throw new Error('Excel文件中没有工作表');
+                }
                 parseAndRender();
             } catch (error) {
                 console.error('Error parsing Excel:', error);
