@@ -509,11 +509,23 @@ function renderCost(d) {
     html += `<div class="card"><div class="card-title">💸 费用构成（审批实际）</div><div class="chart-container small"><canvas id="expensePieChart"></canvas></div></div>`;
     html += `</div>`;
 
+    // 预算科目→周度成本字段映射
+    const costBudgetToWeekly = {
+        '主营业务成本':'mainCost','物流费':'logistics','折旧':'depreciation',
+        '租金':'rent','人工':'labor','其他固定':'otherFixed'
+    };
+    // 周度成本子项累加
+    const costActuals = {};
+    Object.values(costBudgetToWeekly).forEach(k => { costActuals[k] = d.weekly.cost.reduce((s,w) => s + (w[k]||0), 0); });
+
     // 成本滚动预算表
     html += `<div class="card"><div class="card-title">📊 成本滚动预算（第${ed}/${td}天）</div><table><thead><tr><th>科目</th><th class="text-right">月预算</th><th class="text-right">日均</th><th class="text-right">应达成</th><th class="text-right">实际达成</th><th class="text-center">达成率</th><th class="text-right">剩余每天需</th></tr></thead><tbody>`;
     d.budget.cost.forEach(i => {
-        const r = rollingBudget(i.amount, 0, td, ed);
-        html += `<tr><td>${i.item||'-'}</td><td class="text-right">${fmt(i.amount)}</td><td class="text-right">${fmt(r.dailyBudget)}</td><td class="text-right">${fmt(r.shouldAchieve)}</td><td class="text-right">-</td><td class="text-center">-</td><td class="text-right">-</td></tr>`;
+        const weeklyKey = costBudgetToWeekly[i.item];
+        const actual = weeklyKey ? (costActuals[weeklyKey]||0) : 0;
+        const r = rollingBudget(i.amount, actual, td, ed);
+        const onTrack = r.progressRate >= r.timeRate;
+        html += `<tr><td>${i.item||'-'}</td><td class="text-right">${fmt(i.amount)}</td><td class="text-right">${fmt(r.dailyBudget)}</td><td class="text-right">${fmt(r.shouldAchieve)}</td><td class="text-right" style="${actual>0?(onTrack?'color:#4ade80':'color:#f87171'):''}">${actual>0?fmt(actual):'-'}</td><td class="text-center">${actual>0?'<span class="badge '+(onTrack?'badge-green':'badge-red')+'">'+pct(actual/i.amount)+'</span>':'-'}</td><td class="text-right ${actual>0&&onTrack?'budget-ok':actual>0?'budget-gap':''}">${actual>0&&r.remaining>0?fmt(r.dailyNeed):actual>0?'已完成':'-'}</td></tr>`;
     });
     html += `<tr style="background:rgba(14,165,233,0.1);font-weight:600"><td>成本合计</td><td class="text-right">${fmt(totalCostBudget)}</td><td class="text-right">${fmt(costRoll.dailyBudget)}</td><td class="text-right">${fmt(costRoll.shouldAchieve)}</td><td class="text-right" style="${costRoll.onTrack?'color:#4ade80':'color:#f87171'}">${fmt(d.monthTotalCost)}</td><td class="text-center"><span class="badge ${costRoll.onTrack?'badge-green':'badge-yellow'}">${pct(costRoll.progressRate)}</span></td><td class="text-right ${costRoll.onTrack?'budget-ok':'budget-gap'}">${costRoll.remaining>0?fmt(costRoll.dailyNeed):'已完成'}</td></tr>`;
     html += `</tbody></table></div>`;
