@@ -312,8 +312,8 @@ function parseWorkbook(wb) {
     // 总体回款率 = 累计已回款 / 累计销售额
     d.overallReturnRate = d.cumulativeSales > 0 ? d.cumulativeReturn / d.cumulativeSales : 0;
 
-    // 成本费用汇总
-    d.monthTotalCost = d.weekly.cost.reduce((s,w)=>s+w.total,0);
+    // 成本费用汇总（注意：Sheet2合计列可能不含折旧/租金/人工，需逐项累加）
+    d.monthTotalCost = d.weekly.cost.reduce((s,w) => s + w.mainCost + w.logistics + w.depreciation + w.rent + w.labor + w.otherFixed, 0);
     // 费用实际来自Sheet4审批数据(排除运杂物流费，运杂物流费属成本)
     d.monthTotalExpense = d.approval.expenseTypes.filter(e => e.item !== '运杂物流费').reduce((s,e) => s + e.amount, 0);
     // 审批成本金额(来自审批类别)
