@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f172a">
+    <title>企微审批统计 - 财务工具箱</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'PingFang SC','Microsoft YaHei',-apple-system,BlinkMacSystemFont,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;overflow-x:hidden}
+
+        .bg-particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+        .bg-particles span{position:absolute;border-radius:50%;background:rgba(59,130,246,.12);animation:float linear infinite}
+        @keyframes float{0%{transform:translateY(100vh) scale(0);opacity:0}50%{opacity:1}100%{transform:translateY(-10vh) scale(1);opacity:0}}
+
+        .header{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:24px 20px 0}
+        .hero{position:relative;z-index:1;text-align:center;padding:30px 20px 20px}
+        .hero-icon{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,#3b82f6,#06b6d4);font-size:28px;margin-bottom:16px;box-shadow:0 6px 24px rgba(59,130,246,.3)}
+        .hero h1{font-size:28px;font-weight:700;background:linear-gradient(135deg,#fff 0%,#93c5fd 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:2px;margin-bottom:6px}
+        .hero .subtitle{font-size:14px;color:#94a3b8;letter-spacing:2px}
+
+        .back-btn {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 9999;
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: #38bdf8;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .back-btn:hover {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: rgba(56, 189, 248, 0.6);
+            box-shadow: 0 4px 20px rgba(56, 189, 248, 0.2);
+        }
+
+        .main{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:20px 20px 60px}
+
+        .upload-section{margin-bottom:30px}
+        .upload-title{font-size:18px;font-weight:600;color:#e2e8f0;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+        .upload-title .icon{font-size:20px}
+        .upload-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+        @media(max-width:900px){.upload-grid{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:600px){.upload-grid{grid-template-columns:1fr}}
+
+        .upload-card{background:linear-gradient(145deg,rgba(30,41,59,.8),rgba(15,23,42,.9));border:2px dashed rgba(148,163,184,.2);border-radius:16px;padding:24px 16px;text-align:center;cursor:pointer;transition:all .3s}
+        .upload-card:hover{border-color:rgba(59,130,246,.5);background:linear-gradient(145deg,rgba(30,58,85,.8),rgba(15,32,58,.9))}
+        .upload-card.dragover{border-color:#3b82f6;border-style:solid;background:rgba(59,130,246,.1)}
+        .upload-card.loaded{border-color:rgba(16,185,129,.5);border-style:solid;background:linear-gradient(145deg,rgba(16,41,32,.8),rgba(16,32,42,.9))}
+        .upload-card .file-icon{font-size:36px;margin-bottom:10px;display:block}
+        .upload-card .file-name{font-size:13px;color:#94a3b8;margin-bottom:8px;word-break:break-all}
+        .upload-card .file-status{font-size:12px;padding:4px 12px;border-radius:12px;display:inline-block}
+        .upload-card .file-status.pending{background:rgba(148,163,184,.15);color:#94a3b8}
+        .upload-card .file-status.success{background:rgba(16,185,129,.2);color:#34d399}
+        .upload-card input{display:none}
+
+        .action-bar{display:flex;gap:12px;justify-content:center;margin:24px 0;flex-wrap:wrap}
+        .btn{padding:12px 32px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .3s;border:none}
+        .btn-primary{background:linear-gradient(135deg,#3b82f6,#06b6d4);color:#fff}
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(59,130,246,.4)}
+        .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+        .btn-secondary{background:rgba(30,41,59,.8);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+        .btn-secondary:hover{border-color:rgba(148,163,184,.4);color:#e2e8f0}
+
+        .stats-section{display:none;margin-top:30px}
+        .stats-section.show{display:block}
+
+        .summary-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:24px}
+        @media(max-width:1000px){.summary-cards{grid-template-columns:repeat(3,1fr)}}
+        @media(max-width:700px){.summary-cards{grid-template-columns:repeat(2,1fr)}}
+        .stat-card{background:linear-gradient(145deg,rgba(30,41,59,.8),rgba(15,23,42,.9));border:1px solid rgba(148,163,184,.1);border-radius:14px;padding:20px 16px;text-align:center}
+        .stat-card .stat-value{font-size:28px;font-weight:700;margin-bottom:4px}
+        .stat-card .stat-label{font-size:13px;color:#94a3b8}
+        .stat-card.cost .stat-value{color:#f472b6}
+        .stat-card.fee .stat-value{color:#34d399}
+        .stat-card.asset .stat-value{color:#fbbf24}
+        .stat-card.cash .stat-value{color:#60a5fa}
+        .stat-card.total .stat-value{color:#a78bfa}
+
+        .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;border-bottom:1px solid rgba(148,163,184,.1);padding-bottom:12px}
+        .tab{padding:10px 20px;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;background:rgba(30,41,59,.6);color:#94a3b8;border:none;transition:all .3s}
+        .tab:hover{background:rgba(59,130,246,.15);color:#60a5fa}
+        .tab.active{background:linear-gradient(135deg,rgba(59,130,246,.3),rgba(6,182,212,.3));color:#fff;border:1px solid rgba(59,130,246,.4)}
+
+        .tab-content{display:none;background:linear-gradient(145deg,rgba(30,41,59,.8),rgba(15,23,42,.9));border:1px solid rgba(148,163,184,.1);border-radius:16px;padding:24px;overflow-x:auto}
+        .tab-content.active{display:block}
+        .tab-content h3{font-size:16px;color:#e2e8f0;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(148,163,184,.1)}
+        .tab-content h4{font-size:14px;color:#94a3b8;margin:16px 0 12px}
+
+        .data-table{width:100%;border-collapse:collapse;font-size:13px;min-width:600px}
+        .data-table th{background:linear-gradient(135deg,#1e40af,#0369a1);color:#fff;padding:12px 10px;text-align:left;font-weight:600;white-space:nowrap;position:sticky;top:0}
+        .data-table td{padding:10px;border-bottom:1px solid rgba(148,163,184,.08)}
+        .data-table tr:hover td{background:rgba(59,130,246,.05)}
+        .data-table .num{text-align:right;font-variant-numeric:tabular-nums}
+        .data-table .amount{text-align:right;font-variant-numeric:tabular-nums;color:#60a5fa}
+
+        .section-group{margin-bottom:20px}
+        .group-header{background:rgba(59,130,246,.1);padding:10px 14px;border-radius:8px;display:flex;justify-content:space-between;font-weight:600;color:#93c5fd;margin-bottom:8px}
+        .subtotal-row td{background:rgba(59,130,246,.05);font-weight:600;color:#93c5fd;border-top:1px dashed rgba(59,130,246,.3)}
+
+        .category-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500}
+        .badge-cost{background:rgba(244,114,182,.2);color:#f472b6}
+        .badge-fee{background:rgba(52,211,153,.2);color:#34d399}
+        .badge-asset{background:rgba(251,191,36,.2);color:#fbbf24}
+        .badge-cash{background:rgba(96,165,250,.2);color:#60a5fa}
+
+        .top10-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+        @media(max-width:700px){.top10-grid{grid-template-columns:1fr}}
+        .top10-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(30,41,59,.5);border-radius:10px;border:1px solid rgba(148,163,184,.08)}
+        .top10-item .rank{font-weight:700;color:#60a5fa;min-width:28px}
+        .top10-item .name{flex:1;margin-left:12px;color:#e2e8f0}
+        .top10-item .amount{font-weight:600;color:#fbbf24;font-variant-numeric:tabular-nums}
+
+        .comparison-chart{margin:20px 0;padding:20px;background:rgba(15,23,42,.5);border-radius:12px}
+        .chart-bar{display:flex;align-items:center;margin:10px 0}
+        .chart-label{min-width:80px;color:#94a3b8;font-size:13px}
+        .chart-track{flex:1;height:24px;background:rgba(30,41,59,.8);border-radius:12px;overflow:hidden;margin:0 12px}
+        .chart-fill{height:100%;border-radius:12px;transition:width .6s ease}
+        .chart-fill.cost{background:linear-gradient(90deg,#f472b6,#ec4899)}
+        .chart-fill.fee{background:linear-gradient(90deg,#34d399,#10b981)}
+        .chart-fill.asset{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
+        .chart-fill.cash{background:linear-gradient(90deg,#60a5fa,#3b82f6)}
+        .chart-value{min-width:100px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+
+        .dept-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+        @media(max-width:800px){.dept-grid{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:500px){.dept-grid{grid-template-columns:1fr}}
+        .dept-item{display:flex;justify-content:space-between;padding:12px 14px;background:rgba(30,41,59,.5);border-radius:10px;border:1px solid rgba(148,163,184,.08)}
+        .dept-item .name{color:#94a3b8;font-size:13px}
+        .dept-item .value{font-weight:600;color:#60a5fa;font-variant-numeric:tabular-nums}
+
+        footer{position:relative;z-index:1;text-align:center;padding:40px 20px 24px;color:#475569;font-size:12px;letter-spacing:1px;line-height:1.8}
+        footer .copyright-line1{color:#64748b}
+        footer .copyright-line2{margin-top:4px;font-size:11px;opacity:.7}
+
+        .help-text{font-size:12px;color:#64748b;margin-top:8px}
+        .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+        @media(max-width:700px){.stat-row{grid-template-columns:repeat(2,1fr)}}
+        .stat-item{background:rgba(15,23,42,.5);padding:14px;border-radius:10px;text-align:center}
+        .stat-item .val{font-size:20px;font-weight:700;color:#a78bfa}
+        .stat-item .lbl{font-size:12px;color:#64748b;margin-top:4px}
+    </style>
+</head>
+<body>
+
+<div class="bg-particles" id="particles"></div>
+
+<div class="header">
+    <a class="back-btn" onclick="if(window.history.length>1){history.back()}else{location.href='non-tax.html'}" href="javascript:void(0)">← 返回</a>
+</div>
+
+<div class="hero">
+    <div class="hero-icon">📊</div>
+    <h1>企微审批统计</h1>
+    <p class="subtitle">上传企微审批导出数据，自动生成分析报告</p>
+</div>
+
+<div class="main">
+    <div class="upload-section">
+        <div class="upload-title"><span class="icon">📁</span>上传审批文件</div>
+        <div class="upload-grid">
+            <div class="upload-card" id="upload-tiaohuo" onclick="document.getElementById('file-tiaohuo').click()">
+                <span class="file-icon">🚚</span>
+                <div class="file-name">调货付款（急付）</div>
+                <div class="file-status pending">点击上传</div>
+                <input type="file" id="file-tiaohuo" accept=".xlsx,.xls" onchange="handleFile(this, 'tiaohuo')">
+            </div>
+            <div class="upload-card" id="upload-baoxiao" onclick="document.getElementById('file-baoxiao').click()">
+                <span class="file-icon">📝</span>
+                <div class="file-name">费用报销</div>
+                <div class="file-status pending">点击上传</div>
+                <input type="file" id="file-baoxiao" accept=".xlsx,.xls" onchange="handleFile(this, 'baoxiao')">
+            </div>
+            <div class="upload-card" id="upload-fukuan" onclick="document.getElementById('file-fukuan').click()">
+                <span class="file-icon">💰</span>
+                <div class="file-name">付款申请</div>
+                <div class="file-status pending">点击上传</div>
+                <input type="file" id="file-fukuan" accept=".xlsx,.xls" onchange="handleFile(this, 'fukuan')">
+            </div>
+            <div class="upload-card" id="upload-jiezhi" onclick="document.getElementById('file-jiezhi').click()">
+                <span class="file-icon">💳</span>
+                <div class="file-name">借支</div>
+                <div class="file-status pending">点击上传</div>
+                <input type="file" id="file-jiezhi" accept=".xlsx,.xls" onchange="handleFile(this, 'jiezhi')">
+            </div>
+        </div>
+        <div class="help-text" style="text-align:center;margin-top:12px;">支持拖拽上传，仅解析已通过+审批中的记录，已撤销/已驳回自动排除</div>
+    </div>
+
+    <div class="action-bar">
+        <button class="btn btn-primary" id="btn-analyze" disabled onclick="analyzeAndShow()">📊 开始分析</button>
+        <button class="btn btn-secondary" id="btn-export" disabled onclick="exportToExcel()">📥 导出Excel</button>
+        <button class="btn btn-secondary" onclick="resetAll()">🔄 重置</button>
+    </div>
+
+    <div class="stats-section" id="stats-section">
+        <div class="summary-cards">
+            <div class="stat-card cost"><div class="stat-value" id="stat-cost">-</div><div class="stat-label">成本合计</div></div>
+            <div class="stat-card fee"><div class="stat-value" id="stat-fee">-</div><div class="stat-label">费用合计</div></div>
+            <div class="stat-card asset"><div class="stat-value" id="stat-asset">-</div><div class="stat-label">资产合计</div></div>
+            <div class="stat-card cash"><div class="stat-value" id="stat-cash">-</div><div class="stat-label">资金合计</div></div>
+            <div class="stat-card total"><div class="stat-value" id="stat-total">-</div><div class="stat-label">总计</div></div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab(0)">1.汇总统计</button>
+            <button class="tab" onclick="switchTab(1)">2.成本费用分类</button>
+            <button class="tab" onclick="switchTab(2)">3.交叉分析</button>
+            <button class="tab" onclick="switchTab(3)">4.流程类型明细</button>
+            <button class="tab" onclick="switchTab(4)">5.成本明细</button>
+            <button class="tab" onclick="switchTab(5)">6.费用明细</button>
+            <button class="tab" onclick="switchTab(6)">7.资金明细</button>
+            <button class="tab" onclick="switchTab(7)">8.资产明细</button>
+            <button class="tab" onclick="switchTab(8)">9.已排除明细</button>
+        </div>
+
+        <div class="tab-content active" id="tab-0"></div>
+        <div class="tab-content" id="tab-1"></div>
+        <div class="tab-content" id="tab-2"></div>
+        <div class="tab-content" id="tab-3"></div>
+        <div class="tab-content" id="tab-4"></div>
+        <div class="tab-content" id="tab-5"></div>
+        <div class="tab-content" id="tab-6"></div>
+        <div class="tab-content" id="tab-7"></div>
+        <div class="tab-content" id="tab-8"></div>
+    </div>
+</div>
+
+<footer>
+    <div class="copyright-line1">© 2026 财务工具箱 · 开发者：张洪杰</div>
+    <div class="copyright-line2">版权所有 · 未经授权禁止复制、传播或商业使用 · 侵权必究</div>
+</footer>
+
+<script>
+const pc = document.getElementById('particles');
+for(let i=0;i<12;i++){
+    const s=document.createElement('span');
+    const size=Math.random()*4+2;
+    s.style.cssText='left:'+Math.random()*100+'%;width:'+size+'px;height:'+size+'px;animation-duration:'+(Math.random()*15+10)+'s;animation-delay:'+Math.random()*10+'s';
+    pc.appendChild(s);
+}
+
+// File data store
+let fileData = { tiaohuo: null, baoxiao: null, fukuan: null, jiezhi: null };
+let allRecords = [];
+let stats = { cost: 0, fee: 0, asset: 0, cash: 0, excluded: 0 };
+
+// Format amount
+function formatMoney(v) {
+    const n = parseFloat(v) || 0;
+    return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Handle file upload
+function handleFile(input, type) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+            
+            fileData[type] = { fileName: file.name, data: jsonData };
+            
+            const card = document.getElementById('upload-' + type);
+            card.classList.add('loaded');
+            const status = card.querySelector('.file-status');
+            status.className = 'file-status success';
+            status.textContent = '✓ ' + file.name.substring(0, 20) + (file.name.length > 20 ? '...' : '');
+            
+            checkReady();
+        } catch(err) {
+            alert('File parse failed: ' + err.message);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// Check if all files are uploaded
+function checkReady() {
+    const allLoaded = Object.values(fileData).every(v => v !== null);
+    document.getElementById('btn-analyze').disabled = !allLoaded;
+}
+
+// Main analysis function
+function analyzeAndShow() {
+    allRecords = [];
+    stats = { cost: 0, fee: 0, asset: 0, cash: 0, excluded: 0 };
+    
+    if (fileData.tiaohuo) parseTiaohuo(fileData.tiaohuo.data);
+    if (fileData.baoxiao) parseBaoxiao(fileData.baoxiao.data);
+    if (fileData.fukuan) parseFukuan(fileData.fukuan.data);
+    if (fileData.jiezhi) parseJiezhi(fileData.jiezhi.data);
+    
+    // Update stat cards
+    document.getElementById('stat-cost').textContent = '¥' + formatMoney(stats.cost);
+    document.getElementById('stat-fee').textContent = '¥' + formatMoney(stats.fee);
+    document.getElementById('stat-asset').textContent = '¥' + formatMoney(stats.asset);
+    document.getElementById('stat-cash').textContent = '¥' + formatMoney(stats.cash);
+    document.getElementById('stat-total').textContent = '¥' + formatMoney(stats.cost + stats.fee + stats.asset + stats.cash);
+    
+    // Generate tab contents
+    generateTab0();
+    generateTab1();
+    generateTab2();
+    generateTab3();
+    generateTab4();
+    generateTab5();
+    generateTab6();
+    generateTab7();
+    generateTab8();
+    
+    document.getElementById('stats-section').classList.add('show');
+    document.getElementById('btn-export').disabled = false;
+    window.scrollTo({top: document.getElementById('stats-section').offsetTop - 100, behavior: 'smooth'});
+}
+
+// Parse 调货付款
+function parseTiaohuo(data) {
+    if (data.length < 2) return;
+    
+    for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const status = row[18] || '';
+        const amount = parseFloat(row[11]) || 0;
+        const reason = (row[9] || '').toLowerCase();
+        const supplier = (row[10] || '').toLowerCase();
+        const dept = normalizeDept(row[7]);
+        
+        if (status.includes('已撤销') || status.includes('已驳回')) {
+            allRecords.push({
+                type: '调货付款', category: 'excluded', status: status, amount: amount,
+                applicant: row[4] || '', dept: dept, reason: row[9] || '', submitTime: row[2] || '', detail: row[10] || ''
+            });
+            stats.excluded += amount;
+            continue;
+        }
+        
+        let category = '', subCategory = '';
+        
+        if (reason.includes('运费') || reason.includes('油费') || reason.includes('油卡')) {
+            category = 'fee';
+            subCategory = '运杂物流费';
+        } else if (reason.includes('电视') || reason.includes('冰箱') || reason.includes('空调') || reason.includes('电脑')) {
+            category = 'asset';
+            subCategory = '低值易耗品';
+        } else if (reason.includes('买车') || supplier.includes('车贷')) {
+            category = 'asset';
+            subCategory = '车辆购置';
+        } else if (supplier.includes('车贷')) {
+            category = 'asset';
+            subCategory = '车辆贷款';
+        } else {
+            category = 'cost';
+            subCategory = '采购货款';
+        }
+        
+        allRecords.push({
+            type: '调货付款', category: category, subCategory: subCategory, status: status, amount: amount,
+            applicant: row[4] || '', dept: dept, reason: row[9] || '', submitTime: row[2] || '', detail: row[10] || ''
+        });
+        
+        if (category !== 'excluded') stats[category] += amount;
+    }
+}
+
+// Parse 费用报销
+function parseBaoxiao(data) {
+    if (data.length < 2) return;
+    
+    for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const status = row[18] || '';
+        const amount = parseFloat(row[12]) || 0;
+        const bxType = row[8] || '';
+        const dept = normalizeDept(row[9]);
+        
+        if (status.includes('已撤销') || status.includes('已驳回')) {
+            allRecords.push({
+                type: '费用报销', category: 'excluded', status: status, amount: amount,
+                applicant: row[4] || '', dept: dept, reason: bxType, submitTime: row[2] || '', detail: row[14] || ''
+            });
+            stats.excluded += amount;
+            continue;
+        }
+        
+        let category = 'fee';
+        let subCategory = normalizeBxType(bxType);
+        
+        if (bxType.includes('员工工资') || bxType.includes('工资')) {
+            category = 'cash';
+            subCategory = '备用金';
+        }
+        
+        allRecords.push({
+            type: '费用报销', category: category, subCategory: subCategory, status: status, amount: amount,
+            applicant: row[4] || '', dept: dept, reason: bxType, submitTime: row[2] || '', detail: row[14] || ''
+        });
+        
+        if (category !== 'excluded') stats[category] += amount;
+    }
+}
+
+// Parse 付款申请
+function parseFukuan(data) {
+    if (data.length < 2) return;
+    
+    for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const status = row[18] || '';
+        const amount = parseFloat(row[11]) || 0;
+        const reason = (row[9] || '').toLowerCase();
+        const supplier = (row[10] || '').toLowerCase();
+        const dept = normalizeDept(row[7]);
+        
+        if (status.includes('已撤销') || status.includes('已驳回')) {
+            allRecords.push({
+                type: '付款申请', category: 'excluded', status: status, amount: amount,
+                applicant: row[4] || '', dept: dept, reason: row[9] || '', submitTime: row[2] || '', detail: row[10] || ''
+            });
+            stats.excluded += amount;
+            continue;
+        }
+        
+        let category = '', subCategory = '';
+        
+        if (reason.includes('退回') || reason.includes('退款')) {
+            category = 'cash';
+            subCategory = '退回货款';
+        } else if (reason.includes('车贷') || supplier.includes('车贷')) {
+            category = 'asset';
+            subCategory = '车辆贷款';
+        } else if (reason.includes('买车') || reason.includes('购车') || reason.includes('车辆购置')) {
+            category = 'asset';
+            subCategory = '车辆购置';
+        } else {
+            category = 'cost';
+            subCategory = '采购货款';
+        }
+        
+        allRecords.push({
+            type: '付款申请', category: category, subCategory: subCategory, status: status, amount: amount,
+            applicant: row[4] || '', dept: dept, reason: row[9] || '', submitTime: row[2] || '', detail: row[10] || ''
+        });
+        
+        if (category !== 'excluded') stats[category] += amount;
+    }
+}
+
+// Parse 借支
+function parseJiezhi(data) {
+    if (data.length < 2) return;
+    
+    for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const status = row[20] || '';
+        const amount = parseFloat(row[9]) || 0;
+        const dept = normalizeDept(row[5]);
+        
+        if (status.includes('已撤销') || status.includes('已驳回')) {
+            allRecords.push({
+                type: '借支', category: 'excluded', status: status, amount: amount,
+                applicant: row[4] || '', dept: dept, reason: row[8] || '', submitTime: row[2] || '', detail: ''
+            });
+            stats.excluded += amount;
+            continue;
+        }
+        
+        allRecords.push({
+            type: '借支', category: 'cash', subCategory: '备用金', status: status, amount: amount,
+            applicant: row[4] || '', dept: dept, reason: row[8] || '', submitTime: row[2] || '', detail: ''
+        });
+        
+        stats.cash += amount;
+    }
+}
+
+// Normalize department
+function normalizeDept(dept) {
+    if (!dept || dept === '' || (dept && dept.includes('西藏中合五金'))) {
+        return '未标注/本人提交';
+    }
+    return dept;
+}
+
+// Normalize expense type
+function normalizeBxType(type) {
+    const typeMap = {
+        '运杂物流费': '运杂物流费', '交通费': '交通费', '差旅费': '差旅费',
+        '业务招待费': '业务招待费', '办公费': '办公费', '通讯费': '通讯费',
+        '福利费': '福利费', '车辆使用费': '车辆使用费', '维修维护费': '维修维护费',
+        '服务费': '服务费', '其它': '其他', '其他': '其他', '伙食费': '伙食费',
+        '劳保用品': '劳保用品', '员工工资': '备用金', '工资': '备用金'
+    };
+    return typeMap[type] || type || '其他';
+}
+
+// Tab switch
+function switchTab(index) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('active', i === index);
+    });
+    document.querySelectorAll('.tab-content').forEach((c, i) => {
+        c.classList.toggle('active', i === index);
+    });
+}
+
+// Generate Tab0: Summary
+function generateTab0() {
+    const total = stats.cost + stats.fee + stats.asset + stats.cash;
+    const validRecords = allRecords.filter(r => r.category !== 'excluded');
+    const excludedRecords = allRecords.filter(r => r.category === 'excluded');
+    
+    // Applicant TOP10
+    const applicantStats = {};
+    validRecords.forEach(r => {
+        applicantStats[r.applicant] = (applicantStats[r.applicant] || 0) + r.amount;
+    });
+    const topApplicants = Object.entries(applicantStats).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    
+    // Department stats
+    const deptStats = {};
+    validRecords.forEach(r => {
+        deptStats[r.dept] = (deptStats[r.dept] || 0) + r.amount;
+    });
+    const topDepts = Object.entries(deptStats).sort((a, b) => b[1] - a[1]).slice(0, 12);
+    
+    let html = '<h3>📊 汇总统计概览</h3>';
+    
+    html += '<div class="comparison-chart">';
+    html += '<div style="margin-bottom:16px;font-weight:600;color:#94a3b8;">金额构成</div>';
+    
+    const items = [
+        {label: '成本', value: stats.cost, cls: 'cost'},
+        {label: '费用', value: stats.fee, cls: 'fee'},
+        {label: '资产', value: stats.asset, cls: 'asset'},
+        {label: '资金', value: stats.cash, cls: 'cash'}
+    ];
+    
+    items.forEach(item => {
+        const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : 0;
+        const width = total > 0 ? (item.value / total * 100) : 0;
+        html += '<div class="chart-bar">';
+        html += '<span class="chart-label">'+item.label+'</span>';
+        html += '<div class="chart-track"><div class="chart-fill '+item.cls+'" style="width:'+width+'%"></div></div>';
+        const color = item.cls === 'cost' ? '#f472b6' : item.cls === 'fee' ? '#34d399' : item.cls === 'asset' ? '#fbbf24' : '#60a5fa';
+        html += '<span class="chart-value" style="color:'+color+'">¥'+formatMoney(item.value)+' ('+pct+'%)</span>';
+        html += '</div>';
+    });
+    html += '</div>';
+    
+    html += '<div class="stat-row">';
+    html += '<div class="stat-item"><div class="val">'+validRecords.length+'</div><div class="lbl">有效记录</div></div>';
+    html += '<div class="stat-item"><div class="val">'+validRecords.filter(r=>r.type==='调货付款').length+'</div><div class="lbl">调货付款</div></div>';
+    html += '<div class="stat-item"><div class="val">'+validRecords.filter(r=>r.type==='费用报销').length+'</div><div class="lbl">费用报销</div></div>';
+    html += '<div class="stat-item"><div class="val" style="color:#fca5a5">'+excludedRecords.length+'</div><div class="lbl">已排除</div></div>';
+    html += '</div>';
+    
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px">';
+    
+    // Applicant TOP10
+    html += '<div><h4 style="color:#94a3b8;font-size:14px;margin-bottom:12px">📋 申请人TOP10</h4><div class="top10-grid">';
+    topApplicants.forEach((item, i) => {
+        html += '<div class="top10-item"><span class="rank">'+(i+1)+'</span><span class="name">'+item[0]+'</span><span class="amount">¥'+formatMoney(item[1])+'</span></div>';
+    });
+    html += '</div></div>';
+    
+    // Department stats
+    html += '<div><h4 style="color:#94a3b8;font-size:14px;margin-bottom:12px">🏢 部门统计</h4><div class="dept-grid">';
+    topDepts.forEach(item => {
+        html += '<div class="dept-item"><span class="name">'+item[0]+'</span><span class="value">¥'+formatMoney(item[1])+'</span></div>';
+    });
+    html += '</div></div></div>';
+    
+    document.getElementById('tab-0').innerHTML = html;
+}
+
+// Generate Tab1: Category summary
+function generateTab1() {
+    const validRecords = allRecords.filter(r => r.category !== 'excluded');
+    const total = stats.cost + stats.fee + stats.asset + stats.cash;
+    
+    const categories = {
+        'cost': { name: '成本', records: [], color: '#f472b6', bg: 'rgba(244,114,182,.08)' },
+        'fee': { name: '费用', records: [], color: '#34d399', bg: 'rgba(52,211,153,.08)' },
+        'asset': { name: '资产', records: [], color: '#fbbf24', bg: 'rgba(251,191,36,.08)' },
+        'cash': { name: '资金', records: [], color: '#60a5fa', bg: 'rgba(96,165,250,.08)' }
+    };
+    
+    validRecords.forEach(r => {
+        if (categories[r.category]) categories[r.category].records.push(r);
+    });
+    
+    let html = '<h3>📁 成本费用分类汇总</h3>';
+    html += '<table class="data-table"><thead><tr><th>分类</th><th>细类</th><th>笔数</th><th>金额</th><th>占比</th></tr></thead><tbody>';
+    
+    Object.entries(categories).forEach(([key, cat]) => {
+        if (cat.records.length > 0) {
+            const catTotal = cat.records.reduce((s, r) => s + r.amount, 0);
+            const catPct = total > 0 ? (catTotal / total * 100).toFixed(2) : '0.00';
+            
+            const subGroups = {};
+            cat.records.forEach(r => {
+                const sub = r.subCategory || '其他';
+                if (!subGroups[sub]) subGroups[sub] = { records: [], total: 0 };
+                subGroups[sub].records.push(r);
+                subGroups[sub].total += r.amount;
+            });
+            
+            let firstRow = true;
+            Object.entries(subGroups).forEach(([subName, subData]) => {
+                const subPct = catTotal > 0 ? (subData.total / catTotal * 100).toFixed(2) : '0.00';
+                
+                if (firstRow) {
+                    html += '<tr style="background:'+cat.bg+'">';
+                    html += '<td rowspan="'+Object.keys(subGroups).length+'" style="font-weight:700;color:'+cat.color+'">'+cat.name+'</td>';
+                    html += '<td>'+subName+'</td><td class="num">'+subData.records.length+'</td>';
+                    html += '<td class="amount">¥'+formatMoney(subData.total)+'</td>';
+                    html += '<td class="num">'+catPct+'%</td></tr>';
+                    firstRow = false;
+                } else {
+                    html += '<tr style="background:'+cat.bg+'">';
+                    html += '<td>'+subName+'</td><td class="num">'+subData.records.length+'</td>';
+                    html += '<td class="amount">¥'+formatMoney(subData.total)+'</td>';
+                    html += '<td class="num">'+catPct+'%</td></tr>';
+                }
+            });
+        }
+    });
+    
+    html += '</tbody></table>';
+    document.getElementById('tab-1').innerHTML = html;
+}
+
+// Generate Tab2: Cross analysis
+function generateTab2() {
+    const validRecords = allRecords.filter(r => r.category !== 'excluded');
+    const types = ['调货付款', '费用报销', '付款申请', '借支'];
+    const cats = ['cost', 'fee', 'asset', 'cash'];
+    const catNames = { cost: '成本', fee: '费用', asset: '资产', cash: '资金' };
+    const catColors = { cost: '#f472b6', fee: '#34d399', asset: '#fbbf24', cash: '#60a5fa' };
+    
+    const matrix = {};
+    types.forEach(t => {
+        matrix[t] = {};
+        cats.forEach(c => { matrix[t][c] = { count: 0, amount: 0 }; });
+    });
+    
+    validRecords.forEach(r => {
+        if (matrix[r.type] && matrix[r.type][r.category]) {
+            matrix[r.type][r.category].count++;
+            matrix[r.type][r.category].amount += r.amount;
+        }
+    });
+    
+    let html = '<h3>📊 流程类型 × 分类交叉分析</h3>';
+    html += '<table class="data-table"><thead><tr><th>流程类型</th>';
+    cats.forEach(c => { html += '<th style="text-align:center;color:'+catColors[c]+'">'+catNames[c]+'</th>'; });
+    html += '<th style="text-align:right">小计</th></tr></thead><tbody>';
+    
+    types.forEach(t => {
+        html += '<tr><td style="font-weight:600">'+t+'</td>';
+        let rowTotal = 0;
+        cats.forEach(c => {
+            const cell = matrix[t][c];
+            if (cell.amount > 0) {
+                html += '<td class="amount">¥'+formatMoney(cell.amount)+'<br><span style="font-size:11px;color:#64748b">'+cell.count+'笔</span></td>';
+                rowTotal += cell.amount;
+            } else {
+                html += '<td style="color:#475569">-</td>';
+            }
+        });
+        html += '<td class="amount" style="font-weight:700">¥'+formatMoney(rowTotal)+'</td></tr>';
+    });
+    
+    html += '<tr style="background:rgba(59,130,246,.08);font-weight:700"><td>合计</td>';
+    let grandTotal = 0;
+    cats.forEach(c => {
+        const catTotal = validRecords.filter(r => r.category === c).reduce((s, r) => s + r.amount, 0);
+        html += '<td class="amount" style="color:'+catColors[c]+'">¥'+formatMoney(catTotal)+'</td>';
+        grandTotal += catTotal;
+    });
+    html += '<td class="amount" style="color:#a78bfa">¥'+formatMoney(grandTotal)+'</td></tr>';
+    
+    html += '</tbody></table>';
+    document.getElementById('tab-2').innerHTML = html;
+}
+
+// Generate Tab3: Type details
+function generateTab3() {
+    const validRecords = allRecords.filter(r => r.category !== 'excluded');
+    const types = ['调货付款', '费用报销', '付款申请', '借支'];
+    const catBadge = { cost: 'badge-cost', fee: 'badge-fee', asset: 'badge-asset', cash: 'badge-cash' };
+    const catText = { cost: '成本', fee: '费用', asset: '资产', cash: '资金' };
+    
+    let html = '<h3>📋 按流程类型分组明细</h3>';
+    
+    types.forEach(type => {
+        const records = validRecords.filter(r => r.type === type);
+        if (records.length === 0) return;
+        
+        const typeTotal = records.reduce((s, r) => s + r.amount, 0);
+        html += '<div class="section-group">';
+        html += '<div class="group-header"><span>'+type+' ('+records.length+'笔)</span><span>¥'+formatMoney(typeTotal)+'</span></div>';
+        html += '<table class="data-table"><thead><tr><th>申请人</th><th>部门</th><th>事由</th><th>状态</th><th>分类</th><th class="num">金额</th></tr></thead><tbody>';
+        
+        records.forEach(r => {
+            html += '<tr>';
+            html += '<td>'+r.applicant+'</td><td>'+r.dept+'</td>';
+            html += '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">'+(r.reason || r.detail || '-')+'</td>';
+            html += '<td>'+r.status+'</td>';
+            html += '<td><span class="category-badge '+catBadge[r.category]+'">'+catText[r.category]+'</span></td>';
+            html += '<td class="amount">¥'+formatMoney(r.amount)+'</td></tr>';
+        });
+        
+        html += '</tbody></table></div>';
+    });
+    
+    document.getElementById('tab-3').innerHTML = html;
+}
+
+// Generate Tab4: Cost details
+function generateTab4() {
+    const records = allRecords.filter(r => r.category === 'cost');
+    const types = ['调货付款', '付款申请'];
+    
+    let html = '<h3>💰 成本明细（采购货款）</h3>';
+    
+    if (records.length === 0) {
+        html += '<p style="color:#64748b;text-align:center;padding:40px">暂无成本记录</p>';
+    } else {
+        types.forEach(type => {
+            const typeRecords = records.filter(r => r.type === type);
+            if (typeRecords.length === 0) return;
+            
+            const typeTotal = typeRecords.reduce((s, r) => s + r.amount, 0);
+            html += '<div class="section-group">';
+            html += '<div class="group-header"><span>'+type+' ('+typeRecords.length+'笔)</span><span>¥'+formatMoney(typeTotal)+'</span></div>';
+            html += '<table class="data-table"><thead><tr><th>申请人</th><th>部门</th><th>事由</th><th>供应商</th><th class="num">金额</th></tr></thead><tbody>';
+            
+            typeRecords.forEach(r => {
+                html += '<tr><td>'+r.applicant+'</td><td>'+r.dept+'</td><td>'+(r.reason || '-')+'</td><td>'+(r.detail || '-')+'</td><td class="amount">¥'+formatMoney(r.amount)+'</td></tr>';
+            });
+            
+            html += '</tbody></table></div>';
+        });
+    }
+    
+    document.getElementById('tab-4').innerHTML = html;
+}
+
+// Generate Tab5: Fee details
+function generateTab5() {
+    const records = allRecords.filter(r => r.category === 'fee');
+    
+    const groups = {};
+    records.forEach(r => {
+        const sub = r.subCategory || '其他';
+        if (!groups[sub]) groups[sub] = [];
+        groups[sub].push(r);
+    });
+    
+    let html = '<h3>📝 费用明细（按报销类型）</h3>';
+    
+    if (records.length === 0) {
+        html += '<p style="color:#64748b;text-align:center;padding:40px">暂无费用记录</p>';
+    } else {
+        Object.entries(groups).forEach(([subName, subRecords]) => {
+            const subTotal = subRecords.reduce((s, r) => s + r.amount, 0);
+            html += '<div class="section-group">';
+            html += '<div class="group-header" style="background:rgba(52,211,153,.08)"><span>'+subName+' ('+subRecords.length+'笔)</span><span style="color:#34d399">¥'+formatMoney(subTotal)+'</span></div>';
+            html += '<table class="data-table"><thead><tr><th>申请人</th><th>部门</th><th>摘要</th><th class="num">金额</th></tr></thead><tbody>';
+            
+            subRecords.forEach(r => {
+                html += '<tr><td>'+r.applicant+'</td><td>'+r.dept+'</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">'+(r.detail || '-')+'</td><td class="amount">¥'+formatMoney(r.amount)+'</td></tr>';
+            });
+            
+            html += '</tbody></table></div>';
+        });
+    }
+    
+    document.getElementById('tab-5').innerHTML = html;
+}
+
+// Generate Tab6: Cash details
+function generateTab6() {
+    const records = allRecords.filter(r => r.category === 'cash');
+    
+    const groups = {};
+    records.forEach(r => {
+        const sub = r.subCategory || '其他';
+        if (!groups[sub]) groups[sub] = [];
+        groups[sub].push(r);
+    });
+    
+    let html = '<h3>💳 资金明细</h3>';
+    
+    if (records.length === 0) {
+        html += '<p style="color:#64748b;text-align:center;padding:40px">暂无资金记录</p>';
+    } else {
+        Object.entries(groups).forEach(([subName, subRecords]) => {
+            const subTotal = subRecords.reduce((s, r) => s + r.amount, 0);
+            html += '<div class="section-group">';
+            html += '<div class="group-header" style="background:rgba(96,165,250,.08)"><span>'+subName+' ('+subRecords.length+'笔)</span><span style="color:#60a5fa">¥'+formatMoney(subTotal)+'</span></div>';
+            html += '<table class="data-table"><thead><tr><th>申请人</th><th>部门</th><th>事由</th><th>类型</th><th class="num">金额</th></tr></thead><tbody>';
+            
+            subRecords.forEach(r => {
+                html += '<tr><td>'+r.applicant+'</td><td>'+r.dept+'</td><td>'+(r.reason || '-')+'</td><td>'+r.type+'</td><td class="amount">¥'+formatMoney(r.amount)+'</td></tr>';
+            });
+            
+            html += '</tbody></table></div>';
+        });
+    }
+    
+    document.getElementById('tab-6').innerHTML = html;
+}
+
+// Generate Tab7: Asset details
+function generateTab7() {
+    const records = allRecords.filter(r => r.category === 'asset');
+    
+    const groups = {};
+    records.forEach(r => {
+        const sub = r.subCategory || '其他';
+        if (!groups[sub]) groups[sub] = [];
+        groups[sub].push(r);
+    });
+    
+    let html = '<h3>🏢 资产明细</h3>';
+    
+    if (records.length === 0) {
+        html += '<p style="color:#64748b;text-align:center;padding:40px">暂无资产记录</p>';
+    } else {
+        Object.entries(groups).forEach(([subName, subRecords]) => {
+            const subTotal = subRecords.reduce((s, r) => s + r.amount, 0);
+            html += '<div class="section-group">';
+            html += '<div class="group-header" style="background:rgba(251,191,36,.08)"><span>'+subName+' ('+subRecords.length+'笔)</span><span style="color:#fbbf24">¥'+formatMoney(subTotal)+'</span></div>';
+            html += '<table class="data-table"><thead><tr><th>申请人</th><th>部门</th><th>事由</th><th>供应商</th><th class="num">金额</th></tr></thead><tbody>';
+            
+            subRecords.forEach(r => {
+                html += '<tr><td>'+r.applicant+'</td><td>'+r.dept+'</td><td>'+(r.reason || '-')+'</td><td>'+(r.detail || '-')+'</td><td class="amount">¥'+formatMoney(r.amount)+'</td></tr>';
+            });
+            
+            html += '</tbody></table></div>';
+        });
+    }
+    
+    document.getElementById('tab-7').innerHTML = html;
+}
+
+// Generate Tab8: Excluded details
+function generateTab8() {
+    const records = allRecords.filter(r => r.category === 'excluded');
+    
+    let html = '<h3>🚫 已排除明细（已撤销/已驳回）</h3>';
+    html += '<div style="margin-bottom:16px;padding:12px 16px;background:rgba(239,68,68,.1);border-radius:10px;color:#fca5a5">已排除 '+records.length+' 笔，合计 ¥'+formatMoney(stats.excluded)+'</div>';
+    
+    if (records.length === 0) {
+        html += '<p style="color:#64748b;text-align:center;padding:40px">暂无已排除记录</p>';
+    } else {
+        const types = ['调货付款', '费用报销', '付款申请', '借支'];
+        types.forEach(type => {
+            const typeRecords = records.filter(r => r.type === type);
+            if (typeRecords.length === 0) return;
+            
+            const typeTotal = typeRecords.reduce((s, r) => s + r.amount, 0);
+            html += '<div class="section-group">';
+            html += '<div class="group-header" style="background:rgba(239,68,68,.08)"><span>'+type+' ('+typeRecords.length+'笔)</span><span style="color:#fca5a5">¥'+formatMoney(typeTotal)+'</span></div>';
+            html += '<table class="data-table"><thead><tr><th>申请人</th><th>部门</th><th>事由</th><th>状态</th><th class="num">金额</th></tr></thead><tbody>';
+            
+            typeRecords.forEach(r => {
+                html += '<tr><td>'+r.applicant+'</td><td>'+r.dept+'</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">'+(r.reason || r.detail || '-')+'</td>';
+                html += '<td><span style="color:#fca5a5">'+r.status+'</span></td><td class="amount">¥'+formatMoney(r.amount)+'</td></tr>';
+            });
+            
+            html += '</tbody></table></div>';
+        });
+    }
+    
+    document.getElementById('tab-8').innerHTML = html;
+}
+
+// Export to Excel
+function exportToExcel() {
+    const validRecords = allRecords.filter(r => r.category !== 'excluded');
+    const excludedRecords = allRecords.filter(r => r.category === 'excluded');
+    
+    const wb = XLSX.utils.book_new();
+    
+    // Sheet1: Summary
+    const total = stats.cost + stats.fee + stats.asset + stats.cash;
+    const summaryData = [
+        ['企微审批流程统计分析报告'],
+        ['生成时间:', new Date().toLocaleString('zh-CN')],
+        [],
+        ['分类', '金额', '占比'],
+        ['成本合计', stats.cost, { t: 'n', z: '0.00%' }],
+        ['费用合计', stats.fee, { t: 'n', z: '0.00%' }],
+        ['资产合计', stats.asset, { t: 'n', z: '0.00%' }],
+        ['资金合计', stats.cash, { t: 'n', z: '0.00%' }],
+        ['总计', total, '100.00%'],
+        [],
+        ['有效记录数:', validRecords.length],
+        ['已排除记录数:', excludedRecords.length, '金额:', stats.excluded]
+    ];
+    const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, ws1, '1.汇总统计');
+    
+    // Sheet2: Category
+    const catData = [['分类', '细类', '笔数', '金额', '占比']];
+    ['cost', 'fee', 'asset', 'cash'].forEach(cat => {
+        const catRecords = validRecords.filter(r => r.category === cat);
+        if (catRecords.length > 0) {
+            const catNames = { cost: '成本', fee: '费用', asset: '资产', cash: '资金' };
+            const groups = {};
+            catRecords.forEach(r => {
+                const sub = r.subCategory || '其他';
+                if (!groups[sub]) groups[sub] = [];
+                groups[sub].push(r);
+            });
+            const catTotal = catRecords.reduce((s, r) => s + r.amount, 0);
+            Object.entries(groups).forEach(([sub, recs]) => {
+                const subTotal = recs.reduce((s, r) => s + r.amount, 0);
+                catData.push([catNames[cat], sub, recs.length, subTotal, { t: 'n', z: '0.00%' }]);
+            });
+        }
+    });
+    const ws2 = XLSX.utils.aoa_to_sheet(catData);
+    XLSX.utils.book_append_sheet(wb, ws2, '2.成本费用分类');
+    
+    // Sheet3: Cross
+    const crossData = [['流程类型', '成本', '费用', '资产', '资金', '小计']];
+    const types = ['调货付款', '费用报销', '付款申请', '借支'];
+    const cats = ['cost', 'fee', 'asset', 'cash'];
+    types.forEach(type => {
+        const row = [type];
+        let rowTotal = 0;
+        cats.forEach(cat => {
+            const cell = validRecords.filter(r => r.type === type && r.category === cat);
+            const amt = cell.reduce((s, r) => s + r.amount, 0);
+            row.push(amt);
+            rowTotal += amt;
+        });
+        row.push(rowTotal);
+        crossData.push(row);
+    });
+    const ws3 = XLSX.utils.aoa_to_sheet(crossData);
+    XLSX.utils.book_append_sheet(wb, ws3, '3.交叉分析');
+    
+    // Detail sheets
+    const makeDetailSheet = (title, records) => {
+        const data = [[title], ['申请人', '部门', '事由/摘要', '供应商', '类型', '分类', '状态', '金额']];
+        records.forEach(r => {
+            data.push([r.applicant, r.dept, r.reason || r.detail || '', r.detail || '', r.type, r.subCategory || '', r.status, r.amount]);
+        });
+        return XLSX.utils.aoa_to_sheet(data);
+    };
+    
+    XLSX.utils.book_append_sheet(wb, makeDetailSheet('流程类型明细', validRecords), '4.流程类型明细');
+    XLSX.utils.book_append_sheet(wb, makeDetailSheet('成本明细', validRecords.filter(r => r.category === 'cost')), '5.成本明细');
+    XLSX.utils.book_append_sheet(wb, makeDetailSheet('费用明细', validRecords.filter(r => r.category === 'fee')), '6.费用明细');
+    XLSX.utils.book_append_sheet(wb, makeDetailSheet('资金明细', validRecords.filter(r => r.category === 'cash')), '7.资金明细');
+    XLSX.utils.book_append_sheet(wb, makeDetailSheet('资产明细', validRecords.filter(r => r.category === 'asset')), '8.资产明细');
+    XLSX.utils.book_append_sheet(wb, makeDetailSheet('已排除明细', excludedRecords), '9.已排除明细');
+    
+    const fileName = '企微审批统计分析_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+    XLSX.writeFile(wb, fileName);
+}
+
+// Reset
+function resetAll() {
+    fileData = { tiaohuo: null, baoxiao: null, fukuan: null, jiezhi: null };
+    allRecords = [];
+    stats = { cost: 0, fee: 0, asset: 0, cash: 0, excluded: 0 };
+    
+    document.querySelectorAll('.upload-card').forEach(card => {
+        card.classList.remove('loaded');
+        const status = card.querySelector('.file-status');
+        status.className = 'file-status pending';
+        status.textContent = '点击上传';
+    });
+    document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
+    
+    document.getElementById('btn-analyze').disabled = true;
+    document.getElementById('btn-export').disabled = true;
+    document.getElementById('stats-section').classList.remove('show');
+    
+    document.querySelectorAll('.stat-value').forEach(el => el.textContent = '-');
+}
+
+// Drag and drop support
+document.querySelectorAll('.upload-card').forEach(card => {
+    card.addEventListener('dragover', e => {
+        e.preventDefault();
+        card.classList.add('dragover');
+    });
+    card.addEventListener('dragleave', () => {
+        card.classList.remove('dragover');
+    });
+    card.addEventListener('drop', e => {
+        e.preventDefault();
+        card.classList.remove('dragover');
+        const type = card.id.replace('upload-', '');
+        const input = document.getElementById('file-' + type);
+        if (e.dataTransfer.files.length > 0) {
+            input.files = e.dataTransfer.files;
+            handleFile(input, type);
+        }
+    });
+});
+</script>
+</body>
+</html>
