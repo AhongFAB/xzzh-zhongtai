@@ -948,7 +948,7 @@
                 renderTab1(basicInfo, budgetData, weeklyData, receivableData);
                 renderTab2(budgetData, weeklyData);
                 renderTab3(weeklyData, budgetData);
-                renderTab4(receivableData, weeklyData);
+                renderTab4(receivableData, weeklyData, payableData);
                 renderTab5(payableData, receivableData);
                 renderTab6(budgetData, weeklyData, approvalData);
                 renderTab7(weeklyReport, approvalData);
@@ -1870,7 +1870,7 @@
         }
 
         // Render Tab4: 应收账款
-        function renderTab4(receivableData, weeklyData) {
+        function renderTab4(receivableData, weeklyData, payableData) {
             const totalReceivable = receivableData.totalReceivable;
             // 应收总额 = 业务员未结算合计
             const arTotal = receivableData.salespeople.reduce((sum, s) => sum + s.unsettled, 0);
