@@ -1,1510 +1,573 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>中合五金经营周报生成器 V5</title>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <style>
-        :root {
-            --bg-start: #0a0e1a;
-            --bg-end: #111827;
-            --card-bg: rgba(30, 58, 138, 0.15);
-            --card-border: rgba(56, 189, 248, 0.2);
-            --primary: #38bdf8;
-            --success: #4ade80;
-            --danger: #f87171;
-            --warning: #fbbf24;
-            --text: #f1f5f9;
-            --text-muted: #94a3b8;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
-            color: var(--text);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .header {
-            text-align: center;
-            padding: 30px 0;
-            border-bottom: 1px solid var(--card-border);
-            margin-bottom: 30px;
-        }
-        .header h1 {
-            font-size: 2rem;
-            color: var(--primary);
-            margin-bottom: 10px;
-        }
-        .header p { color: var(--text-muted); font-size: 0.9rem; }
-        .toolbar {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), #0ea5e9);
-            color: #0a0e1a;
-            font-weight: 600;
-        }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4); }
-        .btn-secondary {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            color: var(--text);
-        }
-        .btn-secondary:hover { background: rgba(30, 58, 138, 0.3); }
-        .file-input { display: none; }
-        .file-label {
-            padding: 12px 24px;
-            background: var(--card-bg);
-            border: 2px dashed var(--card-border);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            color: var(--primary);
-        }
-        .file-label:hover { background: rgba(30, 58, 138, 0.3); }
-        .tabs {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            border-bottom: 1px solid var(--card-border);
-            padding-bottom: 10px;
-        }
-        .tab-btn {
-            padding: 10px 20px;
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: 0.95rem;
-            border-radius: 6px 6px 0 0;
-            transition: all 0.3s;
-        }
-        .tab-btn.active {
-            background: var(--card-bg);
-            color: var(--primary);
-            border-bottom: 2px solid var(--primary);
-        }
-        .tab-btn:hover:not(.active) { color: var(--primary); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .card {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .card-title {
-            font-size: 1.1rem;
-            color: var(--primary);
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--card-border);
-        }
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .kpi-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--card-border);
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-        }
-        .kpi-label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; }
-        .kpi-value { font-size: 1.4rem; font-weight: 700; color: var(--text); }
-        .kpi-value.success { color: var(--success); }
-        .kpi-value.danger { color: var(--danger); }
-        .kpi-value.warning { color: var(--warning); }
-        .chart-container { position: relative; height: 300px; margin: 15px 0; }
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-        .data-table th, .data-table td {
-            padding: 10px 8px;
-            text-align: center;
-            border-bottom: 1px solid var(--card-border);
-        }
-        .data-table th { background: rgba(56, 189, 248, 0.1); color: var(--primary); font-weight: 600; }
-        .data-table tr:hover { background: rgba(56, 189, 248, 0.05); }
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: rgba(56, 189, 248, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 5px 0;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary), var(--success));
-            border-radius: 10px;
-            transition: width 0.5s ease;
-        }
-        .progress-fill.warning { background: linear-gradient(90deg, var(--warning), #f59e0b); }
-        .progress-fill.danger { background: linear-gradient(90deg, var(--danger), #dc2626); }
-        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
-        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--card-border); }
-        .info-label { color: var(--text-muted); }
-        .info-value { font-weight: 600; }
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-muted);
-        }
-        .empty-state svg { width: 80px; height: 80px; margin-bottom: 20px; opacity: 0.5; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
-        .badge-success { background: rgba(74, 222, 128, 0.2); color: var(--success); }
-        .badge-danger { background: rgba(248, 113, 113, 0.2); color: var(--danger); }
-        .badge-warning { background: rgba(251, 191, 36, 0.2); color: var(--warning); }
-        .footer {
-            text-align: center;
-            padding: 30px 0;
-            margin-top: 40px;
-            border-top: 1px solid var(--card-border);
-            color: var(--text-muted);
-            font-size: 0.85rem;
-        }
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: var(--primary);
-            text-decoration: none;
-            font-size: 0.9rem;
-        }
-        .back-link:hover { text-decoration: underline; }
-        .summary-row { display: flex; gap: 20px; margin-top: 15px; }
-        .summary-item { flex: 1; text-align: center; padding: 10px; background: rgba(56, 189, 248, 0.05); border-radius: 8px; }
-        .summary-item .label { font-size: 0.85rem; color: var(--text-muted); }
-        .summary-item .value { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-top: 5px; }
-        .text-right { text-align: right; }
-        .text-left { text-align: left; }
-        @media (max-width: 768px) {
-            .grid-2, .grid-3 { grid-template-columns: 1fr; }
-            .header h1 { font-size: 1.5rem; }
-            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中合五金经营周报生成器</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"Microsoft YaHei",sans-serif;background:linear-gradient(135deg,#0a0e1a 0%,#111827 100%);min-height:100vh;color:#e2e8f0;line-height:1.6}
+.container{max-width:1400px;margin:0 auto;padding:20px}
+/* 上传区 */
+.upload-section{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;padding:40px}
+.upload-box{border:2px dashed rgba(14,165,233,0.5);border-radius:20px;padding:60px 80px;text-align:center;cursor:pointer;transition:all 0.3s;background:rgba(30,58,138,0.1)}
+.upload-box:hover{border-color:#0ea5e9;background:rgba(30,58,138,0.2);transform:translateY(-2px)}
+.upload-icon{font-size:64px;margin-bottom:20px}
+.upload-title{font-size:24px;font-weight:600;color:#38bdf8;margin-bottom:12px}
+.upload-hint{font-size:14px;color:#94a3b8}
+/* 报告区 */
+.report-section{display:none}
+.report-section.active{display:block}
+/* 头部 */
+.report-header{background:rgba(30,58,138,0.3);backdrop-filter:blur(20px);border:1px solid rgba(56,189,248,0.2);border-radius:16px;padding:20px 28px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+.report-title{font-size:24px;font-weight:700;color:#38bdf8}
+.report-info{display:flex;gap:20px;font-size:14px;color:#94a3b8}
+/* Tab导航 */
+.tab-nav{display:flex;gap:4px;margin-bottom:20px;background:rgba(30,58,138,0.2);border-radius:12px;padding:4px}
+.tab-btn{flex:1;padding:12px 16px;border:none;background:transparent;color:#94a3b8;font-size:15px;font-weight:500;cursor:pointer;border-radius:10px;transition:all 0.3s}
+.tab-btn:hover{color:#e2e8f0;background:rgba(56,189,248,0.1)}
+.tab-btn.active{background:rgba(14,165,233,0.25);color:#38bdf8;font-weight:600}
+.tab-content{display:none}
+.tab-content.active{display:block}
+/* 卡片 */
+.card{background:rgba(30,58,138,0.15);backdrop-filter:blur(20px);border:1px solid rgba(56,189,248,0.2);border-radius:16px;padding:24px;margin-bottom:20px}
+.card-title{font-size:18px;font-weight:600;color:#38bdf8;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid rgba(56,189,248,0.2)}
+/* KPI卡片 */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.kpi-card{background:rgba(30,58,138,0.25);border:1px solid rgba(56,189,248,0.15);border-radius:12px;padding:20px;text-align:center}
+.kpi-label{font-size:13px;color:#94a3b8;margin-bottom:8px}
+.kpi-value{font-size:28px;font-weight:700;margin-bottom:8px}
+.kpi-value.blue{color:#38bdf8}.kpi-value.green{color:#4ade80}.kpi-value.red{color:#f87171}.kpi-value.yellow{color:#fbbf24}
+.kpi-sub{font-size:12px;color:#64748b}
+/* 进度条 */
+.progress-bar{height:6px;background:rgba(148,163,184,0.2);border-radius:3px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;border-radius:3px;transition:width 0.5s}
+.progress-fill.high{background:linear-gradient(90deg,#4ade80,#22c55e)}
+.progress-fill.mid{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
+.progress-fill.low{background:linear-gradient(90deg,#f87171,#ef4444)}
+/* 表格 */
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{background:rgba(14,165,233,0.15);color:#94a3b8;font-weight:500;padding:10px 12px;text-align:left;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid rgba(148,163,184,0.1)}
+tr:hover{background:rgba(14,165,233,0.05)}
+.text-right{text-align:right}
+.text-center{text-align:center}
+/* 标签 */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600}
+.badge-green{background:rgba(74,222,128,0.15);color:#4ade80}
+.badge-yellow{background:rgba(251,191,36,0.15);color:#fbbf24}
+.badge-red{background:rgba(248,113,113,0.15);color:#f87171}
+.badge-blue{background:rgba(56,189,248,0.15);color:#38bdf8}
+/* 图表容器 */
+.chart-container{position:relative;height:280px;margin:10px 0}
+.chart-container.small{height:200px}
+/* 两栏布局 */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+/* 列表项 */
+.list-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(148,163,184,0.08)}
+.list-dot{width:8px;height:8px;border-radius:50%;margin-top:7px;flex-shrink:0}
+.dot-green{background:#4ade80}.dot-blue{background:#38bdf8}
+/* 汇总统计 */
+.summary-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.summary-item{background:rgba(30,58,138,0.25);border:1px solid rgba(56,189,248,0.1);border-radius:10px;padding:14px;text-align:center}
+.summary-item .label{font-size:12px;color:#94a3b8;margin-bottom:6px}
+.summary-item .value{font-size:18px;font-weight:700;color:#38bdf8}
+/* 客户卡片 */
+.customer-card{background:rgba(30,58,138,0.2);padding:12px 14px;border-radius:8px;margin-bottom:8px;border-left:3px solid}
+.customer-card.normal{border-left-color:#4ade80}
+.customer-card.urgent{border-left-color:#fbbf24}
+.customer-card.critical{border-left-color:#f87171}
+/* 风险卡 */
+.risk-card{background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);border-radius:10px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.risk-card.warn{background:rgba(251,191,36,0.1);border-color:rgba(251,191,36,0.3)}
+.risk-icon{font-size:24px}
+.risk-title{font-weight:600;color:#f87171;margin-bottom:2px}
+.risk-card.warn .risk-title{color:#fbbf24}
+.risk-desc{font-size:13px;color:#94a3b8}
+/* 排名 */
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;font-size:12px;font-weight:700}
+.rank-1{background:rgba(250,204,21,0.3);color:#facc15}
+.rank-2{background:rgba(148,163,184,0.3);color:#cbd5e1}
+.rank-3{background:rgba(194,120,59,0.3);color:#d97706}
+.rank-default{background:rgba(56,189,248,0.1);color:#64748b}
+/* 版权 */
+.footer{text-align:center;padding:20px;color:#475569;font-size:12px;border-top:1px solid rgba(56,189,248,0.1);margin-top:20px}
+</style>
 </head>
 <body>
-    <a href="report.html" class="back-link">← 返回报告列表</a>
-    
-    <div class="header">
-        <h1>🏪 中合五金经营周报生成器 V5</h1>
-        <p>基于实际模板 · 5 Sheet结构 · 6大模块</p>
-    </div>
+<div class="container">
+<!-- 上传区 -->
+<div id="uploadSection" class="upload-section">
+<input type="file" id="fileInput" accept=".xlsx,.xls" style="position:fixed;top:-9999px;left:-9999px;opacity:0">
+<div class="upload-box" id="uploadBox">
+<div class="upload-icon" style="pointer-events:none">📊</div>
+<div class="upload-title" style="pointer-events:none">中合五金经营周报生成器</div>
+<div class="upload-hint" style="pointer-events:none">拖拽或点击上传标准模板Excel文件 · 支持 .xlsx</div>
+<div style="margin-top:24px;pointer-events:none"><button id="selectFileBtn" style="background:linear-gradient(135deg,#0ea5e9,#2563eb);color:#fff;border:none;padding:12px 36px;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;pointer-events:auto">选择文件</button></div>
+</div>
+<div id="uploadStatus" style="margin-top:16px;color:#94a3b8;font-size:14px;display:none"></div>
+</div>
+<!-- 报告区 -->
+<div id="reportSection" class="report-section">
+<div class="report-header">
+<div class="report-title" id="reportTitle">中合五金 经营周报</div>
+<div class="report-info" id="reportInfo"></div>
+</div>
+<div class="tab-nav">
+<button class="tab-btn active" onclick="switchTab('overview')">📈 经营总览</button>
+<button class="tab-btn" onclick="switchTab('sales')">💰 销售与回款</button>
+<button class="tab-btn" onclick="switchTab('cost')">📉 成本费用</button>
+<button class="tab-btn" onclick="switchTab('ar')">💳 应收账款</button>
+<button class="tab-btn" onclick="switchTab('report')">📝 周报事项</button>
+</div>
+<div id="tab-overview" class="tab-content active"></div>
+<div id="tab-sales" class="tab-content"></div>
+<div id="tab-cost" class="tab-content"></div>
+<div id="tab-ar" class="tab-content"></div>
+<div id="tab-report" class="tab-content"></div>
+<div class="footer">© 2026 中台-财务工具箱 · 开发者：张洪杰，侵权必究</div>
+</div>
+</div>
+<script>
+// ===== 全局变量 =====
+let chartInstances = {};
 
-    <div class="toolbar">
-        <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls">
-        <label for="fileInput" class="file-label">📁 选择Excel文件</label>
-        <button class="btn btn-primary" onclick="loadSampleData()">📊 加载示例数据</button>
-    </div>
+// ===== 上传处理 =====
+const uploadBox = document.getElementById('uploadBox');
+const fileInput = document.getElementById('fileInput');
+const selectFileBtn = document.getElementById('selectFileBtn');
+const uploadStatus = document.getElementById('uploadStatus');
 
-    <!-- Tab导航 -->
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('overview')">📈 经营总览</button>
-        <button class="tab-btn" onclick="switchTab('budget')">📋 预算达成</button>
-        <button class="tab-btn" onclick="switchTab('sales')">💰 销售分析</button>
-        <button class="tab-btn" onclick="switchTab('receivable')">📑 应收账款</button>
-        <button class="tab-btn" onclick="switchTab('cost')">📉 成本费用</button>
-        <button class="tab-btn" onclick="switchTab('report')">📝 周报事项</button>
-    </div>
+function triggerFileSelect() {
+    try {
+        // Reset input so same file can be re-selected
+        fileInput.value = '';
+        fileInput.click();
+    } catch(err) {
+        uploadStatus.style.display = 'block';
+        uploadStatus.innerHTML = '<span style="color:#f87171">无法打开文件选择框，请尝试拖拽文件到上方区域</span>';
+    }
+}
 
-    <!-- 经营总览 -->
-    <div id="tab-overview" class="tab-content active">
-        <div class="kpi-grid" id="kpi-overview"></div>
-        <div class="grid-2">
-            <div class="card">
-                <div class="card-title">销售与回款趋势</div>
-                <div class="chart-container"><canvas id="chartSalesTrend"></canvas></div>
-            </div>
-            <div class="card">
-                <div class="card-title">月度目标进度</div>
-                <div id="progressBars"></div>
-            </div>
-        </div>
-    </div>
+// Click on uploadBox or button triggers file select
+uploadBox.addEventListener('click', (e) => {
+    e.stopPropagation();
+    triggerFileSelect();
+});
+if(selectFileBtn) {
+    selectFileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        triggerFileSelect();
+    });
+}
 
-    <!-- 预算达成 -->
-    <div id="tab-budget" class="tab-content">
-        <div class="card">
-            <div class="card-title">预算执行情况</div>
-            <div class="kpi-grid" id="kpi-budget"></div>
-            <table class="data-table" id="table-budget"></table>
-        </div>
-    </div>
+// Drag and drop
+uploadBox.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); uploadBox.style.borderColor = '#38bdf8'; });
+uploadBox.addEventListener('dragleave', e => { e.preventDefault(); uploadBox.style.borderColor = 'rgba(14,165,233,0.5)'; });
+uploadBox.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); uploadBox.style.borderColor = 'rgba(14,165,233,0.5)'; if(e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]); });
 
-    <!-- 销售分析 -->
-    <div id="tab-sales" class="tab-content">
-        <div class="grid-2">
-            <div class="card">
-                <div class="card-title">B/C端销售占比</div>
-                <div class="chart-container"><canvas id="chartSalesPie"></canvas></div>
-            </div>
-            <div class="card">
-                <div class="card-title">各渠道销售趋势</div>
-                <div class="chart-container"><canvas id="chartSalesChannel"></canvas></div>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-title">周度销售明细</div>
-            <table class="data-table" id="table-sales-weekly"></table>
-        </div>
-    </div>
+// File selected via input
+fileInput.addEventListener('change', e => { if(e.target.files && e.target.files.length) processFile(e.target.files[0]); });
 
-    <!-- 应收账款 -->
-    <div id="tab-receivable" class="tab-content">
-        <div class="kpi-grid" id="kpi-receivable"></div>
-        <div class="grid-2">
-            <div class="card">
-                <div class="card-title">账龄分布</div>
-                <div class="chart-container"><canvas id="chartAging"></canvas></div>
-                <table class="data-table" id="table-aging"></table>
-            </div>
-            <div class="card">
-                <div class="card-title">业务员应收排名</div>
-                <table class="data-table" id="table-salesman"></table>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-title">欠款TOP10客户</div>
-            <table class="data-table" id="table-top10"></table>
-        </div>
-    </div>
+function showStatus(msg, isError) {
+    uploadStatus.style.display = 'block';
+    uploadStatus.innerHTML = isError ? '<span style="color:#f87171">' + msg + '</span>' : '<span style="color:#38bdf8">' + msg + '</span>';
+}
 
-    <!-- 成本费用 -->
-    <div id="tab-cost" class="tab-content">
-        <div class="kpi-grid" id="kpi-cost"></div>
-        <div class="grid-2">
-            <div class="card">
-                <div class="card-title">成本费用构成</div>
-                <div class="chart-container"><canvas id="chartCostPie"></canvas></div>
-            </div>
-            <div class="card">
-                <div class="card-title">费用趋势</div>
-                <div class="chart-container"><canvas id="chartCostTrend"></canvas></div>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-title">周度成本费用明细</div>
-            <table class="data-table" id="table-cost-weekly"></table>
-        </div>
-        <div class="card">
-            <div class="card-title">审批数据汇总</div>
-            <div class="kpi-grid" id="kpi-approval"></div>
-            <table class="data-table" id="table-approval"></table>
-        </div>
-    </div>
-
-    <!-- 周报事项 -->
-    <div id="tab-report" class="tab-content">
-        <div class="card">
-            <div class="card-title">周报内容</div>
-            <div id="reportContent"></div>
-        </div>
-        <div class="card">
-            <div class="card-title">审批摘要</div>
-            <div id="approvalSummary"></div>
-        </div>
-    </div>
-
-    <div class="footer">
-        <p>© 2026 中台-财务工具箱 · 开发者：张洪杰，侵权必究</p>
-        <p>数据全本地处理，安全可靠</p>
-    </div>
-
-    <script>
-        // 全局变量
-        let workbookData = {};
-        let chartInstances = {};
-        let reportMeta = { year: 2026, month: 5, company: '中合五金', reporter: '张洪杰', dept: '财务部', staff: 29 };
-
-        // 格式化金额
-        function fmtMoney(val) {
-            if (val === null || val === undefined || val === '') return '-';
-            const n = parseFloat(val);
-            if (isNaN(n)) return val;
-            return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function processFile(file) {
+    if(!file) { showStatus('未选择文件', true); return; }
+    const ext = file.name.split('.').pop().toLowerCase();
+    if(ext !== 'xlsx' && ext !== 'xls') {
+        showStatus('请上传 .xlsx 或 .xls 格式的文件', true);
+        return;
+    }
+    showStatus('正在读取 ' + file.name + ' ...', false);
+    const reader = new FileReader();
+    reader.onerror = () => { showStatus('文件读取失败，请重试', true); };
+    reader.onload = e => {
+        try {
+            const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+            if(!wb || !wb.SheetNames || wb.SheetNames.length < 3) {
+                showStatus('文件格式不正确，请使用标准周报模板', true);
+                return;
+            }
+            const data = parseWorkbook(wb);
+            renderReport(data);
+        } catch(err) {
+            showStatus('解析失败: ' + err.message, true);
+            console.error('Parse error:', err);
         }
+    };
+    reader.readAsArrayBuffer(file);
+}
 
-        // 格式化百分比
-        function fmtPct(val, mul = 1) {
-            if (val === null || val === undefined || val === '') return '-';
-            const n = parseFloat(val);
-            if (isNaN(n)) {
-                if (typeof val === 'string' && val.includes('%')) return val;
-                return val;
-            }
-            return (n * mul).toFixed(1) + '%';
-        }
+// ===== 工具函数 =====
+function v(ws, r, c) { const cell = ws[XLSX.utils.encode_cell({r:r-1,c:c-1})]; return cell ? cell.v : ''; }
+function n(ws, r, c) { const val = v(ws, r, c); return parseFloat(val) || 0; }
+function fmt(num) { if(!num && num!==0) return '-'; return num.toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function pct(num) { if(!num && num!==0) return '-'; return (num*100).toFixed(1) + '%'; }
+function pctRaw(num) { if(!num && num!==0) return '-'; return num.toFixed(1) + '%'; }
+function progressClass(rate) { return rate >= 0.8 ? 'high' : rate >= 0.5 ? 'mid' : 'low'; }
 
-        // Tab切换
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
-            document.getElementById('tab-' + tabId).classList.add('active');
-            resizeCharts();
-        }
+// ===== 解析Excel =====
+function parseWorkbook(wb) {
+    const sheets = {};
+    wb.SheetNames.forEach(name => { sheets[name] = wb.Sheets[name]; });
+    const s1 = sheets['月度预算'] || wb.Sheets[wb.SheetNames[0]];
+    const s2 = sheets['周度数据'] || wb.Sheets[wb.SheetNames[1]];
+    const s3 = sheets['应收账款'] || wb.Sheets[wb.SheetNames[2]];
+    const s4 = sheets['审批数据'] || wb.Sheets[wb.SheetNames[3]];
+    const s5 = sheets['周报文本'] || wb.Sheets[wb.SheetNames[4]];
+    const d = {basic:{}, budget:{income:[],cost:[],expense:[]}, weekly:{sales:[],cost:[],expense:[]}, ar:{staff:[],aging:[],top10:[]}, approval:{basic:{},categories:[],flowTypes:[],expenseTypes:[],topApplicants:[]}, report:{period:'',week:'',completed:[],nextWeek:[],special:''}};
 
-        // 图表创建封装
-        function createChart(canvasId, type, data, options = {}) {
-            const ctx = document.getElementById(canvasId);
-            if (!ctx) return null;
-            if (chartInstances[canvasId]) {
-                chartInstances[canvasId].destroy();
-            }
-            const defaults = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { labels: { color: '#f1f5f9' } }
-                }
-            };
-            const merged = { ...defaults, ...options };
-            chartInstances[canvasId] = new Chart(ctx, { type, data, ...merged });
-            return chartInstances[canvasId];
-        }
+    // Sheet1 月度预算
+    if(s1) {
+        d.basic = {year:v(s1,5,2), month:v(s1,6,2), company:v(s1,7,2), reporter:v(s1,8,2), dept:v(s1,9,2), headcount:v(s1,10,2)};
+        for(let r=14;r<=20;r++) d.budget.income.push({item:v(s1,r,1), amount:n(s1,r,2)});
+        for(let r=24;r<=29;r++) d.budget.cost.push({item:v(s1,r,1), amount:n(s1,r,2)});
+        for(let r=33;r<=47;r++) d.budget.expense.push({item:v(s1,r,1), amount:n(s1,r,2)});
+    }
 
-        // 图表重绘
-        function resizeCharts() {
-            Object.values(chartInstances).forEach(chart => {
-                if (chart) chart.resize();
-            });
-        }
+    // Sheet2 周度数据
+    if(s2) {
+        for(let r=6;r<=11;r++) { const week=v(s2,r,1); if(week) d.weekly.sales.push({week,date:v(s2,r,2),bSales:n(s2,r,3),cSales:n(s2,r,4),lyhSales:n(s2,r,5),totalSales:n(s2,r,6),bankReturn:n(s2,r,7),cashReturn:n(s2,r,8),wechatReturn:n(s2,r,9),totalReturn:n(s2,r,10)}); }
+        for(let r=15;r<=20;r++) { const week=v(s2,r,1); if(week) d.weekly.cost.push({week,mainCost:n(s2,r,2),logistics:n(s2,r,3),depreciation:n(s2,r,4),rent:n(s2,r,5),labor:n(s2,r,6),otherFixed:n(s2,r,7),total:n(s2,r,8)}); }
+        for(let r=24;r<=29;r++) { const week=v(s2,r,1); if(week) d.weekly.expense.push({week,entertainment:n(s2,r,2),travel:n(s2,r,3),vehicle:n(s2,r,4),office:n(s2,r,5),living:n(s2,r,6),dorm:n(s2,r,7),other:n(s2,r,8),total:n(s2,r,9)}); }
+    }
 
-        // 解析Sheet数据
-        function getSheetData(sheet) {
-            if (!sheet || !sheet['!ref']) return [];
-            const range = XLSX.utils.decode_range(sheet['!ref']);
-            const data = [];
-            for (let r = range.s.r; r <= range.e.r; r++) {
-                const row = [];
-                for (let c = range.s.c; c <= range.e.c; c++) {
-                    const cell = sheet[XLSX.utils.encode_cell({ r, c })];
-                    row.push(cell ? cell.v : '');
-                }
-                data.push(row);
-            }
-            return data;
-        }
+    // Sheet3 应收账款 (V1简单结构：只有未结算数据)
+    if(s3) {
+        for(let r=6;r<=19;r++) { const name=v(s3,r,1); if(name) d.ar.staff.push({name,customers:n(s3,r,2),unsettled:n(s3,r,3),d0_30:n(s3,r,4),d31_90:n(s3,r,5),d91_180:n(s3,r,6),d180plus:n(s3,r,7),over30Rate:v(s3,r,8)}); }
+        for(let r=23;r<=27;r++) { const range=v(s3,r,1); if(range) d.ar.aging.push({range,count:n(s3,r,2),amount:n(s3,r,3),ratio:v(s3,r,4)}); }
+        for(let r=31;r<=40;r++) { const rank=v(s3,r,1); if(rank) d.ar.top10.push({rank,customer:v(s3,r,2),salesman:v(s3,r,3),amount:n(s3,r,4),agingRange:v(s3,r,5),docCount:n(s3,r,6),earliest:v(s3,r,7),latest:v(s3,r,8)}); }
+    }
 
-        // 获取列值（0索引）
-        function getVal(row, idx) {
-            return row[idx] !== undefined ? row[idx] : '';
-        }
+    // Sheet4 审批数据
+    if(s4) {
+        d.approval.basic = {period:v(s4,5,2),totalCount:n(s4,6,2),validCount:n(s4,7,2),validAmount:n(s4,8,2),approvedAmount:n(s4,9,2),pendingAmount:n(s4,10,2)};
+        for(let r=14;r<=18;r++) { const cat=v(s4,r,1); if(cat) d.approval.categories.push({category:cat,count:n(s4,r,2),amount:n(s4,r,3),ratio:v(s4,r,4)}); }
+        for(let r=21;r<=24;r++) { const type=v(s4,r,1); if(type) d.approval.flowTypes.push({type,count:n(s4,r,2),amount:n(s4,r,3),ratio:v(s4,r,4)}); }
+        for(let r=28;r<=42;r++) { const item=v(s4,r,1); if(item) d.approval.expenseTypes.push({item,count:n(s4,r,2),amount:n(s4,r,3),ratio:v(s4,r,4)}); }
+        for(let r=46;r<=50;r++) { const rank=v(s4,r,1); if(rank) d.approval.topApplicants.push({rank,applicant:v(s4,r,2),count:n(s4,r,3),amount:n(s4,r,4)}); }
+    }
 
-        // 解析月度预算Sheet
-        function parseSheet1(data) {
-            const result = { base: {}, income: {}, cost: {}, expense: {} };
-            
-            // 基本信息
-            result.base.year = getVal(data[4], 1);
-            result.base.month = getVal(data[5], 1);
-            result.base.company = getVal(data[6], 1);
-            result.base.reporter = getVal(data[7], 1);
-            result.base.dept = getVal(data[8], 1);
-            result.base.staff = getVal(data[9], 1);
-            
-            // 累计数据
-            result.base.totalSales = getVal(data[11], 1);
-            result.base.totalCollected = getVal(data[12], 1);
-            
-            // 收入预算 (Row15开始，科目|金额)
-            let i = 14;
-            while (i < data.length) {
-                const label = getVal(data[i], 0);
-                const val = getVal(data[i], 1);
-                if (label === 'B端销售') result.income.b = val;
-                else if (label === 'C端销售') result.income.c = val;
-                else if (label === '刘义虎') result.income.lyh = val;
-                else if (label === '合计') result.income.total = val;
-                else if (label === '应收余额') result.income.arBalance = val;
-                else if (label === '应收余额目标') result.income.arTarget = val;
-                i++;
-            }
-            
-            // 成本预算 (Row23开始)
-            i = 22;
-            while (i < data.length) {
-                const label = getVal(data[i], 0);
-                const val = getVal(data[i], 1);
-                if (label === '主营业务成本') result.cost.main = val;
-                else if (label === '物流费') result.cost.logistics = val;
-                else if (label === '折旧') result.cost.depreciation = val;
-                else if (label === '租金') result.cost.rent = val;
-                else if (label === '人工') result.cost.labor = val;
-                i++;
-            }
-            
-            // 费用预算 (Row31开始)
-            i = 30;
-            while (i < data.length) {
-                const label = getVal(data[i], 0);
-                const val = getVal(data[i], 1);
-                if (label === '业务招待费') result.expense.entertain = val;
-                else if (label === '差旅费') result.expense.travel = val;
-                else if (label === '车辆费') result.expense.vehicle = val;
-                else if (label === '办公用品') result.expense.office = val;
-                else if (label === '生活费') result.expense.living = val;
-                else if (label === '宿舍费') result.expense.dorm = val;
-                else if (label === '其他费用') result.expense.other = val;
-                else if (label === '通讯费') result.expense.commu = val;
-                else if (label === '水电费') result.expense.utility = val;
-                i++;
-            }
-            
-            return result;
-        }
+    // Sheet5 周报文本
+    if(s5) {
+        d.report.period = v(s5,5,2);
+        d.report.week = v(s5,6,2);
+        for(let r=7;r<=13;r++) { const val=v(s5,r,2); if(val) d.report.completed.push(val); }
+        for(let r=14;r<=18;r++) { const val=v(s5,r,2); if(val) d.report.nextWeek.push(val); }
+        d.report.special = v(s5,19,2);
+    }
+    return d;
+}
 
-        // 解析周度数据Sheet
-        function parseSheet2(data) {
-            const result = { sales: [], cost: [], expense: [] };
-            
-            // 销售区 (Row5开始，周次|日期|B端|C端|刘义虎|总销售|总回款)
-            let i = 4;
-            while (i < data.length) {
-                const week = getVal(data[i], 0);
-                if (week && week.toString().match(/W\d+/)) {
-                    result.sales.push({
-                        week: week,
-                        date: getVal(data[i], 1),
-                        b: getVal(data[i], 2) || 0,
-                        c: getVal(data[i], 3) || 0,
-                        lyh: getVal(data[i], 4) || 0,
-                        total: getVal(data[i], 5) || 0,
-                        collected: getVal(data[i], 6) || 0
-                    });
-                } else if (week === '成本数据') {
-                    break;
-                }
-                i++;
-            }
-            
-            // 成本区 (Row15开始)
-            i = 14;
-            while (i < data.length) {
-                const week = getVal(data[i], 0);
-                if (week && week.toString().match(/W\d+/)) {
-                    result.cost.push({
-                        week: week,
-                        main: getVal(data[i], 1) || 0,
-                        logistics: getVal(data[i], 2) || 0,
-                        depreciation: getVal(data[i], 3) || 0,
-                        rent: getVal(data[i], 4) || 0,
-                        labor: getVal(data[i], 5) || 0,
-                        otherFixed: getVal(data[i], 6) || 0,
-                        total: getVal(data[i], 7) || 0
-                    });
-                } else if (week === '费用数据') {
-                    break;
-                }
-                i++;
-            }
-            
-            // 费用区 (Row24开始 - 12列: 周次|业务招待费|维修维护费|差旅费|交通费|车辆使用费|办公费|服务费|福利费|通讯费|其它|合计)
-            i = 23;
-            while (i < data.length) {
-                const week = getVal(data[i], 0);
-                if (week && week.toString().match(/W\d+/)) {
-                    result.expense.push({
-                        week: week,
-                        entertain: getVal(data[i], 1) || 0,
-                        maintain: getVal(data[i], 2) || 0,
-                        travel: getVal(data[i], 3) || 0,
-                        transport: getVal(data[i], 4) || 0,
-                        vehicle: getVal(data[i], 5) || 0,
-                        office: getVal(data[i], 6) || 0,
-                        service: getVal(data[i], 7) || 0,
-                        welfare: getVal(data[i], 8) || 0,
-                        commu: getVal(data[i], 9) || 0,
-                        other: getVal(data[i], 10) || 0,
-                        total: getVal(data[i], 11) || 0
-                    });
-                }
-                i++;
-            }
-            
-            return result;
-        }
+// ===== Tab切换 =====
+function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector(`.tab-btn[onclick*="${name}"]`).classList.add('active');
+    document.getElementById('tab-'+name).classList.add('active');
+    // 图表resize
+    Object.values(chartInstances).forEach(c => { try{c.resize()}catch(e){} });
+}
 
-        // 解析应收账款Sheet
-        function parseSheet3(data) {
-            const result = { summary: {}, salesmen: [], aging: [], top10: [] };
-            
-            // 累计数据
-            result.summary.totalSales = getVal(data[1], 1);
-            result.summary.totalCollected = getVal(data[2], 1);
-            
-            // 业务员明细 (Row6开始)
-            let i = 5;
-            while (i < data.length) {
-                const name = getVal(data[i], 0);
-                if (!name || name === '业务员') { i++; continue; }
-                if (name === '账龄分布') break;
-                result.salesmen.push({
-                    name: name,
-                    clients: getVal(data[i], 1) || 0,
-                    unsettled: getVal(data[i], 2) || 0,
-                    d0_30: getVal(data[i], 3) || 0,
-                    d31_90: getVal(data[i], 4) || 0,
-                    d91_180: getVal(data[i], 5) || 0,
-                    d180plus: getVal(data[i], 6) || 0,
-                    ratio: getVal(data[i], 7) || '0%'
-                });
-                i++;
-            }
-            
-            // 账龄分布 (Row24开始)
-            i = 23;
-            while (i < data.length) {
-                const range = getVal(data[i], 0);
-                if (!range || range === '区间') { i++; continue; }
-                if (range === '欠款TOP10客户') break;
-                result.aging.push({
-                    range: range,
-                    count: getVal(data[i], 1) || 0,
-                    amount: getVal(data[i], 2) || 0,
-                    ratio: getVal(data[i], 3) || '0%'
-                });
-                i++;
-            }
-            
-            // TOP10客户 (Row32开始)
-            i = 31;
-            while (i < data.length) {
-                const rank = getVal(data[i], 0);
-                if (!rank || rank === '排名') { i++; continue; }
-                result.top10.push({
-                    rank: rank,
-                    customer: getVal(data[i], 1),
-                    salesman: getVal(data[i], 2),
-                    amount: getVal(data[i], 3) || 0,
-                    maxAge: getVal(data[i], 4),
-                    docCount: getVal(data[i], 5) || 0,
-                    earliest: getVal(data[i], 6),
-                    latest: getVal(data[i], 7)
-                });
-                i++;
-            }
-            
-            return result;
-        }
+// ===== 渲染报告 =====
+function renderReport(d) {
+    document.getElementById('uploadSection').style.display = 'none';
+    document.getElementById('reportSection').classList.add('active');
+    document.getElementById('reportTitle').textContent = (d.basic.company||'中合五金') + ' 经营周报';
+    document.getElementById('reportInfo').innerHTML = `<span>📅 ${d.basic.year}年${d.basic.month}月</span><span>👤 ${d.basic.reporter||''}</span><span>🏢 ${d.basic.dept||''}</span>`;
 
-        // 解析审批数据Sheet
-        function parseSheet4(data) {
-            const result = { base: {}, category: [], flowType: [], expenseDetail: [], topApplicant: [] };
-            
-            // 基本信息 (Row4开始)
-            result.base.period = getVal(data[4], 1);
-            result.base.totalCount = getVal(data[5], 1);
-            result.base.validCount = getVal(data[6], 1);
-            result.base.validAmount = getVal(data[7], 1);
-            result.base.approvedAmount = getVal(data[8], 1);
-            result.base.pendingAmount = getVal(data[9], 1);
-            
-            // 审批类别 (Row14开始)
-            let i = 13;
-            while (i < data.length) {
-                const type = getVal(data[i], 0);
-                if (!type || type === '类别') { i++; continue; }
-                if (type === '流程类型') break;
-                result.category.push({
-                    type: type,
-                    count: getVal(data[i], 1) || 0,
-                    amount: getVal(data[i], 2) || 0,
-                    ratio: getVal(data[i], 3) || 0
-                });
-                i++;
-            }
-            
-            // 流程类型 (Row22开始)
-            i = 21;
-            while (i < data.length) {
-                const type = getVal(data[i], 0);
-                if (!type || type === '类型') { i++; continue; }
-                if (type === '费用分类明细') break;
-                result.flowType.push({
-                    type: type,
-                    count: getVal(data[i], 1) || 0,
-                    amount: getVal(data[i], 2) || 0,
-                    ratio: getVal(data[i], 3) || 0
-                });
-                i++;
-            }
-            
-            // 费用分类明细 (Row29开始)
-            i = 28;
-            while (i < data.length) {
-                const item = getVal(data[i], 0);
-                if (!item || item === '科目') { i++; continue; }
-                if (item === 'TOP10申请人') break;
-                result.expenseDetail.push({
-                    item: item,
-                    count: getVal(data[i], 1) || 0,
-                    amount: getVal(data[i], 2) || 0,
-                    ratio: getVal(data[i], 3) || 0
-                });
-                i++;
-            }
-            
-            // TOP10申请人 (Row47开始)
-            i = 46;
-            while (i < data.length) {
-                const rank = getVal(data[i], 0);
-                if (!rank || rank === '排名') { i++; continue; }
-                result.topApplicant.push({
-                    rank: rank,
-                    name: getVal(data[i], 1),
-                    count: getVal(data[i], 2) || 0,
-                    amount: getVal(data[i], 3) || 0
-                });
-                i++;
-            }
-            
-            return result;
-        }
+    renderOverview(d);
+    renderSales(d);
+    renderCost(d);
+    renderAR(d);
+    renderReportTab(d);
+}
 
-        // 解析周报文本Sheet
-        function parseSheet5(data) {
-            const result = { period: '', week: '', lastWeek: [], nextWeek: [], special: '' };
-            
-            result.period = getVal(data[4], 1);
-            result.week = getVal(data[5], 1);
-            
-            // 上周完成
-            for (let i = 6; i <= 12; i++) {
-                const item = getVal(data[i], 1);
-                if (item) result.lastWeek.push(item);
-            }
-            
-            // 下周重点
-            for (let i = 13; i <= 17; i++) {
-                const item = getVal(data[i], 1);
-                if (item) result.nextWeek.push(item);
-            }
-            
-            // 特别说明
-            result.special = getVal(data[18], 1) || '';
-            
-            return result;
-        }
+// ===== Tab1: 经营总览 =====
+function renderOverview(d) {
+    // 计算指标
+    const salesTarget = d.budget.income.find(i=>i.item&&i.item.includes('合计'))?.amount || 6000000;
+    const bTarget = d.budget.income.find(i=>i.item&&i.item.includes('B端'))?.amount || 0;
+    const cTarget = d.budget.income.find(i=>i.item&&i.item.includes('C端'))?.amount || 0;
+    const lyhTarget = d.budget.income.find(i=>i.item&&i.item==='刘义虎')?.amount || 0;
+    const receivableTarget = d.budget.income.find(i=>i.item&&i.item.includes('应收余额'))?.amount || 0;
+    const returnTarget = d.budget.income.find(i=>i.item&&i.item.includes('回款目标'))?.amount || 0;
 
-        // 计算汇总数据
-        function calculateSummary(s1, s2, s3) {
-            const summary = {};
-            
-            // 使用Sheet3的累计数据（优先）
-            summary.totalSales = s3.summary.totalSales || s1.base.totalSales || 0;
-            summary.totalCollected = s3.summary.totalCollected || s1.base.totalCollected || 0;
-            summary.collectRate = summary.totalSales > 0 ? summary.totalCollected / summary.totalSales : 0;
-            
-            // 周度销售汇总
-            summary.weeklySales = s2.sales.reduce((sum, w) => sum + (w.total || 0), 0);
-            summary.weeklyCollected = s2.sales.reduce((sum, w) => sum + (w.collected || 0), 0);
-            
-            // 月度销售目标
-            summary.salesBudget = s1.income.total || 6000000;
-            summary.salesComplete = summary.weeklySales / summary.salesBudget;
-            
-            // 时间进度（假设本月）
-            const now = new Date();
-            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            const dayOfMonth = now.getDate();
-            summary.timeProgress = dayOfMonth / daysInMonth;
-            
-            // 预测月底
-            summary.predictMonthEnd = summary.timeProgress > 0 ? summary.weeklySales / summary.timeProgress : 0;
-            
-            // 应收分析
-            summary.arBalance = s1.income.arBalance || s3.summary.totalSales - s3.summary.totalCollected;
-            summary.arTarget = s1.income.arTarget || 1800000;
-            summary.arExceed = summary.arBalance - summary.arTarget;
-            
-            // 成本费用汇总
-            summary.weeklyCost = s2.cost.reduce((sum, w) => sum + (w.total || 0), 0);
-            summary.weeklyExpense = s2.expense.reduce((sum, w) => sum + (w.total || 0), 0);
-            summary.costBudget = (s1.cost.main || 0) + (s1.cost.logistics || 0) + (s1.cost.depreciation || 0) + (s1.cost.rent || 0) + (s1.cost.labor || 0);
-            summary.expenseBudget = Object.values(s1.expense).reduce((sum, v) => sum + (v || 0), 0);
-            
-            return summary;
-        }
+    const bAchieved = d.weekly.sales.reduce((s,w)=>s+w.bSales,0);
+    const cAchieved = d.weekly.sales.reduce((s,w)=>s+w.cSales,0);
+    const lyhAchieved = d.weekly.sales.reduce((s,w)=>s+w.lyhSales,0);
+    const totalAchieved = bAchieved + cAchieved + lyhAchieved;
+    const totalReturn = d.weekly.sales.reduce((s,w)=>s+w.totalReturn,0);
+    const unsettled = d.ar.staff.reduce((s,st)=>s+st.unsettled,0);
 
-        // 渲染经营总览
-        function renderOverview(summary, s2) {
-            const kpiHtml = `
-                <div class="kpi-card">
-                    <div class="kpi-label">累计销售额</div>
-                    <div class="kpi-value">¥${fmtMoney(summary.totalSales)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">累计已回款</div>
-                    <div class="kpi-value success">¥${fmtMoney(summary.totalCollected)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">整体回款率</div>
-                    <div class="kpi-value ${summary.collectRate >= 0.6 ? 'success' : summary.collectRate >= 0.4 ? 'warning' : 'danger'}">${fmtPct(summary.collectRate, 100)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">月度销售完成率</div>
-                    <div class="kpi-value ${summary.salesComplete >= 0.8 ? 'success' : summary.salesComplete >= 0.5 ? 'warning' : 'danger'}">${fmtPct(summary.salesComplete, 100)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">时间进度</div>
-                    <div class="kpi-value">${fmtPct(summary.timeProgress, 100)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">预测月底</div>
-                    <div class="kpi-value">¥${fmtMoney(summary.predictMonthEnd)}</div>
-                </div>
-            `;
-            document.getElementById('kpi-overview').innerHTML = kpiHtml;
-            
-            // 销售趋势图
-            const labels = s2.sales.map(w => w.week);
-            createChart('chartSalesTrend', 'line', {
-                labels: labels,
-                datasets: [
-                    {
-                        label: '销售',
-                        data: s2.sales.map(w => w.total),
-                        borderColor: '#38bdf8',
-                        backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    },
-                    {
-                        label: '回款',
-                        data: s2.sales.map(w => w.collected),
-                        borderColor: '#4ade80',
-                        backgroundColor: 'rgba(74, 222, 128, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }
-                ]
-            });
-            
-            // 目标进度条
-            const progressHtml = `
-                <div style="margin-bottom: 15px;">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
-                        <span>销售目标 ${fmtPct(summary.salesComplete, 100)}</span>
-                        <span>${fmtMoney(summary.weeklySales)} / ${fmtMoney(summary.salesBudget)}</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill ${summary.salesComplete >= 1 ? '' : 'warning'}" style="width:${Math.min(summary.salesComplete * 100, 100)}%"></div>
-                    </div>
-                </div>
-                <div style="margin-bottom: 15px;">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
-                        <span>回款目标 ${fmtPct(summary.collectRate, 100)}</span>
-                        <span>${fmtMoney(summary.totalCollected)} / ${fmtMoney(summary.totalSales)}</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill ${summary.collectRate >= 0.6 ? 'success' : 'danger'}" style="width:${Math.min(summary.collectRate * 100, 100)}%"></div>
-                    </div>
-                </div>
-                <div style="margin-bottom: 15px;">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
-                        <span>应收控制 ${summary.arBalance > summary.arTarget ? '超标' : '正常'}</span>
-                        <span>${fmtMoney(summary.arBalance)} / ${fmtMoney(summary.arTarget)}</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill ${summary.arBalance <= summary.arTarget ? 'success' : 'danger'}" style="width:${Math.min((summary.arBalance / summary.arTarget) * 100, 100)}%"></div>
-                    </div>
-                </div>
-            `;
-            document.getElementById('progressBars').innerHTML = progressHtml;
-        }
+    // 回款率 = 周度总回款/周度总销售额
+    const returnRate = totalAchieved > 0 ? totalReturn / totalAchieved : 0;
+    // 毛利率 = (收入-成本)/收入, 成本用预算成本占比近似
+    const costBudget = d.budget.cost.find(i=>i.item&&i.item.includes('主营业务'))?.amount || 0;
+    const marginRate = salesTarget > 0 ? (salesTarget - costBudget) / salesTarget : 0;
 
-        // 渲染预算达成
-        function renderBudget(summary, s1, s2) {
-            const kpiHtml = `
-                <div class="kpi-card">
-                    <div class="kpi-label">销售偏差</div>
-                    <div class="kpi-value ${(summary.salesComplete - 1) >= 0 ? 'success' : 'danger'}">${fmtPct((summary.salesComplete - 1), 100)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">成本执行</div>
-                    <div class="kpi-value">¥${fmtMoney(summary.weeklyCost)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">费用执行</div>
-                    <div class="kpi-value">¥${fmtMoney(summary.weeklyExpense)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">月底预测</div>
-                    <div class="kpi-value ${summary.predictMonthEnd >= summary.salesBudget ? 'success' : 'warning'}">¥${fmtMoney(summary.predictMonthEnd)}</div>
-                </div>
-            `;
-            document.getElementById('kpi-budget').innerHTML = kpiHtml;
-            
-            const tableHtml = `
-                <thead>
-                    <tr>
-                        <th>项目</th>
-                        <th>预算</th>
-                        <th>实际</th>
-                        <th>完成率</th>
-                        <th>偏差</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>B端销售</td>
-                        <td class="text-right">${fmtMoney(s1.income.b)}</td>
-                        <td class="text-right">${fmtMoney(s2.sales.reduce((s, w) => s + w.b, 0))}</td>
-                        <td class="text-right">${fmtPct(s2.sales.reduce((s, w) => s + w.b, 0) / s1.income.b)}</td>
-                        <td class="text-right">${fmtPct((s2.sales.reduce((s, w) => s + w.b, 0) / s1.income.b) - 1)}</td>
-                    </tr>
-                    <tr>
-                        <td>C端销售</td>
-                        <td class="text-right">${fmtMoney(s1.income.c)}</td>
-                        <td class="text-right">${fmtMoney(s2.sales.reduce((s, w) => s + w.c, 0))}</td>
-                        <td class="text-right">${fmtPct(s2.sales.reduce((s, w) => s + w.c, 0) / s1.income.c)}</td>
-                        <td class="text-right">${fmtPct((s2.sales.reduce((s, w) => s + w.c, 0) / s1.income.c) - 1)}</td>
-                    </tr>
-                    <tr>
-                        <td>刘义虎</td>
-                        <td class="text-right">${fmtMoney(s1.income.lyh)}</td>
-                        <td class="text-right">${fmtMoney(s2.sales.reduce((s, w) => s + w.lyh, 0))}</td>
-                        <td class="text-right">${fmtPct(s2.sales.reduce((s, w) => s + w.lyh, 0) / s1.income.lyh)}</td>
-                        <td class="text-right">${fmtPct((s2.sales.reduce((s, w) => s + w.lyh, 0) / s1.income.lyh) - 1)}</td>
-                    </tr>
-                    <tr style="font-weight:bold;background:rgba(56,189,248,0.1);">
-                        <td>合计</td>
-                        <td class="text-right">${fmtMoney(s1.income.total)}</td>
-                        <td class="text-right">${fmtMoney(summary.weeklySales)}</td>
-                        <td class="text-right">${fmtPct(summary.salesComplete)}</td>
-                        <td class="text-right">${fmtPct(summary.salesComplete - 1)}</td>
-                    </tr>
-                </tbody>
-            `;
-            document.getElementById('table-budget').innerHTML = tableHtml;
-        }
+    const salesRate = salesTarget > 0 ? totalAchieved / salesTarget : 0;
 
-        // 渲染销售分析
-        function renderSales(s1, s2) {
-            const totalB = s2.sales.reduce((s, w) => s + w.b, 0);
-            const totalC = s2.sales.reduce((s, w) => s + w.c, 0);
-            const totalLyh = s2.sales.reduce((s, w) => s + w.lyh, 0);
-            const total = totalB + totalC + totalLyh;
-            
-            // 饼图
-            createChart('chartSalesPie', 'doughnut', {
-                labels: ['B端销售', 'C端销售', '刘义虎'],
-                datasets: [{
-                    data: [totalB, totalC, totalLyh],
-                    backgroundColor: ['#38bdf8', '#4ade80', '#fbbf24'],
-                    borderWidth: 0
-                }]
-            }, {
-                plugins: {
-                    legend: { position: 'right' }
-                }
-            });
-            
-            // 渠道趋势
-            createChart('chartSalesChannel', 'bar', {
-                labels: s2.sales.map(w => w.week),
-                datasets: [
-                    { label: 'B端', data: s2.sales.map(w => w.b), backgroundColor: '#38bdf8' },
-                    { label: 'C端', data: s2.sales.map(w => w.c), backgroundColor: '#4ade80' },
-                    { label: '刘义虎', data: s2.sales.map(w => w.lyh), backgroundColor: '#fbbf24' }
-                ]
-            });
-            
-            // 周度明细表
-            let tableHtml = `
-                <thead>
-                    <tr>
-                        <th>周次</th>
-                        <th>B端销售</th>
-                        <th>C端销售</th>
-                        <th>刘义虎</th>
-                        <th>总销售</th>
-                        <th>总回款</th>
-                        <th>销售环比</th>
-                    </tr>
-                </thead>
-                <tbody>
-            `;
-            s2.sales.forEach((w, i) => {
-                const prevTotal = i > 0 ? s2.sales[i - 1].total : w.total;
-                const change = prevTotal > 0 ? ((w.total - prevTotal) / prevTotal) : 0;
-                tableHtml += `
-                    <tr>
-                        <td>${w.week}</td>
-                        <td class="text-right">${fmtMoney(w.b)}</td>
-                        <td class="text-right">${fmtMoney(w.c)}</td>
-                        <td class="text-right">${fmtMoney(w.lyh)}</td>
-                        <td class="text-right">${fmtMoney(w.total)}</td>
-                        <td class="text-right">${fmtMoney(w.collected)}</td>
-                        <td class="text-right"><span class="badge ${change >= 0 ? 'badge-success' : 'badge-danger'}">${fmtPct(change, 100)}</span></td>
-                    </tr>
-                `;
-            });
-            tableHtml += '</tbody>';
-            document.getElementById('table-sales-weekly').innerHTML = tableHtml;
-        }
+    let html = '';
+    // KPI卡片
+    html += `<div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">销售达成率</div><div class="kpi-value blue">${pct(salesRate)}</div><div class="kpi-sub">目标 ${fmt(salesTarget)} | 达成 ${fmt(totalAchieved)}</div><div class="progress-bar"><div class="progress-fill ${progressClass(salesRate)}" style="width:${Math.min(salesRate*100,100)}%"></div></div></div>
+        <div class="kpi-card"><div class="kpi-label">应收余额</div><div class="kpi-value ${unsettled<=receivableTarget?'green':'red'}">${fmt(unsettled)}</div><div class="kpi-sub">控制目标 ${fmt(receivableTarget)}</div><div class="progress-bar"><div class="progress-fill ${unsettled<=receivableTarget?'high':'low'}" style="width:${receivableTarget>0?Math.min(unsettled/receivableTarget*100,100):0}%"></div></div></div>
+        <div class="kpi-card"><div class="kpi-label">周度回款率</div><div class="kpi-value ${returnRate>=0.5?'green':returnRate>=0.3?'yellow':'red'}">${pct(returnRate)}</div><div class="kpi-sub">回款 ${fmt(totalReturn)} / 销售 ${fmt(totalAchieved)}</div><div class="progress-bar"><div class="progress-fill ${progressClass(returnRate)}" style="width:${Math.min(returnRate*100,100)}%"></div></div></div>
+        <div class="kpi-card"><div class="kpi-label">预算毛利率</div><div class="kpi-value ${marginRate>=0.1?'green':'yellow'}">${pct(marginRate)}</div><div class="kpi-sub">收入 ${fmt(salesTarget)} | 成本 ${fmt(costBudget)}</div></div>
+    </div>`;
 
-        // 渲染应收账款
-        function renderReceivable(summary, s3) {
-            const kpiHtml = `
-                <div class="kpi-card">
-                    <div class="kpi-label">应收余额</div>
-                    <div class="kpi-value danger">¥${fmtMoney(summary.arBalance)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">应收目标</div>
-                    <div class="kpi-value success">¥${fmtMoney(summary.arTarget)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">超标金额</div>
-                    <div class="kpi-value ${summary.arExceed > 0 ? 'danger' : 'success'}">¥${fmtMoney(summary.arExceed)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">30天以上占比</div>
-                    <div class="kpi-value ${summary.arExceed > 0 ? 'danger' : 'success'}">${s3.aging.length > 3 ? s3.aging[3].ratio : '-'}</div>
-                </div>
-            `;
-            document.getElementById('kpi-receivable').innerHTML = kpiHtml;
-            
-            // 账龄饼图
-            const agingLabels = s3.aging.filter(a => a.range && a.range !== '合计').map(a => a.range);
-            const agingAmounts = s3.aging.filter(a => a.range && a.range !== '合计').map(a => a.amount);
-            createChart('chartAging', 'pie', {
-                labels: agingLabels,
-                datasets: [{
-                    data: agingAmounts,
-                    backgroundColor: ['#4ade80', '#38bdf8', '#fbbf24', '#f87171'],
-                    borderWidth: 0
-                }]
-            });
-            
-            // 账龄表格
-            let agingHtml = `
-                <thead>
-                    <tr>
-                        <th>区间</th>
-                        <th>单据数</th>
-                        <th>金额</th>
-                        <th>占比</th>
-                    </tr>
-                </thead>
-                <tbody>
-            `;
-            s3.aging.forEach(a => {
-                agingHtml += `
-                    <tr>
-                        <td>${a.range}</td>
-                        <td class="text-right">${a.count}</td>
-                        <td class="text-right">${fmtMoney(a.amount)}</td>
-                        <td class="text-right">${a.ratio}</td>
-                    </tr>
-                `;
-            });
-            agingHtml += '</tbody>';
-            document.getElementById('table-aging').innerHTML = agingHtml;
-            
-            // 业务员表格
-            let salesmanHtml = `
-                <thead>
-                    <tr>
-                        <th>业务员</th>
-                        <th>客户数</th>
-                        <th>未结算</th>
-                        <th>30天以上</th>
-                        <th>占比</th>
-                    </tr>
-                </thead>
-                <tbody>
-            `;
-            s3.salesmen.slice(0, 14).forEach(s => {
-                const over30 = parseFloat(s.d31_90 || 0) + parseFloat(s.d91_180 || 0) + parseFloat(s.d180plus || 0);
-                salesmanHtml += `
-                    <tr>
-                        <td>${s.name}</td>
-                        <td class="text-right">${s.clients}</td>
-                        <td class="text-right">${fmtMoney(s.unsettled)}</td>
-                        <td class="text-right">${fmtMoney(over30)}</td>
-                        <td class="text-right">${s.ratio}</td>
-                    </tr>
-                `;
-            });
-            salesmanHtml += '</tbody>';
-            document.getElementById('table-salesman').innerHTML = salesmanHtml;
-            
-            // TOP10表格
-            let top10Html = `
-                <thead>
-                    <tr>
-                        <th>排名</th>
-                        <th>客户</th>
-                        <th>业务员</th>
-                        <th>金额</th>
-                        <th>最大账龄</th>
-                        <th>单据数</th>
-                    </tr>
-                </thead>
-                <tbody>
-            `;
-            s3.top10.forEach(c => {
-                top10Html += `
-                    <tr>
-                        <td>${c.rank}</td>
-                        <td>${c.customer}</td>
-                        <td>${c.salesman}</td>
-                        <td class="text-right">${fmtMoney(c.amount)}</td>
-                        <td>${c.maxAge}</td>
-                        <td class="text-right">${c.docCount}</td>
-                    </tr>
-                `;
-            });
-            top10Html += '</tbody>';
-            document.getElementById('table-top10').innerHTML = top10Html;
-        }
+    // 预算达成总表
+    html += `<div class="card"><div class="card-title">📊 月度预算达成</div><table>
+        <thead><tr><th>类别</th><th class="text-right">月目标</th><th class="text-right">累计达成</th><th class="text-center">达成率</th><th style="width:200px">进度</th></tr></thead><tbody>`;
 
-        // 渲染成本费用
-        function renderCost(summary, s1, s2, s4) {
-            const kpiHtml = `
-                <div class="kpi-card">
-                    <div class="kpi-label">成本合计</div>
-                    <div class="kpi-value">¥${fmtMoney(summary.weeklyCost)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">费用合计</div>
-                    <div class="kpi-value">¥${fmtMoney(summary.weeklyExpense)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">成本预算</div>
-                    <div class="kpi-value">¥${fmtMoney(summary.costBudget)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">费用预算</div>
-                    <div class="kpi-value">¥${fmtMoney(summary.expenseBudget)}</div>
-                </div>
-            `;
-            document.getElementById('kpi-cost').innerHTML = kpiHtml;
-            
-            // 成本费用构成饼图
-            const costTotal = s1.cost.main || 0;
-            const expenseTotal = summary.expenseBudget;
-            createChart('chartCostPie', 'doughnut', {
-                labels: ['主营业务成本', '物流费', '折旧', '租金', '人工', '期间费用'],
-                datasets: [{
-                    data: [
-                        s1.cost.main || 0,
-                        s1.cost.logistics || 0,
-                        s1.cost.depreciation || 0,
-                        s1.cost.rent || 0,
-                        s1.cost.labor || 0,
-                        expenseTotal
-                    ],
-                    backgroundColor: ['#f87171', '#fbbf24', '#a78bfa', '#38bdf8', '#4ade80', '#fb7185'],
-                    borderWidth: 0
-                }]
-            }, { plugins: { legend: { position: 'right' } } });
-            
-            // 费用趋势图
-            createChart('chartCostTrend', 'line', {
-                labels: s2.expense.map(w => w.week),
-                datasets: [
-                    {
-                        label: '业务招待',
-                        data: s2.expense.map(w => w.entertain),
-                        borderColor: '#f87171',
-                        tension: 0.4
-                    },
-                    {
-                        label: '维修维护',
-                        data: s2.expense.map(w => w.maintain),
-                        borderColor: '#fbbf24',
-                        tension: 0.4
-                    },
-                    {
-                        label: '差旅费',
-                        data: s2.expense.map(w => w.travel),
-                        borderColor: '#38bdf8',
-                        tension: 0.4
-                    },
-                    {
-                        label: '车辆使用',
-                        data: s2.expense.map(w => w.vehicle),
-                        borderColor: '#4ade80',
-                        tension: 0.4
-                    }
-                ]
-            });
-            
-            // 周度成本费用明细
-            let tableHtml = `
-                <thead>
-                    <tr>
-                        <th>周次</th>
-                        <th>主营成本</th>
-                        <th>物流费</th>
-                        <th>折旧</th>
-                        <th>租金</th>
-                        <th>人工</th>
-                        <th>其他固定</th>
-                        <th>费用合计</th>
-                    </tr>
-                </thead>
-                <tbody>
-            `;
-            const maxWeeks = Math.max(s2.cost.length, s2.expense.length);
-            for (let i = 0; i < maxWeeks; i++) {
-                const c = s2.cost[i] || {};
-                const e = s2.expense[i] || {};
-                tableHtml += `
-                    <tr>
-                        <td>${c.week || e.week || `W${i+1}`}</td>
-                        <td class="text-right">${fmtMoney(c.main)}</td>
-                        <td class="text-right">${fmtMoney(c.logistics)}</td>
-                        <td class="text-right">${fmtMoney(c.depreciation)}</td>
-                        <td class="text-right">${fmtMoney(c.rent)}</td>
-                        <td class="text-right">${fmtMoney(c.labor)}</td>
-                        <td class="text-right">${fmtMoney(c.otherFixed)}</td>
-                        <td class="text-right">${fmtMoney(e.total)}</td>
-                    </tr>
-                `;
-            }
-            tableHtml += '</tbody>';
-            document.getElementById('table-cost-weekly').innerHTML = tableHtml;
-            
-            // 审批数据
-            if (s4.base && s4.base.totalCount) {
-                const kpiApprovalHtml = `
-                    <div class="kpi-card">
-                        <div class="kpi-label">总笔数</div>
-                        <div class="kpi-value">${s4.base.totalCount}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-label">有效金额</div>
-                        <div class="kpi-value">¥${fmtMoney(s4.base.validAmount)}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-label">已通过</div>
-                        <div class="kpi-value success">¥${fmtMoney(s4.base.approvedAmount)}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-label">审批中</div>
-                        <div class="kpi-value warning">¥${fmtMoney(s4.base.pendingAmount)}</div>
-                    </div>
-                `;
-                document.getElementById('kpi-approval').innerHTML = kpiApprovalHtml;
-                
-                let approvalHtml = `
-                    <thead>
-                        <tr>
-                            <th>审批类别</th>
-                            <th>笔数</th>
-                            <th>金额</th>
-                            <th>占比</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                `;
-                s4.category.forEach(c => {
-                    approvalHtml += `
-                        <tr>
-                            <td>${c.type}</td>
-                            <td class="text-right">${c.count}</td>
-                            <td class="text-right">${fmtMoney(c.amount)}</td>
-                            <td class="text-right">${fmtPct(c.ratio, 100)}</td>
-                        </tr>
-                    `;
-                });
-                approvalHtml += '</tbody>';
-                document.getElementById('table-approval').innerHTML = approvalHtml;
-            }
-        }
+    const rows = [
+        {name:'B端销售',target:bTarget,achieved:bAchieved},
+        {name:'C端销售',target:cTarget,achieved:cAchieved},
+        {name:'刘义虎',target:lyhTarget,achieved:lyhAchieved},
+        {name:'<strong>合计</strong>',target:salesTarget,achieved:totalAchieved}
+    ];
+    rows.forEach(r => {
+        const rate = r.target>0?r.achieved/r.target:0;
+        html += `<tr><td>${r.name}</td><td class="text-right">${fmt(r.target)}</td><td class="text-right">${fmt(r.achieved)}</td><td class="text-center"><span class="badge ${rate>=1?'badge-green':rate>=0.7?'badge-yellow':'badge-red'}">${pct(rate)}</span></td><td><div class="progress-bar"><div class="progress-fill ${progressClass(rate)}" style="width:${Math.min(rate*100,100)}%"></div></div></td></tr>`;
+    });
+    html += `</tbody></table></div>`;
 
-        // 渲染周报事项
-        function renderReport(s5, s4) {
-            let html = `
-                <div class="info-row"><span class="info-label">汇报期间</span><span class="info-value">${s5.period}</span></div>
-                <div class="info-row"><span class="info-label">周次</span><span class="info-value">${s5.week}</span></div>
-                <div style="margin-top:20px;">
-                    <h4 style="color:var(--primary);margin-bottom:10px;">📋 上周完成</h4>
-            `;
-            s5.lastWeek.forEach((item, i) => {
-                html += `<div class="info-row"><span class="info-label">${i + 1}.</span><span>${item}</span></div>`;
-            });
-            html += `
-                </div>
-                <div style="margin-top:20px;">
-                    <h4 style="color:var(--success);margin-bottom:10px;">🎯 下周重点</h4>
-            `;
-            s5.nextWeek.forEach((item, i) => {
-                html += `<div class="info-row"><span class="info-label">${i + 1}.</span><span>${item}</span></div>`;
-            });
-            if (s5.special) {
-                html += `
-                    </div>
-                    <div style="margin-top:20px;">
-                        <h4 style="color:var(--warning);margin-bottom:10px;">⚠️ 特别说明</h4>
-                        <div class="info-row">${s5.special}</div>
-                    </div>
-                `;
-            }
-            document.getElementById('reportContent').innerHTML = html;
-            
-            // 审批摘要
-            if (s4.base && s4.base.totalCount) {
-                let approvalHtml = `
-                    <div class="kpi-grid">
-                        <div class="kpi-card">
-                            <div class="kpi-label">本周审批</div>
-                            <div class="kpi-value">${s4.base.totalCount} 笔</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-label">有效金额</div>
-                            <div class="kpi-value">¥${fmtMoney(s4.base.validAmount)}</div>
-                        </div>
-                    </div>
-                    <h4 style="color:var(--primary);margin:15px 0 10px;">TOP5申请人</h4>
-                    <table class="data-table">
-                        <thead><tr><th>排名</th><th>申请人</th><th>笔数</th><th>金额</th></tr></thead>
-                        <tbody>
-                `;
-                s4.topApplicant.slice(0, 5).forEach(a => {
-                    approvalHtml += `
-                        <tr>
-                            <td>${a.rank}</td>
-                            <td>${a.name}</td>
-                            <td class="text-right">${a.count}</td>
-                            <td class="text-right">${fmtMoney(a.amount)}</td>
-                        </tr>
-                    `;
-                });
-                approvalHtml += '</tbody></table>';
-                document.getElementById('approvalSummary').innerHTML = approvalHtml;
-            }
-        }
+    // 风险预警
+    const warnings = [];
+    if(salesRate < 0.5) warnings.push({icon:'⚠️',title:'销售达成率偏低',desc:`当前${pct(salesRate)}，时间过半需加速`,level:'warn'});
+    if(unsettled > receivableTarget) warnings.push({icon:'🔴',title:'应收余额超标',desc:`未结算${fmt(unsettled)}，超出控制目标${fmt(unsettled-receivableTarget)}`,level:'risk'});
+    const over30Staff = d.ar.staff.filter(s => parseFloat(s.over30Rate) > 50);
+    if(over30Staff.length > 0) warnings.push({icon:'⚠️',title:'多业务员30天以上应收占比过高',desc:over30Staff.map(s=>`${s.name}(${s.over30Rate})`).join('、'),level:'warn'});
 
-        // 主渲染函数
-        function renderAllData() {
-            const s1 = parseSheet1(workbookData['Sheet1'] || workbookData['月度预算'] || []);
-            const s2 = parseSheet2(workbookData['Sheet2'] || workbookData['周度数据'] || []);
-            const s3 = parseSheet3(workbookData['Sheet3'] || workbookData['应收账款'] || []);
-            const s4 = parseSheet4(workbookData['Sheet4'] || workbookData['审批数据'] || []);
-            const s5 = parseSheet5(workbookData['Sheet5'] || workbookData['周报文本'] || []);
-            
-            const summary = calculateSummary(s1, s2, s3);
-            
-            renderOverview(summary, s2);
-            renderBudget(summary, s1, s2);
-            renderSales(s1, s2);
-            renderReceivable(summary, s3);
-            renderCost(summary, s1, s2, s4);
-            renderReport(s5, s4);
-        }
-
-        // 文件上传处理
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const wb = XLSX.read(data, { type: 'array', cellDates: true });
-                    
-                    wb.SheetNames.forEach(name => {
-                        const sheet = wb.Sheets[name];
-                        workbookData[name] = getSheetData(sheet);
-                    });
-                    
-                    renderAllData();
-                    alert('数据加载成功！');
-                } catch (err) {
-                    alert('文件解析失败：' + err.message);
-                }
-            };
-            reader.readAsArrayBuffer(file);
+    if(warnings.length > 0) {
+        html += `<div class="card"><div class="card-title">⚠️ 风险预警</div>`;
+        warnings.forEach(w => {
+            html += `<div class="risk-card ${w.level==='warn'?'warn':''}"><div class="risk-icon">${w.icon}</div><div><div class="risk-title">${w.title}</div><div class="risk-desc">${w.desc}</div></div></div>`;
         });
+        html += `</div>`;
+    }
 
-        // 加载示例数据
-        function loadSampleData() {
-            workbookData = {
-                'Sheet1': [
-                    ['', ''], ['', ''], ['', ''], ['', ''],
-                    ['年度', 2026], ['月份', 5], ['公司', '中合五金'], ['汇报人', '张洪杰'],
-                    ['部门', '财务部'], ['人数', 29], ['', ''],
-                    ['累计销售额', 11148088.87], ['累计已回款', 6875454.45], ['', ''],
-                    ['收入预算', ''], ['科目', '金额'],
-                    ['B端销售', 2320000], ['C端销售', 3000000], ['刘义虎', 680000],
-                    ['合计', 6000000], ['应收余额', 4272634.42], ['应收余额目标', 1800000],
-                    ['', ''], ['成本预算', ''], ['科目', '金额'],
-                    ['主营业务成本', 4890000], ['物流费', 378000], ['折旧', 20266.98],
-                    ['租金', 37594.42], ['人工', 230000],
-                    ['', ''], ['费用预算', ''], ['科目', '金额'],
-                    ['业务招待费', 30000], ['差旅费', 15000], ['车辆费', 28769.82],
-                    ['办公用品', 30000], ['生活费', 13200], ['宿舍费', 2600],
-                    ['其他费用', 500], ['通讯费', 1500], ['水电费', 300]
-                ],
-                'Sheet2': [
-                    ['', ''], ['', ''], ['', ''], ['', ''],
-                    ['销售与回款', ''], ['周次', '日期', 'B端销售', 'C端销售', '刘义虎', '总销售', '总回款'],
-                    ['W1', '05.01-05.03', 385000, 520000, 85000, 990000, 580000],
-                    ['W2', '05.04-05.10', 420000, 580000, 92000, 1092000, 720000],
-                    ['W3', '05.11-05.16', 398000, 545000, 88000, 1031000, 680000],
-                    ['W4', '05.17-05.23', 412000, 568000, 91000, 1071000, 710000],
-                    ['W5', '05.24-05.30', 0, 0, 0, 0, 0],
-                    ['W6', '05.31-05.31', 0, 0, 0, 0, 0],
-                    ['', ''], ['', ''],
-                    ['成本数据', ''], ['周次', '主营成本', '运杂物流费', '折旧', '租金', '人工', '其他固定', '合计'],
-                    ['W1', 720000, 56000, 3380, 6265, 38333, 0, 823978],
-                    ['W2', 795000, 62000, 3380, 6265, 38333, 0, 904978],
-                    ['W3', 750000, 59000, 3380, 6265, 38333, 0, 856978],
-                    ['W4', 780000, 61000, 3380, 6265, 38333, 0, 888978],
-                    ['W5', 0, 0, 3380, 6265, 38333, 0, 47978],
-                    ['W6', 0, 0, 0, 0, 0, 0, 0],
-                    ['', ''], ['', ''],
-                    ['费用数据', ''], ['周次', '业务招待费', '维修维护费', '差旅费', '交通费', '车辆使用费', '办公费', '服务费', '福利费', '通讯费', '其它', '合计'],
-                    ['W1', 4500, 2800, 2100, 1200, 4200, 4500, 1500, 2000, 300, 100, 1200, 24400],
-                    ['W2', 5200, 3200, 2400, 1400, 4500, 4800, 1800, 2200, 350, 120, 1350, 27320],
-                    ['W3', 4800, 3000, 2250, 1300, 4300, 4600, 1600, 2100, 320, 110, 1280, 25660],
-                    ['W4', 5100, 3100, 2350, 1350, 4400, 4700, 1700, 2150, 330, 115, 1320, 26615],
-                    ['W5', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    ['W6', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                ],
-                'Sheet3': [
-                    ['', ''],
-                    ['累计销售额', 11148088.87], ['累计已回款', 6875454.45], ['', ''],
-                    ['业务员应收明细', ''], ['业务员', '客户数', '未结算', '0-30天', '31-90天', '91-180天', '180天+', '30天以上占比'],
-                    ['张伟', 12, 385000, 220000, 95000, 45000, 25000, '45.2%'],
-                    ['李娜', 15, 420000, 280000, 82000, 38000, 20000, '42.8%'],
-                    ['王芳', 10, 298000, 185000, 68000, 32000, 13000, '48.6%'],
-                    ['刘强', 11, 356000, 215000, 88000, 35000, 18000, '46.5%'],
-                    ['陈静', 9, 275000, 168000, 62000, 30000, 15000, '44.8%'],
-                    ['赵磊', 13, 412000, 258000, 92000, 42000, 20000, '43.5%'],
-                    ['孙丽', 8, 235000, 142000, 55000, 26000, 12000, '47.2%'],
-                    ['周涛', 14, 468000, 295000, 105000, 48000, 20000, '42.3%'],
-                    ['吴敏', 11, 328000, 198000, 78000, 35000, 17000, '44.8%'],
-                    ['郑华', 10, 295000, 178000, 72000, 32000, 13000, '46.8%'],
-                    ['黄勇', 9, 268000, 162000, 65000, 29000, 12000, '47.5%'],
-                    ['林峰', 12, 385000, 235000, 89000, 42000, 19000, '44.4%'],
-                    ['杨玲', 8, 218000, 132000, 52000, 24000, 10000, '46.8%'],
-                    ['徐刚', 10, 280000, 168000, 68000, 31000, 13000, '47.5%'],
-                    ['合计', 152, 4043477.75, 2794000, 985000, 483000, 227000, '45.3%'],
-                    ['', ''],
-                    ['账龄分布', ''], ['区间', '单据数', '金额', '占比'],
-                    ['0-30天', 78, 2794000, '57.8%'],
-                    ['31-90天', 42, 985000, '20.4%'],
-                    ['91-180天', 18, 483000, '10.0%'],
-                    ['180天以上', 12, 227000, '4.7%'],
-                    ['合计', 150, 4043477.75, '83.7%'],
-                    ['', ''],
-                    ['欠款TOP10客户', ''], ['排名', '客户', '业务员', '金额', '最大账龄', '单据数', '最早日期', '最晚日期'],
-                    [1, '杭州某某公司', '张伟', 285000, '150天', 12, '2025-12-15', '2026-04-20'],
-                    [2, '宁波某某工厂', '李娜', 245000, '120天', 10, '2026-01-05', '2026-04-28'],
-                    [3, '温州某某商贸', '王芳', 198000, '180天', 8, '2025-11-20', '2026-04-15'],
-                    [4, '嘉兴某某企业', '刘强', 175000, '95天', 7, '2026-01-28', '2026-04-30'],
-                    [5, '湖州某某公司', '陈静', 156000, '88天', 6, '2026-02-10', '2026-04-28'],
-                    [6, '绍兴某某厂', '赵磊', 142000, '105天', 5, '2026-01-18', '2026-04-25'],
-                    [7, '金华某某', '孙丽', 128000, '75天', 5, '2026-02-25', '2026-04-30'],
-                    [8, '衢州某某', '周涛', 115000, '68天', 4, '2026-03-05', '2026-04-30'],
-                    [9, '台州某某', '吴敏', 98000, '82天', 4, '2026-02-20', '2026-04-28'],
-                    [10, '丽水某某', '郑华', 85000, '92天', 3, '2026-02-10', '2026-04-25']
-                ],
-                'Sheet4': [
-                    ['', ''], ['', ''], ['', ''],
-                    ['基本信息', ''], ['统计期间', '2026年5月(截至05.23)'],
-                    ['总笔数', 45], ['有效笔数', 42], ['有效金额', 1865000],
-                    ['已通过金额', 1622500], ['审批中金额', 242500],
-                    ['', ''], ['', ''],
-                    ['审批类别', ''], ['类别', '笔数', '金额', '占比'],
-                    ['成本', 18, 892000, 0.478],
-                    ['费用', 15, 456000, 0.245],
-                    ['资产', 5, 328000, 0.176],
-                    ['资金', 4, 188000, 0.101],
-                    ['', ''], ['', ''],
-                    ['流程类型', ''], ['类型', '笔数', '金额', '占比'],
-                    ['付款申请', 22, 1056000, 0.566],
-                    ['调货急付', 8, 385000, 0.206],
-                    ['费用报销', 9, 268000, 0.144],
-                    ['借支', 3, 157000, 0.084],
-                    ['', ''], ['', ''],
-                    ['费用分类明细', ''], ['科目', '笔数', '金额', '占比'],
-                    ['运杂物流费', 12, 385000, 0.206],
-                    ['其他', 8, 285000, 0.153],
-                    ['业务招待费', 6, 186000, 0.100],
-                    ['维修维护费', 5, 142000, 0.076],
-                    ['差旅费', 4, 98000, 0.053],
-                    ['交通费', 3, 65000, 0.035],
-                    ['车辆使用费', 3, 78000, 0.042],
-                    ['办公费', 2, 45000, 0.024],
-                    ['服务费', 2, 38000, 0.020],
-                    ['福利费', 2, 28000, 0.015],
-                    ['通讯费', 1, 12000, 0.006],
-                    ['', ''], ['', ''], ['', ''],
-                    ['TOP10申请人', ''], ['排名', '申请人', '笔数', '金额'],
-                    [1, '张洪杰', 8, 385000],
-                    [2, '李明', 6, 268000],
-                    [3, '王强', 5, 198000],
-                    [4, '刘芳', 5, 175000],
-                    [5, '陈刚', 4, 156000],
-                    [6, '赵丽', 4, 142000],
-                    [7, '孙伟', 3, 128000],
-                    [8, '周敏', 3, 115000],
-                    [9, '吴涛', 2, 98000],
-                    [10, '郑华', 2, 85000]
-                ],
-                'Sheet5': [
-                    ['', ''], ['', ''], ['', ''], ['', ''],
-                    ['汇报期间', '05.17-05.23'], ['周次', 'W4'],
-                    ['上周完成1', '完成B端销售41.2万元，较上周增长3.5%'],
-                    ['上周完成2', '完成C端销售56.8万元，保持稳定增长'],
-                    ['上周完成3', '刘义虎渠道完成9.1万元'],
-                    ['上周完成4', '回款71万元，整体回款率61.7%'],
-                    ['上周完成5', '应收账款超额227.3万元，需加大催收力度'],
-                    ['上周完成6', '成本费用控制在预算范围内'],
-                    ['上周完成7', ''],
-                    ['下周重点1', '加强应收账款催收，目标回款100万'],
-                    ['下周重点2', '拓展B端新客户，提升销售规模'],
-                    ['下周重点3', '优化C端渠道，提升服务质量'],
-                    ['下周重点4', '控制期间费用，降低运营成本'],
-                    ['下周重点5', '推进重点客户合作，加快资金周转'],
-                    ['特别说明', '本月时间进度67%，销售完成率59.7%，预测月底可完成约534万，距目标有差距，需努力']
-                ]
-            };
-            
-            renderAllData();
+    document.getElementById('tab-overview').innerHTML = html;
+}
+
+// ===== Tab2: 销售与回款 =====
+function renderSales(d) {
+    let html = '';
+    const salesWithData = d.weekly.sales.filter(w => w.totalSales > 0 || w.totalReturn > 0);
+
+    // 周度销售趋势图
+    html += `<div class="card"><div class="card-title">📈 周度销售趋势</div><div class="chart-container"><canvas id="salesChart"></canvas></div></div>`;
+
+    // 周度回款趋势图
+    html += `<div class="card"><div class="card-title">💳 周度回款趋势</div><div class="chart-container"><canvas id="returnChart"></canvas></div></div>`;
+
+    // 销售明细表
+    html += `<div class="card"><div class="card-title">📋 周度销售明细</div><table><thead><tr><th>周次</th><th>日期</th><th class="text-right">B端</th><th class="text-right">C端</th><th class="text-right">刘义虎</th><th class="text-right">总销售额</th></tr></thead><tbody>`;
+    d.weekly.sales.forEach(w => {
+        if(w.week) html += `<tr><td>${w.week}</td><td>${w.date||'-'}</td><td class="text-right">${fmt(w.bSales)}</td><td class="text-right">${fmt(w.cSales)}</td><td class="text-right">${fmt(w.lyhSales)}</td><td class="text-right" style="font-weight:600;color:#38bdf8">${fmt(w.totalSales)}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+
+    // 回款明细表
+    html += `<div class="card"><div class="card-title">📋 周度回款明细</div><table><thead><tr><th>周次</th><th class="text-right">银行回款</th><th class="text-right">现金回款</th><th class="text-right">微信回款</th><th class="text-right">总回款</th></tr></thead><tbody>`;
+    d.weekly.sales.forEach(w => {
+        if(w.week) html += `<tr><td>${w.week}</td><td class="text-right">${fmt(w.bankReturn)}</td><td class="text-right">${fmt(w.cashReturn)}</td><td class="text-right">${fmt(w.wechatReturn)}</td><td class="text-right" style="font-weight:600;color:#4ade80">${fmt(w.totalReturn)}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+
+    document.getElementById('tab-sales').innerHTML = html;
+
+    // 渲染图表
+    setTimeout(() => {
+        const labels = d.weekly.sales.map(w => w.week || '');
+        const chartOpts = {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8'}}},scales:{x:{grid:{color:'rgba(148,163,184,0.1)'},ticks:{color:'#94a3b8'}},y:{grid:{color:'rgba(148,163,184,0.1)'},ticks:{color:'#94a3b8'}}}};
+
+        const sc = document.getElementById('salesChart');
+        if(sc && salesWithData.length > 0) {
+            chartInstances.salesChart = new Chart(sc, {type:'line',data:{labels:labels,datasets:[
+                {label:'B端',data:d.weekly.sales.map(w=>w.bSales),borderColor:'#0ea5e9',backgroundColor:'rgba(14,165,233,0.1)',fill:true,tension:0.3},
+                {label:'C端',data:d.weekly.sales.map(w=>w.cSales),borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,0.1)',fill:true,tension:0.3},
+                {label:'刘义虎',data:d.weekly.sales.map(w=>w.lyhSales),borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.1)',fill:true,tension:0.3},
+                {label:'合计',data:d.weekly.sales.map(w=>w.totalSales),borderColor:'#38bdf8',borderWidth:2,backgroundColor:'transparent',tension:0.3}
+            ]},options:chartOpts});
         }
 
-        // 初始化示例数据
-        window.addEventListener('load', function() {
-            loadSampleData();
-        });
-    </script>
+        const rc = document.getElementById('returnChart');
+        if(rc && salesWithData.length > 0) {
+            chartInstances.returnChart = new Chart(rc, {type:'bar',data:{labels:labels,datasets:[
+                {label:'银行',data:d.weekly.sales.map(w=>w.bankReturn),backgroundColor:'rgba(14,165,233,0.7)'},
+                {label:'现金',data:d.weekly.sales.map(w=>w.cashReturn),backgroundColor:'rgba(74,222,128,0.7)'},
+                {label:'微信',data:d.weekly.sales.map(w=>w.wechatReturn),backgroundColor:'rgba(139,92,246,0.7)'}
+            ]},options:{...chartOpts,plugins:{legend:{labels:{color:'#94a3b8'}}}}});
+        }
+    }, 100);
+}
+
+// ===== Tab3: 成本费用 =====
+function renderCost(d) {
+    let html = '';
+
+    // 成本预算vs达成
+    const costAchieved = d.weekly.cost.reduce((s,w) => s + w.mainCost + w.logistics + w.depreciation + w.rent + w.labor + w.otherFixed, 0);
+    const totalCostBudget = d.budget.cost.reduce((s,i) => s + i.amount, 0);
+    const totalExpBudget = d.budget.expense.reduce((s,i) => s + i.amount, 0);
+    const totalExpAchieved = d.weekly.expense.reduce((s,w) => s + w.entertainment + w.travel + w.vehicle + w.office + w.living + w.dorm + w.other, 0);
+
+    html += `<div class="two-col">`;
+    // 成本结构图
+    html += `<div class="card"><div class="card-title">🏭 成本结构</div><div class="chart-container small"><canvas id="costPieChart"></canvas></div></div>`;
+    // 费用构成图
+    html += `<div class="card"><div class="card-title">💸 费用构成TOP10</div><div class="chart-container"><canvas id="expenseBarChart"></canvas></div></div>`;
+    html += `</div>`;
+
+    // 成本预算达成表
+    html += `<div class="card"><div class="card-title">📊 成本预算达成</div><table><thead><tr><th>科目</th><th class="text-right">月预算</th><th class="text-right">累计达成</th><th class="text-center">达成率</th></tr></thead><tbody>`;
+    d.budget.cost.forEach(i => { html += `<tr><td>${i.item||'-'}</td><td class="text-right">${fmt(i.amount)}</td><td class="text-right">-</td><td class="text-center">-</td></tr>`; });
+    html += `<tr style="background:rgba(14,165,233,0.1);font-weight:600"><td>成本合计</td><td class="text-right">${fmt(totalCostBudget)}</td><td class="text-right">${fmt(costAchieved)}</td><td class="text-center"><span class="badge ${totalCostBudget>0&&costAchieved/totalCostBudget<=1?'badge-green':'badge-yellow'}">${totalCostBudget>0?pct(costAchieved/totalCostBudget):'-'}</span></td></tr>`;
+    html += `</tbody></table></div>`;
+
+    // 费用预算达成表
+    html += `<div class="card"><div class="card-title">📊 费用预算达成</div><table><thead><tr><th>科目</th><th class="text-right">月预算</th><th class="text-right">累计达成</th><th class="text-center">达成率</th></tr></thead><tbody>`;
+    d.budget.expense.forEach(i => { html += `<tr><td>${i.item||'-'}</td><td class="text-right">${fmt(i.amount)}</td><td class="text-right">-</td><td class="text-center">-</td></tr>`; });
+    html += `<tr style="background:rgba(14,165,233,0.1);font-weight:600"><td>费用合计</td><td class="text-right">${fmt(totalExpBudget)}</td><td class="text-right">${fmt(totalExpAchieved)}</td><td class="text-center"><span class="badge ${totalExpBudget>0&&totalExpAchieved/totalExpBudget<=1?'badge-green':'badge-yellow'}">${totalExpBudget>0?pct(totalExpAchieved/totalExpBudget):'-'}</span></td></tr>`;
+    html += `</tbody></table></div>`;
+
+    // 审批汇总
+    html += `<div class="card"><div class="card-title">📋 审批汇总</div>`;
+    const ap = d.approval.basic;
+    html += `<div class="summary-grid" style="margin-bottom:16px">
+        <div class="summary-item"><div class="label">统计期间</div><div class="value" style="font-size:14px">${ap.period||'-'}</div></div>
+        <div class="summary-item"><div class="label">总笔数</div><div class="value">${ap.totalCount||'-'}</div></div>
+        <div class="summary-item"><div class="label">有效笔数</div><div class="value">${ap.validCount||'-'}</div></div>
+        <div class="summary-item"><div class="label">有效金额</div><div class="value" style="font-size:14px">${fmt(ap.validAmount)}</div></div>
+        <div class="summary-item"><div class="label">已通过</div><div class="value" style="color:#4ade80;font-size:14px">${fmt(ap.approvedAmount)}</div></div>
+        <div class="summary-item"><div class="label">审批中</div><div class="value" style="color:#fbbf24;font-size:14px">${fmt(ap.pendingAmount)}</div></div>
+    </div>`;
+
+    // 流程类型
+    if(d.approval.flowTypes.length) {
+        html += `<table><thead><tr><th>流程类型</th><th class="text-right">笔数</th><th class="text-right">金额</th><th class="text-center">占比</th></tr></thead><tbody>`;
+        d.approval.flowTypes.forEach(f => { html += `<tr><td>${f.type}</td><td class="text-right">${f.count}</td><td class="text-right">${fmt(f.amount)}</td><td class="text-center">${f.ratio||'-'}</td></tr>`; });
+        html += `</tbody></table>`;
+    }
+
+    // 费用分类明细
+    if(d.approval.expenseTypes.length) {
+        html += `<div style="margin-top:16px"><div style="font-size:14px;color:#94a3b8;margin-bottom:8px">费用分类明细</div><table><thead><tr><th>科目</th><th class="text-right">笔数</th><th class="text-right">金额</th><th class="text-center">占比</th></tr></thead><tbody>`;
+        d.approval.expenseTypes.forEach(e => { html += `<tr><td>${e.item}</td><td class="text-right">${e.count}</td><td class="text-right">${fmt(e.amount)}</td><td class="text-center">${e.ratio||'-'}</td></tr>`; });
+        html += `</tbody></table></div>`;
+    }
+
+    // 申请人TOP5
+    if(d.approval.topApplicants.length) {
+        html += `<div style="margin-top:16px"><div style="font-size:14px;color:#94a3b8;margin-bottom:8px">申请人TOP5</div><table><thead><tr><th>排名</th><th>申请人</th><th class="text-right">笔数</th><th class="text-right">金额</th></tr></thead><tbody>`;
+        d.approval.topApplicants.forEach(a => { html += `<tr><td><span class="rank-badge rank-${a.rank<=3?a.rank:'default'}">${a.rank}</span></td><td>${a.applicant}</td><td class="text-right">${a.count}</td><td class="text-right">${fmt(a.amount)}</td></tr>`; });
+        html += `</tbody></table></div>`;
+    }
+    html += `</div>`;
+
+    document.getElementById('tab-cost').innerHTML = html;
+
+    // 渲染图表
+    setTimeout(() => {
+        const cp = document.getElementById('costPieChart');
+        if(cp && d.budget.cost.length) {
+            const filtered = d.budget.cost.filter(i=>i.amount>0);
+            chartInstances.costPieChart = new Chart(cp, {type:'doughnut',data:{labels:filtered.map(i=>i.item),datasets:[{data:filtered.map(i=>i.amount),backgroundColor:['#ef4444','#f59e0b','#0ea5e9','#10b981','#8b5cf6','#64748b']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94a3b8',font:{size:11}}}}}});
+        }
+        const eb = document.getElementById('expenseBarChart');
+        if(eb && d.approval.expenseTypes.length) {
+            const top10 = d.approval.expenseTypes.filter(e=>e.amount>0).sort((a,b)=>b.amount-a.amount).slice(0,10);
+            chartInstances.expenseBarChart = new Chart(eb, {type:'bar',data:{labels:top10.map(e=>e.item),datasets:[{data:top10.map(e=>e.amount),backgroundColor:'rgba(14,165,233,0.7)',borderColor:'#0ea5e9',borderWidth:1}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(148,163,184,0.1)'},ticks:{color:'#94a3b8'}},y:{grid:{display:false},ticks:{color:'#94a3b8'}}}}});
+        }
+    }, 100);
+}
+
+// ===== Tab4: 应收账款 =====
+function renderAR(d) {
+    let html = '';
+    const totalUnsettled = d.ar.staff.reduce((s,st)=>s+st.unsettled,0);
+
+    // 汇总统计
+    html += `<div class="card"><div class="card-title">📊 应收汇总</div><div class="summary-grid">
+        <div class="summary-item"><div class="label">未结算总额</div><div class="value" style="color:#f87171">${fmt(totalUnsettled)}</div></div>
+        <div class="summary-item"><div class="label">客户数</div><div class="value">${d.ar.staff.reduce((s,st)=>s+st.customers,0)}</div></div>
+        <div class="summary-item"><div class="label">业务员数</div><div class="value">${d.ar.staff.length}</div></div>
+        <div class="summary-item"><div class="label">控制目标</div><div class="value">${fmt(d.budget.income.find(i=>i.item&&i.item.includes('应收余额'))?.amount||0)}</div></div>
+        <div class="summary-item"><div class="label">超标金额</div><div class="value" style="color:${totalUnsettled>(d.budget.income.find(i=>i.item&&i.item.includes('应收余额'))?.amount||0)?'#f87171':'#4ade80'}">${fmt(totalUnsettled-(d.budget.income.find(i=>i.item&&i.item.includes('应收余额'))?.amount||0))}</div></div>
+        <div class="summary-item"><div class="label">30天以上紧急</div><div class="value" style="color:#fbbf24">${fmt(d.ar.aging.filter(a=>!a.range.includes('0-30')&&!a.range.includes('合计')).reduce((s,a)=>s+a.amount,0))}</div></div>
+    </div></div>`;
+
+    // 业务员排名表
+    html += `<div class="card"><div class="card-title">👥 业务员未结算排名</div><div style="overflow-x:auto"><table><thead><tr><th>排名</th><th>业务员</th><th class="text-right">客户数</th><th class="text-right">未结算</th><th class="text-right">0-30天</th><th class="text-right">31-90天</th><th class="text-right">91-180天</th><th class="text-right">180天+</th><th class="text-center">30天以上占比</th></tr></thead><tbody>`;
+    const sorted = [...d.ar.staff].sort((a,b)=>b.unsettled-a.unsettled);
+    sorted.forEach((s,i) => {
+        const over30 = parseFloat(s.over30Rate) || 0;
+        html += `<tr><td><span class="rank-badge rank-${i<3?i+1:'default'}">${i+1}</span></td><td><strong>${s.name}</strong></td><td class="text-right">${s.customers}</td><td class="text-right" style="color:#f87171;font-weight:600">${fmt(s.unsettled)}</td><td class="text-right">${fmt(s.d0_30)}</td><td class="text-right">${fmt(s.d31_90)}</td><td class="text-right">${fmt(s.d91_180)}</td><td class="text-right">${fmt(s.d180plus)}</td><td class="text-center"><span class="badge ${over30>50?'badge-red':over30>20?'badge-yellow':'badge-green'}">${s.over30Rate||'-'}</span></td></tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+
+    // 两栏：账龄分布 + TOP10
+    html += `<div class="two-col">`;
+    // 账龄分布
+    html += `<div class="card"><div class="card-title">🥧 账龄分布</div><div class="chart-container small"><canvas id="agingChart"></canvas></div>`;
+    if(d.ar.aging.length) {
+        html += `<table style="margin-top:12px"><thead><tr><th>区间</th><th class="text-right">单据数</th><th class="text-right">金额</th><th class="text-center">占比</th></tr></thead><tbody>`;
+        d.ar.aging.forEach(a => { html += `<tr><td>${a.range}</td><td class="text-right">${a.count}</td><td class="text-right">${fmt(a.amount)}</td><td class="text-center">${a.ratio||'-'}</td></tr>`; });
+        html += `</tbody></table>`;
+    }
+    html += `</div>`;
+
+    // TOP10客户
+    html += `<div class="card"><div class="card-title">🔟 欠款TOP10客户</div>`;
+    d.ar.top10.forEach(c => {
+        const isUrgent = c.agingRange && (c.agingRange.includes('91') || c.agingRange.includes('180'));
+        const isWarning = c.agingRange && c.agingRange.includes('31-90');
+        const cls = isUrgent ? 'critical' : isWarning ? 'urgent' : 'normal';
+        html += `<div class="customer-card ${cls}"><div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${c.customer}</strong></div><span style="color:#38bdf8;font-weight:700">${fmt(c.amount)}</span></div><div style="font-size:12px;color:#64748b;margin-top:4px">${c.salesman} · ${c.agingRange} · ${c.docCount}单 · ${c.earliest||''} ~ ${c.latest||''}</div></div>`;
+    });
+    html += `</div></div>`;
+
+    document.getElementById('tab-ar').innerHTML = html;
+
+    setTimeout(() => {
+        const ac = document.getElementById('agingChart');
+        if(ac && d.ar.aging.filter(a=>!a.range.includes('合计')).length) {
+            const filtered = d.ar.aging.filter(a=>!a.range.includes('合计'));
+            chartInstances.agingChart = new Chart(ac, {type:'doughnut',data:{labels:filtered.map(a=>a.range),datasets:[{data:filtered.map(a=>a.amount),backgroundColor:['#4ade80','#fbbf24','#f87171','#64748b']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94a3b8',font:{size:11}}}}}});
+        }
+    }, 100);
+}
+
+// ===== Tab5: 周报事项 =====
+function renderReportTab(d) {
+    let html = '';
+    html += `<div class="card"><div class="card-title">📅 汇报信息</div><div style="display:flex;gap:20px;font-size:15px"><span>汇报期间：<strong style="color:#38bdf8">${d.report.period||'-'}</strong></span><span>周次：<strong style="color:#38bdf8">${d.report.week||'-'}</strong></span></div></div>`;
+
+    if(d.report.completed.length) {
+        html += `<div class="card"><div class="card-title">✅ 上周完成事项</div>`;
+        d.report.completed.forEach(item => { html += `<div class="list-item"><div class="list-dot dot-green"></div><div>${item}</div></div>`; });
+        html += `</div>`;
+    }
+
+    if(d.report.nextWeek.length) {
+        html += `<div class="card"><div class="card-title">🎯 下周重点事项</div>`;
+        d.report.nextWeek.forEach(item => { html += `<div class="list-item"><div class="list-dot dot-blue"></div><div>${item}</div></div>`; });
+        html += `</div>`;
+    }
+
+    if(d.report.special) {
+        html += `<div class="card"><div class="card-title">📌 特别说明</div><div style="padding:10px;background:rgba(251,191,36,0.1);border-radius:8px;color:#fbbf24">${d.report.special}</div></div>`;
+    }
+
+    document.getElementById('tab-report').innerHTML = html;
+}
+</script>
 </body>
 </html>
