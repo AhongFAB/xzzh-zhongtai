@@ -1,521 +1,2365 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>中合五金经营周报生成器</title>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:system-ui,-apple-system,"Microsoft YaHei",sans-serif;background:linear-gradient(135deg,#0a0e1a 0%,#111827 100%);min-height:100vh;color:#e2e8f0;line-height:1.6}
-.container{max-width:1400px;margin:0 auto;padding:20px}
-/* 上传区 */
-.upload-section{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;padding:40px}
-.upload-box{border:2px dashed rgba(14,165,233,0.5);border-radius:20px;padding:60px 80px;text-align:center;cursor:pointer;transition:all 0.3s;background:rgba(30,58,138,0.1)}
-.upload-box:hover{border-color:#0ea5e9;background:rgba(30,58,138,0.2);transform:translateY(-2px)}
-.upload-icon{font-size:64px;margin-bottom:20px}
-.upload-title{font-size:24px;font-weight:600;color:#38bdf8;margin-bottom:12px}
-.upload-hint{font-size:14px;color:#94a3b8}
-/* 报告区 */
-.report-section{display:none}
-.report-section.active{display:block}
-/* 头部 */
-.report-header{background:rgba(30,58,138,0.3);backdrop-filter:blur(20px);border:1px solid rgba(56,189,248,0.2);border-radius:16px;padding:20px 28px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
-.report-title{font-size:24px;font-weight:700;color:#38bdf8}
-.report-info{display:flex;gap:20px;font-size:14px;color:#94a3b8}
-/* Tab导航 */
-.tab-nav{display:flex;gap:4px;margin-bottom:20px;background:rgba(30,58,138,0.2);border-radius:12px;padding:4px}
-.tab-btn{flex:1;padding:12px 16px;border:none;background:transparent;color:#94a3b8;font-size:15px;font-weight:500;cursor:pointer;border-radius:10px;transition:all 0.3s}
-.tab-btn:hover{color:#e2e8f0;background:rgba(56,189,248,0.1)}
-.tab-btn.active{background:rgba(14,165,233,0.25);color:#38bdf8;font-weight:600}
-.tab-content{display:none}
-.tab-content.active{display:block}
-/* 卡片 */
-.card{background:rgba(30,58,138,0.15);backdrop-filter:blur(20px);border:1px solid rgba(56,189,248,0.2);border-radius:16px;padding:24px;margin-bottom:20px}
-.card-title{font-size:18px;font-weight:600;color:#38bdf8;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid rgba(56,189,248,0.2)}
-/* KPI卡片 */
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
-.kpi-card{background:rgba(30,58,138,0.25);border:1px solid rgba(56,189,248,0.15);border-radius:12px;padding:20px;text-align:center}
-.kpi-label{font-size:13px;color:#94a3b8;margin-bottom:8px}
-.kpi-value{font-size:28px;font-weight:700;margin-bottom:8px}
-.kpi-value.blue{color:#38bdf8}.kpi-value.green{color:#4ade80}.kpi-value.red{color:#f87171}.kpi-value.yellow{color:#fbbf24}
-.kpi-sub{font-size:12px;color:#64748b}
-/* 进度条 */
-.progress-bar{height:6px;background:rgba(148,163,184,0.2);border-radius:3px;overflow:hidden;margin-top:8px}
-.progress-fill{height:100%;border-radius:3px;transition:width 0.5s}
-.progress-fill.high{background:linear-gradient(90deg,#4ade80,#22c55e)}
-.progress-fill.mid{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
-.progress-fill.low{background:linear-gradient(90deg,#f87171,#ef4444)}
-/* 表格 */
-table{width:100%;border-collapse:collapse;font-size:14px}
-th{background:rgba(14,165,233,0.15);color:#94a3b8;font-weight:500;padding:10px 12px;text-align:left;white-space:nowrap}
-td{padding:10px 12px;border-bottom:1px solid rgba(148,163,184,0.1)}
-tr:hover{background:rgba(14,165,233,0.05)}
-.text-right{text-align:right}
-.text-center{text-align:center}
-/* 标签 */
-.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600}
-.badge-green{background:rgba(74,222,128,0.15);color:#4ade80}
-.badge-yellow{background:rgba(251,191,36,0.15);color:#fbbf24}
-.badge-red{background:rgba(248,113,113,0.15);color:#f87171}
-.badge-blue{background:rgba(56,189,248,0.15);color:#38bdf8}
-/* 图表容器 */
-.chart-container{position:relative;height:280px;margin:10px 0}
-.chart-container.small{height:200px}
-/* 两栏布局 */
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-/* 列表项 */
-.list-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(148,163,184,0.08)}
-.list-dot{width:8px;height:8px;border-radius:50%;margin-top:7px;flex-shrink:0}
-.dot-green{background:#4ade80}.dot-blue{background:#38bdf8}
-/* 汇总统计 */
-.summary-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
-.summary-item{background:rgba(30,58,138,0.25);border:1px solid rgba(56,189,248,0.1);border-radius:10px;padding:14px;text-align:center}
-.summary-item .label{font-size:12px;color:#94a3b8;margin-bottom:6px}
-.summary-item .value{font-size:18px;font-weight:700;color:#38bdf8}
-/* 客户卡片 */
-.customer-card{background:rgba(30,58,138,0.2);padding:12px 14px;border-radius:8px;margin-bottom:8px;border-left:3px solid}
-.customer-card.normal{border-left-color:#4ade80}
-.customer-card.urgent{border-left-color:#fbbf24}
-.customer-card.critical{border-left-color:#f87171}
-/* 风险卡 */
-.risk-card{background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);border-radius:10px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
-.risk-card.warn{background:rgba(251,191,36,0.1);border-color:rgba(251,191,36,0.3)}
-.risk-icon{font-size:24px}
-.risk-title{font-weight:600;color:#f87171;margin-bottom:2px}
-.risk-card.warn .risk-title{color:#fbbf24}
-.risk-desc{font-size:13px;color:#94a3b8}
-/* 排名 */
-.rank-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;font-size:12px;font-weight:700}
-.rank-1{background:rgba(250,204,21,0.3);color:#facc15}
-.rank-2{background:rgba(148,163,184,0.3);color:#cbd5e1}
-.rank-3{background:rgba(194,120,59,0.3);color:#d97706}
-.rank-default{background:rgba(56,189,248,0.1);color:#64748b}
-/* 版权 */
-.footer{text-align:center;padding:20px;color:#475569;font-size:12px;border-top:1px solid rgba(56,189,248,0.1);margin-top:20px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中合五金经营周报生成器 V4.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-start: #0a0e1a;
+            --bg-end: #111827;
+            --card-bg: rgba(30, 58, 138, 0.15);
+            --card-border: rgba(56, 189, 248, 0.2);
+            --primary: #38bdf8;
+            --green: #4ade80;
+            --red: #f87171;
+            --yellow: #fbbf24;
+            --orange: #fb923c;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --grid-line: rgba(148, 163, 184, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 30px 20px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--primary) 0%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 2px dashed var(--card-border);
+            border-radius: 16px;
+            padding: 60px 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: rgba(30, 58, 138, 0.25);
+        }
+
+        .upload-area.drag-over {
+            border-color: var(--primary);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(56, 189, 248, 0.3);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%);
+            color: var(--primary);
+            border-color: var(--card-border);
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Card */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        /* KPI Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .kpi-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value.blue { color: var(--primary); }
+        .kpi-value.green { color: var(--green); }
+        .kpi-value.red { color: var(--red); }
+        .kpi-value.yellow { color: var(--yellow); }
+
+        .kpi-change {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .kpi-change.up { color: var(--green); }
+        .kpi-change.down { color: var(--red); }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 10px 0;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(148, 163, 184, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-fill.green { background: linear-gradient(90deg, var(--green), #22c55e); }
+        .progress-fill.yellow { background: linear-gradient(90deg, var(--yellow), #f59e0b); }
+        .progress-fill.red { background: linear-gradient(90deg, var(--red), #ef4444); }
+        .progress-fill.blue { background: linear-gradient(90deg, var(--primary), #3b82f6); }
+
+        /* Chart Container */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .data-table th {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .data-table tr:hover {
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        .data-table .num {
+            text-align: right;
+            font-family: 'Consolas', monospace;
+        }
+
+        /* Status Tags */
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .tag-green { background: rgba(74, 222, 128, 0.2); color: var(--green); }
+        .tag-yellow { background: rgba(251, 191, 36, 0.2); color: var(--yellow); }
+        .tag-orange { background: rgba(251, 146, 60, 0.2); color: var(--orange); }
+        .tag-red { background: rgba(248, 113, 113, 0.2); color: var(--red); }
+        .tag-blue { background: rgba(56, 189, 248, 0.2); color: var(--primary); }
+
+        /* Top10 Cards */
+        .top10-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .top10-card {
+            background: rgba(30, 58, 138, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s ease;
+        }
+
+        .top10-card:hover {
+            background: rgba(30, 58, 138, 0.2);
+        }
+
+        .top10-card.urgent { border-left-color: var(--red); }
+        .top10-card.warning { border-left-color: var(--yellow); }
+        .top10-card.normal { border-left-color: var(--green); }
+
+        .top10-rank {
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .top10-info {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .top10-amount {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 5px;
+        }
+
+        /* Week Report Cards */
+        .report-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .report-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .report-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .report-list {
+            list-style: none;
+        }
+
+        .report-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .report-list li:last-child {
+            border-bottom: none;
+        }
+
+        .report-list .check {
+            color: var(--green);
+            font-size: 1.2rem;
+        }
+
+        .report-list .bullet {
+            color: var(--primary);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--card-border);
+            margin-top: 40px;
+        }
+
+        /* Loading State */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--card-border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Summary Header */
+        .summary-header {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .summary-info {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-item .label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .summary-item .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .report-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tab-nav {
+                justify-content: center;
+            }
+        }
+
+        /* Hidden class */
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-<!-- 上传区 -->
-<div id="uploadSection" class="upload-section">
-<div class="upload-box" id="uploadBox">
-<div class="upload-icon">📊</div>
-<div class="upload-title">中合五金经营周报生成器</div>
-<div class="upload-hint">拖拽或点击上传标准模板Excel文件 · 支持 .xlsx</div>
-<input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
-</div>
-</div>
-<!-- 报告区 -->
-<div id="reportSection" class="report-section">
-<div class="report-header">
-<div class="report-title" id="reportTitle">中合五金 经营周报</div>
-<div class="report-info" id="reportInfo"></div>
-</div>
-<div class="tab-nav">
-<button class="tab-btn active" onclick="switchTab('overview')">📈 经营总览</button>
-<button class="tab-btn" onclick="switchTab('sales')">💰 销售与回款</button>
-<button class="tab-btn" onclick="switchTab('cost')">📉 成本费用</button>
-<button class="tab-btn" onclick="switchTab('ar')">💳 应收账款</button>
-<button class="tab-btn" onclick="switchTab('report')">📝 周报事项</button>
-</div>
-<div id="tab-overview" class="tab-content active"></div>
-<div id="tab-sales" class="tab-content"></div>
-<div id="tab-cost" class="tab-content"></div>
-<div id="tab-ar" class="tab-content"></div>
-<div id="tab-report" class="tab-content"></div>
-<div class="footer">© 2026 中台-财务工具箱 · 开发者：张洪杰，侵权必究</div>
-</div>
-</div>
-<script>
-// ===== 全局变量 =====
-let chartInstances = {};
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🏢 中合五金经营周报生成器</h1>
+            <p>上传Excel模板，自动生成7个Tab的经营周报看板 · 数据全本地处理</p>
+        </div>
 
-// ===== 上传处理 =====
-const uploadBox = document.getElementById('uploadBox');
-const fileInput = document.getElementById('fileInput');
-uploadBox.addEventListener('click', () => fileInput.click());
-uploadBox.addEventListener('dragover', e => { e.preventDefault(); uploadBox.style.borderColor = '#38bdf8'; });
-uploadBox.addEventListener('dragleave', () => { uploadBox.style.borderColor = 'rgba(14,165,233,0.5)'; });
-uploadBox.addEventListener('drop', e => { e.preventDefault(); uploadBox.style.borderColor = 'rgba(14,165,233,0.5)'; if(e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]); });
-fileInput.addEventListener('change', e => { if(e.target.files.length) processFile(e.target.files[0]); });
+        <!-- Upload Area -->
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📊</div>
+            <div class="upload-text">拖拽Excel文件到此处，或点击选择文件</div>
+            <div class="upload-hint">支持 .xlsx 格式 · SheetJS解析 · 数据不上传服务器</div>
+            <button class="btn" onclick="document.getElementById('fileInput').click()">选择Excel文件</button>
+            <input type="file" id="fileInput" accept=".xlsx,.xls">
+        </div>
 
-function processFile(file) {
-    const reader = new FileReader();
-    reader.onload = e => {
-        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-        const data = parseWorkbook(wb);
-        renderReport(data);
-    };
-    reader.readAsArrayBuffer(file);
-}
+        <!-- Loading -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>正在解析Excel数据...</div>
+        </div>
 
-// ===== 工具函数 =====
-function v(ws, r, c) { const cell = ws[XLSX.utils.encode_cell({r:r-1,c:c-1})]; return cell ? cell.v : ''; }
-function n(ws, r, c) { const val = v(ws, r, c); return parseFloat(val) || 0; }
-function fmt(num) { if(!num && num!==0) return '-'; return num.toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2}); }
-function pct(num) { if(!num && num!==0) return '-'; return (num*100).toFixed(1) + '%'; }
-function pctRaw(num) { if(!num && num!==0) return '-'; return num.toFixed(1) + '%'; }
-function progressClass(rate) { return rate >= 0.8 ? 'high' : rate >= 0.5 ? 'mid' : 'low'; }
+        <!-- Report Content (Hidden Initially) -->
+        <div id="reportContent" class="hidden">
+            <!-- Summary Header -->
+            <div class="summary-header">
+                <div class="summary-info">
+                    <div class="summary-item">
+                        <div class="label">年度</div>
+                        <div class="value" id="summaryYear">-</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">月份</div>
+                        <div class="value" id="summaryMonth">-</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">公司</div>
+                        <div class="value" id="summaryCompany">-</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">汇报人</div>
+                        <div class="value" id="summaryReporter">-</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">部门/人数</div>
+                        <div class="value" id="summaryDept">-</div>
+                    </div>
+                </div>
+            </div>
 
-// ===== 解析Excel =====
-function parseWorkbook(wb) {
-    const sheets = {};
-    wb.SheetNames.forEach(name => { sheets[name] = wb.Sheets[name]; });
-    const s1 = sheets['月度预算'] || wb.Sheets[wb.SheetNames[0]];
-    const s2 = sheets['周度数据'] || wb.Sheets[wb.SheetNames[1]];
-    const s3 = sheets['应收账款'] || wb.Sheets[wb.SheetNames[2]];
-    const s4 = sheets['审批数据'] || wb.Sheets[wb.SheetNames[3]];
-    const s5 = sheets['周报文本'] || wb.Sheets[wb.SheetNames[4]];
-    const d = {basic:{}, budget:{income:[],cost:[],expense:[]}, weekly:{sales:[],cost:[],expense:[]}, ar:{staff:[],aging:[],top10:[]}, approval:{basic:{},categories:[],flowTypes:[],expenseTypes:[],topApplicants:[]}, report:{period:'',week:'',completed:[],nextWeek:[],special:''}};
+            <!-- Tab Navigation -->
+            <div class="tab-nav">
+                <button class="tab-btn active" data-tab="tab1">📊 经营总览</button>
+                <button class="tab-btn" data-tab="tab2">💰 预算达成</button>
+                <button class="tab-btn" data-tab="tab3">📈 销售分析</button>
+                <button class="tab-btn" data-tab="tab4">📋 应收账款</button>
+                <button class="tab-btn" data-tab="tab5">💳 应付账款</button>
+                <button class="tab-btn" data-tab="tab6">📉 成本费用</button>
+                <button class="tab-btn" data-tab="tab7">📝 周报事项</button>
+            </div>
 
-    // Sheet1 月度预算
-    if(s1) {
-        d.basic = {year:v(s1,5,2), month:v(s1,6,2), company:v(s1,7,2), reporter:v(s1,8,2), dept:v(s1,9,2), headcount:v(s1,10,2)};
-        for(let r=14;r<=20;r++) d.budget.income.push({item:v(s1,r,1), amount:n(s1,r,2)});
-        for(let r=24;r<=29;r++) d.budget.cost.push({item:v(s1,r,1), amount:n(s1,r,2)});
-        for(let r=33;r<=47;r++) d.budget.expense.push({item:v(s1,r,1), amount:n(s1,r,2)});
-    }
+            <!-- Tab1: 经营总览 -->
+            <div class="tab-content active" id="tab1">
+                <div class="kpi-grid" id="kpiOverview"></div>
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <div class="chart-title">📈 销售额周度趋势</div>
+                        <div class="chart-wrapper"><canvas id="chartSales"></canvas></div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">💵 回款额周度趋势</div>
+                        <div class="chart-wrapper"><canvas id="chartReceipts"></canvas></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">🎯 目标完成进度</div>
+                    <div id="targetProgress"></div>
+                </div>
+            </div>
 
-    // Sheet2 周度数据
-    if(s2) {
-        for(let r=6;r<=11;r++) { const week=v(s2,r,1); if(week) d.weekly.sales.push({week,date:v(s2,r,2),bSales:n(s2,r,3),cSales:n(s2,r,4),lyhSales:n(s2,r,5),totalSales:n(s2,r,6),bankReturn:n(s2,r,7),cashReturn:n(s2,r,8),wechatReturn:n(s2,r,9),totalReturn:n(s2,r,10)}); }
-        for(let r=15;r<=20;r++) { const week=v(s2,r,1); if(week) d.weekly.cost.push({week,mainCost:n(s2,r,2),logistics:n(s2,r,3),depreciation:n(s2,r,4),rent:n(s2,r,5),labor:n(s2,r,6),otherFixed:n(s2,r,7),total:n(s2,r,8)}); }
-        for(let r=24;r<=29;r++) { const week=v(s2,r,1); if(week) d.weekly.expense.push({week,entertainment:n(s2,r,2),travel:n(s2,r,3),vehicle:n(s2,r,4),office:n(s2,r,5),living:n(s2,r,6),dorm:n(s2,r,7),other:n(s2,r,8),total:n(s2,r,9)}); }
-    }
+            <!-- Tab2: 预算达成 -->
+            <div class="tab-content" id="tab2">
+                <div class="kpi-grid" id="kpiBudget"></div>
+                <div class="chart-container" style="margin-bottom: 20px;">
+                    <div class="chart-title">📊 预算vs实际对比</div>
+                    <div class="chart-wrapper"><canvas id="chartBudget"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📋 预算达成明细表</div>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table" id="tableBudget"></table>
+                    </div>
+                </div>
+            </div>
 
-    // Sheet3 应收账款 (V1简单结构：只有未结算数据)
-    if(s3) {
-        for(let r=6;r<=19;r++) { const name=v(s3,r,1); if(name) d.ar.staff.push({name,customers:n(s3,r,2),unsettled:n(s3,r,3),d0_30:n(s3,r,4),d31_90:n(s3,r,5),d91_180:n(s3,r,6),d180plus:n(s3,r,7),over30Rate:v(s3,r,8)}); }
-        for(let r=23;r<=27;r++) { const range=v(s3,r,1); if(range) d.ar.aging.push({range,count:n(s3,r,2),amount:n(s3,r,3),ratio:v(s3,r,4)}); }
-        for(let r=31;r<=40;r++) { const rank=v(s3,r,1); if(rank) d.ar.top10.push({rank,customer:v(s3,r,2),salesman:v(s3,r,3),amount:n(s3,r,4),agingRange:v(s3,r,5),docCount:n(s3,r,6),earliest:v(s3,r,7),latest:v(s3,r,8)}); }
-    }
+            <!-- Tab3: 销售分析 -->
+            <div class="tab-content" id="tab3">
+                <div class="kpi-grid" id="kpiSales"></div>
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <div class="chart-title">🏆 业务员销售排名</div>
+                        <div class="chart-wrapper"><canvas id="chartSalesRank"></canvas></div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">🥧 销售占比分布</div>
+                        <div class="chart-wrapper"><canvas id="chartSalesPie"></canvas></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📋 周度销售明细</div>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table" id="tableSales"></table>
+                    </div>
+                </div>
+            </div>
 
-    // Sheet4 审批数据
-    if(s4) {
-        d.approval.basic = {period:v(s4,5,2),totalCount:n(s4,6,2),validCount:n(s4,7,2),validAmount:n(s4,8,2),approvedAmount:n(s4,9,2),pendingAmount:n(s4,10,2)};
-        for(let r=14;r<=18;r++) { const cat=v(s4,r,1); if(cat) d.approval.categories.push({category:cat,count:n(s4,r,2),amount:n(s4,r,3),ratio:v(s4,r,4)}); }
-        for(let r=21;r<=24;r++) { const type=v(s4,r,1); if(type) d.approval.flowTypes.push({type,count:n(s4,r,2),amount:n(s4,r,3),ratio:v(s4,r,4)}); }
-        for(let r=28;r<=42;r++) { const item=v(s4,r,1); if(item) d.approval.expenseTypes.push({item,count:n(s4,r,2),amount:n(s4,r,3),ratio:v(s4,r,4)}); }
-        for(let r=46;r<=50;r++) { const rank=v(s4,r,1); if(rank) d.approval.topApplicants.push({rank,applicant:v(s4,r,2),count:n(s4,r,3),amount:n(s4,r,4)}); }
-    }
+            <!-- Tab4: 应收账款 -->
+            <div class="tab-content" id="tab4">
+                <div class="kpi-grid" id="kpiReceivable"></div>
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <div class="chart-title">📊 应收账龄分布</div>
+                        <div class="chart-wrapper"><canvas id="chartReceivableAge"></canvas></div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">🏢 业务员应收排名</div>
+                        <div class="chart-wrapper"><canvas id="chartReceivableRank"></canvas></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📋 TOP10客户明细</div>
+                    <div class="top10-grid" id="top10Customers"></div>
+                </div>
+            </div>
 
-    // Sheet5 周报文本
-    if(s5) {
-        d.report.period = v(s5,5,2);
-        d.report.week = v(s5,6,2);
-        for(let r=7;r<=13;r++) { const val=v(s5,r,2); if(val) d.report.completed.push(val); }
-        for(let r=14;r<=18;r++) { const val=v(s5,r,2); if(val) d.report.nextWeek.push(val); }
-        d.report.special = v(s5,19,2);
-    }
-    return d;
-}
+            <!-- Tab5: 应付账款 -->
+            <div class="tab-content" id="tab5">
+                <div class="kpi-grid" id="kpiPayable"></div>
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <div class="chart-title">📊 应付账龄分布</div>
+                        <div class="chart-wrapper"><canvas id="chartPayableAge"></canvas></div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">🏢 供应商应付排名</div>
+                        <div class="chart-wrapper"><canvas id="chartPayableRank"></canvas></div>
+                    </div>
+                </div>
+                <div class="chart-container" style="margin-bottom: 20px;">
+                    <div class="chart-title">📈 收付差额趋势</div>
+                    <div class="chart-wrapper"><canvas id="chartBalance"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📋 供应商应付明细</div>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table" id="tablePayable"></table>
+                    </div>
+                </div>
+            </div>
 
-// ===== Tab切换 =====
-function switchTab(name) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.querySelector(`.tab-btn[onclick*="${name}"]`).classList.add('active');
-    document.getElementById('tab-'+name).classList.add('active');
-    // 图表resize
-    Object.values(chartInstances).forEach(c => { try{c.resize()}catch(e){} });
-}
+            <!-- Tab6: 成本费用 -->
+            <div class="tab-content" id="tab6">
+                <div class="kpi-grid" id="kpiCost"></div>
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <div class="chart-title">🥧 成本费用结构</div>
+                        <div class="chart-wrapper"><canvas id="chartCostStructure"></canvas></div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">📈 费用周度趋势</div>
+                        <div class="chart-wrapper"><canvas id="chartExpenseTrend"></canvas></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📋 费用明细表</div>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table" id="tableExpense"></table>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">✅ 审批数据汇总</div>
+                    <div class="kpi-grid" id="kpiApproval"></div>
+                    <div class="chart-grid" style="margin-top: 20px;">
+                        <div>
+                            <div class="chart-title">📊 流程类型分布</div>
+                            <div style="overflow-x: auto;">
+                                <table class="data-table" id="tableFlowType"></table>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="chart-title">🏆 TOP5申请人</div>
+                            <div style="overflow-x: auto;">
+                                <table class="data-table" id="tableTopApplicant"></table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-// ===== 渲染报告 =====
-function renderReport(d) {
-    document.getElementById('uploadSection').style.display = 'none';
-    document.getElementById('reportSection').classList.add('active');
-    document.getElementById('reportTitle').textContent = (d.basic.company||'中合五金') + ' 经营周报';
-    document.getElementById('reportInfo').innerHTML = `<span>📅 ${d.basic.year}年${d.basic.month}月</span><span>👤 ${d.basic.reporter||''}</span><span>🏢 ${d.basic.dept||''}</span>`;
+            <!-- Tab7: 周报事项 -->
+            <div class="tab-content" id="tab7">
+                <div class="report-grid">
+                    <div class="report-card">
+                        <h3>✅ 上周完成工作</h3>
+                        <ul class="report-list" id="lastWeekTasks"></ul>
+                    </div>
+                    <div class="report-card">
+                        <h3>🎯 下周重点任务</h3>
+                        <ul class="report-list" id="nextWeekTasks"></ul>
+                    </div>
+                </div>
+                <div class="report-grid" style="margin-top: 20px;">
+                    <div class="report-card">
+                        <h3>⚠️ 特别说明</h3>
+                        <div id="specialNotes" style="color: var(--text-secondary); line-height: 1.8;"></div>
+                    </div>
+                    <div class="report-card">
+                        <h3>📊 审批数据摘要</h3>
+                        <div id="approvalSummary"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    renderOverview(d);
-    renderSales(d);
-    renderCost(d);
-    renderAR(d);
-    renderReportTab(d);
-}
+        <!-- Footer -->
+        <div class="footer">
+            © 2026 中台-财务工具箱 · 开发者：张洪杰，侵权必究
+        </div>
+    </div>
 
-// ===== Tab1: 经营总览 =====
-function renderOverview(d) {
-    // 计算指标
-    const salesTarget = d.budget.income.find(i=>i.item&&i.item.includes('合计'))?.amount || 6000000;
-    const bTarget = d.budget.income.find(i=>i.item&&i.item.includes('B端'))?.amount || 0;
-    const cTarget = d.budget.income.find(i=>i.item&&i.item.includes('C端'))?.amount || 0;
-    const lyhTarget = d.budget.income.find(i=>i.item&&i.item==='刘义虎')?.amount || 0;
-    const receivableTarget = d.budget.income.find(i=>i.item&&i.item.includes('应收余额'))?.amount || 0;
-    const returnTarget = d.budget.income.find(i=>i.item&&i.item.includes('回款目标'))?.amount || 0;
+    <script>
+        // Global data store
+        let workbookData = null;
+        let charts = {};
 
-    const bAchieved = d.weekly.sales.reduce((s,w)=>s+w.bSales,0);
-    const cAchieved = d.weekly.sales.reduce((s,w)=>s+w.cSales,0);
-    const lyhAchieved = d.weekly.sales.reduce((s,w)=>s+w.lyhSales,0);
-    const totalAchieved = bAchieved + cAchieved + lyhAchieved;
-    const totalReturn = d.weekly.sales.reduce((s,w)=>s+w.totalReturn,0);
-    const unsettled = d.ar.staff.reduce((s,st)=>s+st.unsettled,0);
+        // Chart.js default config
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.borderColor = 'rgba(148, 163, 184, 0.1)';
 
-    // 回款率 = 周度总回款/周度总销售额
-    const returnRate = totalAchieved > 0 ? totalReturn / totalAchieved : 0;
-    // 毛利率 = (收入-成本)/收入, 成本用预算成本占比近似
-    const costBudget = d.budget.cost.find(i=>i.item&&i.item.includes('主营业务'))?.amount || 0;
-    const marginRate = salesTarget > 0 ? (salesTarget - costBudget) / salesTarget : 0;
+        // Utility functions
+        function fmt(num) {
+            if (num === null || num === undefined || isNaN(num)) return '-';
+            return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
 
-    const salesRate = salesTarget > 0 ? totalAchieved / salesTarget : 0;
+        function fmtInt(num) {
+            if (num === null || num === undefined || isNaN(num)) return '-';
+            return Math.round(num).toLocaleString('zh-CN');
+        }
 
-    let html = '';
-    // KPI卡片
-    html += `<div class="kpi-grid">
-        <div class="kpi-card"><div class="kpi-label">销售达成率</div><div class="kpi-value blue">${pct(salesRate)}</div><div class="kpi-sub">目标 ${fmt(salesTarget)} | 达成 ${fmt(totalAchieved)}</div><div class="progress-bar"><div class="progress-fill ${progressClass(salesRate)}" style="width:${Math.min(salesRate*100,100)}%"></div></div></div>
-        <div class="kpi-card"><div class="kpi-label">应收余额</div><div class="kpi-value ${unsettled<=receivableTarget?'green':'red'}">${fmt(unsettled)}</div><div class="kpi-sub">控制目标 ${fmt(receivableTarget)}</div><div class="progress-bar"><div class="progress-fill ${unsettled<=receivableTarget?'high':'low'}" style="width:${receivableTarget>0?Math.min(unsettled/receivableTarget*100,100):0}%"></div></div></div>
-        <div class="kpi-card"><div class="kpi-label">周度回款率</div><div class="kpi-value ${returnRate>=0.5?'green':returnRate>=0.3?'yellow':'red'}">${pct(returnRate)}</div><div class="kpi-sub">回款 ${fmt(totalReturn)} / 销售 ${fmt(totalAchieved)}</div><div class="progress-bar"><div class="progress-fill ${progressClass(returnRate)}" style="width:${Math.min(returnRate*100,100)}%"></div></div></div>
-        <div class="kpi-card"><div class="kpi-label">预算毛利率</div><div class="kpi-value ${marginRate>=0.1?'green':'yellow'}">${pct(marginRate)}</div><div class="kpi-sub">收入 ${fmt(salesTarget)} | 成本 ${fmt(costBudget)}</div></div>
-    </div>`;
+        function getCellValue(sheet, row, col) {
+            const cell = sheet[`${col}${row}`];
+            if (!cell) return null;
+            if (cell.v === undefined || cell.v === null) return '';
+            return cell.v;
+        }
 
-    // 预算达成总表
-    html += `<div class="card"><div class="card-title">📊 月度预算达成</div><table>
-        <thead><tr><th>类别</th><th class="text-right">月目标</th><th class="text-right">累计达成</th><th class="text-center">达成率</th><th style="width:200px">进度</th></tr></thead><tbody>`;
+        function getCellNumber(sheet, row, col) {
+            const val = getCellValue(sheet, row, col);
+            if (val === '' || val === null) return 0;
+            const num = parseFloat(val);
+            return isNaN(num) ? 0 : num;
+        }
 
-    const rows = [
-        {name:'B端销售',target:bTarget,achieved:bAchieved},
-        {name:'C端销售',target:cTarget,achieved:cAchieved},
-        {name:'刘义虎',target:lyhTarget,achieved:lyhAchieved},
-        {name:'<strong>合计</strong>',target:salesTarget,achieved:totalAchieved}
-    ];
-    rows.forEach(r => {
-        const rate = r.target>0?r.achieved/r.target:0;
-        html += `<tr><td>${r.name}</td><td class="text-right">${fmt(r.target)}</td><td class="text-right">${fmt(r.achieved)}</td><td class="text-center"><span class="badge ${rate>=1?'badge-green':rate>=0.7?'badge-yellow':'badge-red'}">${pct(rate)}</span></td><td><div class="progress-bar"><div class="progress-fill ${progressClass(rate)}" style="width:${Math.min(rate*100,100)}%"></div></div></td></tr>`;
-    });
-    html += `</tbody></table></div>`;
+        // Format number with 2 decimal places
+        function formatCurrency(value) {
+            if (value === null || value === undefined || value === '') return '-';
+            const num = parseFloat(value);
+            if (isNaN(num)) return '-';
+            return '¥' + fmt(num);
+        }
 
-    // 风险预警
-    const warnings = [];
-    if(salesRate < 0.5) warnings.push({icon:'⚠️',title:'销售达成率偏低',desc:`当前${pct(salesRate)}，时间过半需加速`,level:'warn'});
-    if(unsettled > receivableTarget) warnings.push({icon:'🔴',title:'应收余额超标',desc:`未结算${fmt(unsettled)}，超出控制目标${fmt(unsettled-receivableTarget)}`,level:'risk'});
-    const over30Staff = d.ar.staff.filter(s => parseFloat(s.over30Rate) > 50);
-    if(over30Staff.length > 0) warnings.push({icon:'⚠️',title:'多业务员30天以上应收占比过高',desc:over30Staff.map(s=>`${s.name}(${s.over30Rate})`).join('、'),level:'warn'});
+        // Calculate percentage
+        function calcPercent(current, target) {
+            if (!target || target === 0) return 0;
+            return (current / target) * 100;
+        }
 
-    if(warnings.length > 0) {
-        html += `<div class="card"><div class="card-title">⚠️ 风险预警</div>`;
-        warnings.forEach(w => {
-            html += `<div class="risk-card ${w.level==='warn'?'warn':''}"><div class="risk-icon">${w.icon}</div><div><div class="risk-title">${w.title}</div><div class="risk-desc">${w.desc}</div></div></div>`;
+        // Get time progress based on month and week
+        function getTimeProgress(month) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const dayOfMonth = now.getDate();
+            return Math.min((dayOfMonth / daysInMonth) * 100, 100);
+        }
+
+        // Get week number in month
+        function getWeekInMonth(date) {
+            const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+            const pastDays = (date - firstDay) / (1000 * 60 * 60 * 24);
+            return Math.ceil((pastDays + firstDay.getDay() + 1) / 7);
+        }
+
+        // Upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.getElementById('loading');
+        const reportContent = document.getElementById('reportContent');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
         });
-        html += `</div>`;
-    }
 
-    document.getElementById('tab-overview').innerHTML = html;
-}
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
 
-// ===== Tab2: 销售与回款 =====
-function renderSales(d) {
-    let html = '';
-    const salesWithData = d.weekly.sales.filter(w => w.totalSales > 0 || w.totalReturn > 0);
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
 
-    // 周度销售趋势图
-    html += `<div class="card"><div class="card-title">📈 周度销售趋势</div><div class="chart-container"><canvas id="salesChart"></canvas></div></div>`;
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
 
-    // 周度回款趋势图
-    html += `<div class="card"><div class="card-title">💳 周度回款趋势</div><div class="chart-container"><canvas id="returnChart"></canvas></div></div>`;
+        async function handleFile(file) {
+            if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                alert('请上传Excel文件 (.xlsx 或 .xls)');
+                return;
+            }
 
-    // 销售明细表
-    html += `<div class="card"><div class="card-title">📋 周度销售明细</div><table><thead><tr><th>周次</th><th>日期</th><th class="text-right">B端</th><th class="text-right">C端</th><th class="text-right">刘义虎</th><th class="text-right">总销售额</th></tr></thead><tbody>`;
-    d.weekly.sales.forEach(w => {
-        if(w.week) html += `<tr><td>${w.week}</td><td>${w.date||'-'}</td><td class="text-right">${fmt(w.bSales)}</td><td class="text-right">${fmt(w.cSales)}</td><td class="text-right">${fmt(w.lyhSales)}</td><td class="text-right" style="font-weight:600;color:#38bdf8">${fmt(w.totalSales)}</td></tr>`;
-    });
-    html += `</tbody></table></div>`;
+            loading.classList.add('show');
+            uploadArea.style.display = 'none';
 
-    // 回款明细表
-    html += `<div class="card"><div class="card-title">📋 周度回款明细</div><table><thead><tr><th>周次</th><th class="text-right">银行回款</th><th class="text-right">现金回款</th><th class="text-right">微信回款</th><th class="text-right">总回款</th></tr></thead><tbody>`;
-    d.weekly.sales.forEach(w => {
-        if(w.week) html += `<tr><td>${w.week}</td><td class="text-right">${fmt(w.bankReturn)}</td><td class="text-right">${fmt(w.cashReturn)}</td><td class="text-right">${fmt(w.wechatReturn)}</td><td class="text-right" style="font-weight:600;color:#4ade80">${fmt(w.totalReturn)}</td></tr>`;
-    });
-    html += `</tbody></table></div>`;
-
-    document.getElementById('tab-sales').innerHTML = html;
-
-    // 渲染图表
-    setTimeout(() => {
-        const labels = d.weekly.sales.map(w => w.week || '');
-        const chartOpts = {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8'}}},scales:{x:{grid:{color:'rgba(148,163,184,0.1)'},ticks:{color:'#94a3b8'}},y:{grid:{color:'rgba(148,163,184,0.1)'},ticks:{color:'#94a3b8'}}}};
-
-        const sc = document.getElementById('salesChart');
-        if(sc && salesWithData.length > 0) {
-            chartInstances.salesChart = new Chart(sc, {type:'line',data:{labels:labels,datasets:[
-                {label:'B端',data:d.weekly.sales.map(w=>w.bSales),borderColor:'#0ea5e9',backgroundColor:'rgba(14,165,233,0.1)',fill:true,tension:0.3},
-                {label:'C端',data:d.weekly.sales.map(w=>w.cSales),borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,0.1)',fill:true,tension:0.3},
-                {label:'刘义虎',data:d.weekly.sales.map(w=>w.lyhSales),borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.1)',fill:true,tension:0.3},
-                {label:'合计',data:d.weekly.sales.map(w=>w.totalSales),borderColor:'#38bdf8',borderWidth:2,backgroundColor:'transparent',tension:0.3}
-            ]},options:chartOpts});
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                workbookData = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+                parseAndRender();
+            } catch (error) {
+                console.error('Error parsing Excel:', error);
+                alert('解析Excel文件失败: ' + error.message);
+                loading.classList.remove('show');
+                uploadArea.style.display = 'block';
+            }
         }
 
-        const rc = document.getElementById('returnChart');
-        if(rc && salesWithData.length > 0) {
-            chartInstances.returnChart = new Chart(rc, {type:'bar',data:{labels:labels,datasets:[
-                {label:'银行',data:d.weekly.sales.map(w=>w.bankReturn),backgroundColor:'rgba(14,165,233,0.7)'},
-                {label:'现金',data:d.weekly.sales.map(w=>w.cashReturn),backgroundColor:'rgba(74,222,128,0.7)'},
-                {label:'微信',data:d.weekly.sales.map(w=>w.wechatReturn),backgroundColor:'rgba(139,92,246,0.7)'}
-            ]},options:{...chartOpts,plugins:{legend:{labels:{color:'#94a3b8'}}}}});
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+                resizeCharts();
+            });
+        });
+
+        function resizeCharts() {
+            Object.values(charts).forEach(chart => {
+                if (chart && chart.resize) {
+                    chart.resize();
+                }
+            });
         }
-    }, 100);
-}
 
-// ===== Tab3: 成本费用 =====
-function renderCost(d) {
-    let html = '';
+        // Parse Excel and render
+        function parseAndRender() {
+            try {
+                // Parse all sheets
+                const sheet1 = workbookData.Sheets['月度预算'] || workbookData.Sheets['Sheet1'];
+                const sheet2 = workbookData.Sheets['周度数据'] || workbookData.Sheets['Sheet2'];
+                const sheet3 = workbookData.Sheets['应收账款'] || workbookData.Sheets['Sheet3'];
+                const sheet4 = workbookData.Sheets['审批数据'] || workbookData.Sheets['Sheet4'];
+                const sheet5 = workbookData.Sheets['周报文本'] || workbookData.Sheets['Sheet5'];
+                const sheet6 = workbookData.Sheets['应付账款'] || workbookData.Sheets['Sheet6'];
 
-    // 成本预算vs达成
-    const costAchieved = d.weekly.cost.reduce((s,w) => s + w.mainCost + w.logistics + w.depreciation + w.rent + w.labor + w.otherFixed, 0);
-    const totalCostBudget = d.budget.cost.reduce((s,i) => s + i.amount, 0);
-    const totalExpBudget = d.budget.expense.reduce((s,i) => s + i.amount, 0);
-    const totalExpAchieved = d.weekly.expense.reduce((s,w) => s + w.entertainment + w.travel + w.vehicle + w.office + w.living + w.dorm + w.other, 0);
+                // Extract basic info
+                const basicInfo = parseBasicInfo(sheet1);
+                document.getElementById('summaryYear').textContent = basicInfo.year;
+                document.getElementById('summaryMonth').textContent = basicInfo.month + '月';
+                document.getElementById('summaryCompany').textContent = basicInfo.company;
+                document.getElementById('summaryReporter').textContent = basicInfo.reporter;
+                document.getElementById('summaryDept').textContent = basicInfo.dept + ' / ' + basicInfo.staffCount + '人';
 
-    html += `<div class="two-col">`;
-    // 成本结构图
-    html += `<div class="card"><div class="card-title">🏭 成本结构</div><div class="chart-container small"><canvas id="costPieChart"></canvas></div></div>`;
-    // 费用构成图
-    html += `<div class="card"><div class="card-title">💸 费用构成TOP10</div><div class="chart-container"><canvas id="expenseBarChart"></canvas></div></div>`;
-    html += `</div>`;
+                // Parse budget data
+                const budgetData = parseBudgetData(sheet1);
 
-    // 成本预算达成表
-    html += `<div class="card"><div class="card-title">📊 成本预算达成</div><table><thead><tr><th>科目</th><th class="text-right">月预算</th><th class="text-right">累计达成</th><th class="text-center">达成率</th></tr></thead><tbody>`;
-    d.budget.cost.forEach(i => { html += `<tr><td>${i.item||'-'}</td><td class="text-right">${fmt(i.amount)}</td><td class="text-right">-</td><td class="text-center">-</td></tr>`; });
-    html += `<tr style="background:rgba(14,165,233,0.1);font-weight:600"><td>成本合计</td><td class="text-right">${fmt(totalCostBudget)}</td><td class="text-right">${fmt(costAchieved)}</td><td class="text-center"><span class="badge ${totalCostBudget>0&&costAchieved/totalCostBudget<=1?'badge-green':'badge-yellow'}">${totalCostBudget>0?pct(costAchieved/totalCostBudget):'-'}</span></td></tr>`;
-    html += `</tbody></table></div>`;
+                // Parse weekly data
+                const weeklyData = parseWeeklyData(sheet2);
 
-    // 费用预算达成表
-    html += `<div class="card"><div class="card-title">📊 费用预算达成</div><table><thead><tr><th>科目</th><th class="text-right">月预算</th><th class="text-right">累计达成</th><th class="text-center">达成率</th></tr></thead><tbody>`;
-    d.budget.expense.forEach(i => { html += `<tr><td>${i.item||'-'}</td><td class="text-right">${fmt(i.amount)}</td><td class="text-right">-</td><td class="text-center">-</td></tr>`; });
-    html += `<tr style="background:rgba(14,165,233,0.1);font-weight:600"><td>费用合计</td><td class="text-right">${fmt(totalExpBudget)}</td><td class="text-right">${fmt(totalExpAchieved)}</td><td class="text-center"><span class="badge ${totalExpBudget>0&&totalExpAchieved/totalExpBudget<=1?'badge-green':'badge-yellow'}">${totalExpBudget>0?pct(totalExpAchieved/totalExpBudget):'-'}</span></td></tr>`;
-    html += `</tbody></table></div>`;
+                // Parse receivable data
+                const receivableData = parseReceivableData(sheet3);
 
-    // 审批汇总
-    html += `<div class="card"><div class="card-title">📋 审批汇总</div>`;
-    const ap = d.approval.basic;
-    html += `<div class="summary-grid" style="margin-bottom:16px">
-        <div class="summary-item"><div class="label">统计期间</div><div class="value" style="font-size:14px">${ap.period||'-'}</div></div>
-        <div class="summary-item"><div class="label">总笔数</div><div class="value">${ap.totalCount||'-'}</div></div>
-        <div class="summary-item"><div class="label">有效笔数</div><div class="value">${ap.validCount||'-'}</div></div>
-        <div class="summary-item"><div class="label">有效金额</div><div class="value" style="font-size:14px">${fmt(ap.validAmount)}</div></div>
-        <div class="summary-item"><div class="label">已通过</div><div class="value" style="color:#4ade80;font-size:14px">${fmt(ap.approvedAmount)}</div></div>
-        <div class="summary-item"><div class="label">审批中</div><div class="value" style="color:#fbbf24;font-size:14px">${fmt(ap.pendingAmount)}</div></div>
-    </div>`;
+                // Parse payable data
+                const payableData = parsePayableData(sheet6);
 
-    // 流程类型
-    if(d.approval.flowTypes.length) {
-        html += `<table><thead><tr><th>流程类型</th><th class="text-right">笔数</th><th class="text-right">金额</th><th class="text-center">占比</th></tr></thead><tbody>`;
-        d.approval.flowTypes.forEach(f => { html += `<tr><td>${f.type}</td><td class="text-right">${f.count}</td><td class="text-right">${fmt(f.amount)}</td><td class="text-center">${f.ratio||'-'}</td></tr>`; });
-        html += `</tbody></table>`;
-    }
+                // Parse approval data
+                const approvalData = parseApprovalData(sheet4);
 
-    // 费用分类明细
-    if(d.approval.expenseTypes.length) {
-        html += `<div style="margin-top:16px"><div style="font-size:14px;color:#94a3b8;margin-bottom:8px">费用分类明细</div><table><thead><tr><th>科目</th><th class="text-right">笔数</th><th class="text-right">金额</th><th class="text-center">占比</th></tr></thead><tbody>`;
-        d.approval.expenseTypes.forEach(e => { html += `<tr><td>${e.item}</td><td class="text-right">${e.count}</td><td class="text-right">${fmt(e.amount)}</td><td class="text-center">${e.ratio||'-'}</td></tr>`; });
-        html += `</tbody></table></div>`;
-    }
+                // Parse weekly report text
+                const weeklyReport = parseWeeklyReport(sheet5);
 
-    // 申请人TOP5
-    if(d.approval.topApplicants.length) {
-        html += `<div style="margin-top:16px"><div style="font-size:14px;color:#94a3b8;margin-bottom:8px">申请人TOP5</div><table><thead><tr><th>排名</th><th>申请人</th><th class="text-right">笔数</th><th class="text-right">金额</th></tr></thead><tbody>`;
-        d.approval.topApplicants.forEach(a => { html += `<tr><td><span class="rank-badge rank-${a.rank<=3?a.rank:'default'}">${a.rank}</span></td><td>${a.applicant}</td><td class="text-right">${a.count}</td><td class="text-right">${fmt(a.amount)}</td></tr>`; });
-        html += `</tbody></table></div>`;
-    }
-    html += `</div>`;
+                // Render all tabs
+                renderTab1(basicInfo, budgetData, weeklyData, receivableData);
+                renderTab2(budgetData, weeklyData);
+                renderTab3(weeklyData, budgetData);
+                renderTab4(receivableData, weeklyData);
+                renderTab5(payableData, receivableData);
+                renderTab6(budgetData, weeklyData, approvalData);
+                renderTab7(weeklyReport, approvalData);
 
-    document.getElementById('tab-cost').innerHTML = html;
-
-    // 渲染图表
-    setTimeout(() => {
-        const cp = document.getElementById('costPieChart');
-        if(cp && d.budget.cost.length) {
-            const filtered = d.budget.cost.filter(i=>i.amount>0);
-            chartInstances.costPieChart = new Chart(cp, {type:'doughnut',data:{labels:filtered.map(i=>i.item),datasets:[{data:filtered.map(i=>i.amount),backgroundColor:['#ef4444','#f59e0b','#0ea5e9','#10b981','#8b5cf6','#64748b']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94a3b8',font:{size:11}}}}}});
+                loading.classList.remove('show');
+                reportContent.classList.remove('hidden');
+            } catch (error) {
+                console.error('Error rendering:', error);
+                alert('渲染数据失败: ' + error.message);
+                loading.classList.remove('show');
+                uploadArea.style.display = 'block';
+            }
         }
-        const eb = document.getElementById('expenseBarChart');
-        if(eb && d.approval.expenseTypes.length) {
-            const top10 = d.approval.expenseTypes.filter(e=>e.amount>0).sort((a,b)=>b.amount-a.amount).slice(0,10);
-            chartInstances.expenseBarChart = new Chart(eb, {type:'bar',data:{labels:top10.map(e=>e.item),datasets:[{data:top10.map(e=>e.amount),backgroundColor:'rgba(14,165,233,0.7)',borderColor:'#0ea5e9',borderWidth:1}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(148,163,184,0.1)'},ticks:{color:'#94a3b8'}},y:{grid:{display:false},ticks:{color:'#94a3b8'}}}}});
+
+        // Parse basic info from Sheet1
+        function parseBasicInfo(sheet) {
+            return {
+                year: getCellValue(sheet, 5, 'B') || new Date().getFullYear(),
+                month: getCellValue(sheet, 6, 'B') || (new Date().getMonth() + 1),
+                company: getCellValue(sheet, 7, 'B') || '-',
+                reporter: getCellValue(sheet, 8, 'B') || '-',
+                dept: getCellValue(sheet, 9, 'B') || '-',
+                staffCount: getCellNumber(sheet, 10, 'B') || 0
+            };
         }
-    }, 100);
-}
 
-// ===== Tab4: 应收账款 =====
-function renderAR(d) {
-    let html = '';
-    const totalUnsettled = d.ar.staff.reduce((s,st)=>s+st.unsettled,0);
+        // Parse budget data from Sheet1
+        function parseBudgetData(sheet) {
+            const data = {
+                totalSales: 0,
+                totalReceived: 0,
+                income: [],
+                cost: [],
+                expense: []
+            };
 
-    // 汇总统计
-    html += `<div class="card"><div class="card-title">📊 应收汇总</div><div class="summary-grid">
-        <div class="summary-item"><div class="label">未结算总额</div><div class="value" style="color:#f87171">${fmt(totalUnsettled)}</div></div>
-        <div class="summary-item"><div class="label">客户数</div><div class="value">${d.ar.staff.reduce((s,st)=>s+st.customers,0)}</div></div>
-        <div class="summary-item"><div class="label">业务员数</div><div class="value">${d.ar.staff.length}</div></div>
-        <div class="summary-item"><div class="label">控制目标</div><div class="value">${fmt(d.budget.income.find(i=>i.item&&i.item.includes('应收余额'))?.amount||0)}</div></div>
-        <div class="summary-item"><div class="label">超标金额</div><div class="value" style="color:${totalUnsettled>(d.budget.income.find(i=>i.item&&i.item.includes('应收余额'))?.amount||0)?'#f87171':'#4ade80'}">${fmt(totalUnsettled-(d.budget.income.find(i=>i.item&&i.item.includes('应收余额'))?.amount||0))}</div></div>
-        <div class="summary-item"><div class="label">30天以上紧急</div><div class="value" style="color:#fbbf24">${fmt(d.ar.aging.filter(a=>!a.range.includes('0-30')&&!a.range.includes('合计')).reduce((s,a)=>s+a.amount,0))}</div></div>
-    </div></div>`;
+            // New fields: cumulative sales and received
+            data.totalSales = getCellNumber(sheet, 12, 'B');
+            data.totalReceived = getCellNumber(sheet, 13, 'B');
 
-    // 业务员排名表
-    html += `<div class="card"><div class="card-title">👥 业务员未结算排名</div><div style="overflow-x:auto"><table><thead><tr><th>排名</th><th>业务员</th><th class="text-right">客户数</th><th class="text-right">未结算</th><th class="text-right">0-30天</th><th class="text-right">31-90天</th><th class="text-right">91-180天</th><th class="text-right">180天+</th><th class="text-center">30天以上占比</th></tr></thead><tbody>`;
-    const sorted = [...d.ar.staff].sort((a,b)=>b.unsettled-a.unsettled);
-    sorted.forEach((s,i) => {
-        const over30 = parseFloat(s.over30Rate) || 0;
-        html += `<tr><td><span class="rank-badge rank-${i<3?i+1:'default'}">${i+1}</span></td><td><strong>${s.name}</strong></td><td class="text-right">${s.customers}</td><td class="text-right" style="color:#f87171;font-weight:600">${fmt(s.unsettled)}</td><td class="text-right">${fmt(s.d0_30)}</td><td class="text-right">${fmt(s.d31_90)}</td><td class="text-right">${fmt(s.d91_180)}</td><td class="text-right">${fmt(s.d180plus)}</td><td class="text-center"><span class="badge ${over30>50?'badge-red':over30>20?'badge-yellow':'badge-green'}">${s.over30Rate||'-'}</span></td></tr>`;
-    });
-    html += `</tbody></table></div></div>`;
+            // Income budget (rows 14-20)
+            for (let row = 16; row <= 22; row++) {
+                const name = getCellValue(sheet, row, 'A');
+                const amount = getCellNumber(sheet, row, 'B');
+                if (name) {
+                    data.income.push({ name, amount });
+                }
+            }
 
-    // 两栏：账龄分布 + TOP10
-    html += `<div class="two-col">`;
-    // 账龄分布
-    html += `<div class="card"><div class="card-title">🥧 账龄分布</div><div class="chart-container small"><canvas id="agingChart"></canvas></div>`;
-    if(d.ar.aging.length) {
-        html += `<table style="margin-top:12px"><thead><tr><th>区间</th><th class="text-right">单据数</th><th class="text-right">金额</th><th class="text-center">占比</th></tr></thead><tbody>`;
-        d.ar.aging.forEach(a => { html += `<tr><td>${a.range}</td><td class="text-right">${a.count}</td><td class="text-right">${fmt(a.amount)}</td><td class="text-center">${a.ratio||'-'}</td></tr>`; });
-        html += `</tbody></table>`;
-    }
-    html += `</div>`;
+            // Cost budget (rows 24-29)
+            for (let row = 26; row <= 31; row++) {
+                const name = getCellValue(sheet, row, 'A');
+                const amount = getCellNumber(sheet, row, 'B');
+                if (name) {
+                    data.cost.push({ name, amount });
+                }
+            }
 
-    // TOP10客户
-    html += `<div class="card"><div class="card-title">🔟 欠款TOP10客户</div>`;
-    d.ar.top10.forEach(c => {
-        const isUrgent = c.agingRange && (c.agingRange.includes('91') || c.agingRange.includes('180'));
-        const isWarning = c.agingRange && c.agingRange.includes('31-90');
-        const cls = isUrgent ? 'critical' : isWarning ? 'urgent' : 'normal';
-        html += `<div class="customer-card ${cls}"><div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${c.customer}</strong></div><span style="color:#38bdf8;font-weight:700">${fmt(c.amount)}</span></div><div style="font-size:12px;color:#64748b;margin-top:4px">${c.salesman} · ${c.agingRange} · ${c.docCount}单 · ${c.earliest||''} ~ ${c.latest||''}</div></div>`;
-    });
-    html += `</div></div>`;
+            // Expense budget (rows 33-47)
+            for (let row = 35; row <= 49; row++) {
+                const name = getCellValue(sheet, row, 'A');
+                const amount = getCellNumber(sheet, row, 'B');
+                if (name) {
+                    data.expense.push({ name, amount });
+                }
+            }
 
-    document.getElementById('tab-ar').innerHTML = html;
-
-    setTimeout(() => {
-        const ac = document.getElementById('agingChart');
-        if(ac && d.ar.aging.filter(a=>!a.range.includes('合计')).length) {
-            const filtered = d.ar.aging.filter(a=>!a.range.includes('合计'));
-            chartInstances.agingChart = new Chart(ac, {type:'doughnut',data:{labels:filtered.map(a=>a.range),datasets:[{data:filtered.map(a=>a.amount),backgroundColor:['#4ade80','#fbbf24','#f87171','#64748b']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94a3b8',font:{size:11}}}}}});
+            return data;
         }
-    }, 100);
-}
 
-// ===== Tab5: 周报事项 =====
-function renderReportTab(d) {
-    let html = '';
-    html += `<div class="card"><div class="card-title">📅 汇报信息</div><div style="display:flex;gap:20px;font-size:15px"><span>汇报期间：<strong style="color:#38bdf8">${d.report.period||'-'}</strong></span><span>周次：<strong style="color:#38bdf8">${d.report.week||'-'}</strong></span></div></div>`;
+        // Parse weekly data from Sheet2
+        function parseWeeklyData(sheet) {
+            const data = {
+                weeks: [],
+                sales: [],
+                costs: [],
+                expenses: []
+            };
 
-    if(d.report.completed.length) {
-        html += `<div class="card"><div class="card-title">✅ 上周完成事项</div>`;
-        d.report.completed.forEach(item => { html += `<div class="list-item"><div class="list-dot dot-green"></div><div>${item}</div></div>`; });
-        html += `</div>`;
-    }
+            // Find number of weeks dynamically
+            let weekCount = 0;
+            for (let row = 6; row <= 30; row++) {
+                const week = getCellValue(sheet, row, 'A');
+                if (week && week.toString().trim() !== '') {
+                    weekCount++;
+                    data.weeks.push({
+                        week: week,
+                        date: getCellValue(sheet, row, 'B') || '',
+                        bSales: getCellNumber(sheet, row, 'C'),
+                        cSales: getCellNumber(sheet, row, 'D'),
+                        liuSales: getCellNumber(sheet, row, 'E'),
+                        totalSales: getCellNumber(sheet, row, 'F'),
+                        totalReceipts: getCellNumber(sheet, row, 'G'),
+                        lastYear: getCellNumber(sheet, row, 'H') || 0
+                    });
+                }
+            }
 
-    if(d.report.nextWeek.length) {
-        html += `<div class="card"><div class="card-title">🎯 下周重点事项</div>`;
-        d.report.nextWeek.forEach(item => { html += `<div class="list-item"><div class="list-dot dot-blue"></div><div>${item}</div></div>`; });
-        html += `</div>`;
-    }
+            // Cost data (rows 15+)
+            for (let row = 16; row <= 30; row++) {
+                const week = getCellValue(sheet, row, 'A');
+                if (week && week.toString().trim() !== '') {
+                    data.costs.push({
+                        week: week,
+                        mainCost: getCellNumber(sheet, row, 'B'),
+                        logistics: getCellNumber(sheet, row, 'C'),
+                        depreciation: getCellNumber(sheet, row, 'D'),
+                        rent: getCellNumber(sheet, row, 'E'),
+                        labor: getCellNumber(sheet, row, 'F'),
+                        otherFixed: getCellNumber(sheet, row, 'G'),
+                        total: getCellNumber(sheet, row, 'H')
+                    });
+                }
+            }
 
-    if(d.report.special) {
-        html += `<div class="card"><div class="card-title">📌 特别说明</div><div style="padding:10px;background:rgba(251,191,36,0.1);border-radius:8px;color:#fbbf24">${d.report.special}</div></div>`;
-    }
+            // Expense data (rows 24+)
+            for (let row = 25; row <= 40; row++) {
+                const week = getCellValue(sheet, row, 'A');
+                if (week && week.toString().trim() !== '') {
+                    data.expenses.push({
+                        week: week,
+                        entertainment: getCellNumber(sheet, row, 'B'),
+                        travel: getCellNumber(sheet, row, 'C'),
+                        vehicle: getCellNumber(sheet, row, 'D'),
+                        office: getCellNumber(sheet, row, 'E'),
+                        living: getCellNumber(sheet, row, 'F'),
+                        dormitory: getCellNumber(sheet, row, 'G'),
+                        other: getCellNumber(sheet, row, 'H'),
+                        total: getCellNumber(sheet, row, 'I')
+                    });
+                }
+            }
 
-    document.getElementById('tab-report').innerHTML = html;
-}
-</script>
+            return data;
+        }
+
+        // Parse receivable data from Sheet3
+        function parseReceivableData(sheet) {
+            const data = {
+                totalReceivable: 0,
+                totalReceived: 0,
+                salespeople: [],
+                ageDistribution: [],
+                top10: []
+            };
+
+            // Summary area
+            data.totalReceivable = getCellNumber(sheet, 2, 'B');
+            data.totalReceived = getCellNumber(sheet, 3, 'B');
+
+            // Salespeople (rows 6+)
+            for (let row = 7; row <= 22; row++) {
+                const name = getCellValue(sheet, row, 'A');
+                if (name && name.toString().trim() !== '') {
+                    data.salespeople.push({
+                        name: name,
+                        customerCount: getCellNumber(sheet, row, 'B'),
+                        unsettled: getCellNumber(sheet, row, 'C'),
+                        age0_30: getCellNumber(sheet, row, 'D'),
+                        age31_90: getCellNumber(sheet, row, 'E'),
+                        age91_180: getCellNumber(sheet, row, 'F'),
+                        age180plus: getCellNumber(sheet, row, 'G'),
+                        oldRatio: getCellNumber(sheet, row, 'H')
+                    });
+                }
+            }
+
+            // Age distribution (rows 23-27)
+            for (let row = 25; row <= 29; row++) {
+                const range = getCellValue(sheet, row, 'A');
+                if (range) {
+                    data.ageDistribution.push({
+                        range: range,
+                        count: getCellNumber(sheet, row, 'B'),
+                        amount: getCellNumber(sheet, row, 'C'),
+                        ratio: getCellNumber(sheet, row, 'D')
+                    });
+                }
+            }
+
+            // TOP10 (rows 31+)
+            for (let row = 33; row <= 42; row++) {
+                const rank = getCellValue(sheet, row, 'A');
+                if (rank && rank.toString().trim() !== '') {
+                    data.top10.push({
+                        rank: rank,
+                        customer: getCellValue(sheet, row, 'B'),
+                        salesperson: getCellValue(sheet, row, 'C'),
+                        amount: getCellNumber(sheet, row, 'D'),
+                        maxAge: getCellValue(sheet, row, 'E'),
+                        docCount: getCellNumber(sheet, row, 'F'),
+                        earliestDate: getCellValue(sheet, row, 'G'),
+                        latestDate: getCellValue(sheet, row, 'H')
+                    });
+                }
+            }
+
+            return data;
+        }
+
+        // Parse payable data from Sheet6
+        function parsePayableData(sheet) {
+            const data = {
+                totalPayable: 0,
+                monthPaid: 0,
+                suppliers: [],
+                ageDistribution: [],
+                top10: []
+            };
+
+            if (!sheet) return data;
+
+            // Summary area
+            data.totalPayable = getCellNumber(sheet, 2, 'B');
+            data.monthPaid = getCellNumber(sheet, 3, 'B');
+
+            // Suppliers (rows 6+)
+            for (let row = 7; row <= 22; row++) {
+                const name = getCellValue(sheet, row, 'A');
+                if (name && name.toString().trim() !== '') {
+                    data.suppliers.push({
+                        name: name,
+                        docCount: getCellNumber(sheet, row, 'B'),
+                        unpaid: getCellNumber(sheet, row, 'C'),
+                        age0_30: getCellNumber(sheet, row, 'D'),
+                        age31_90: getCellNumber(sheet, row, 'E'),
+                        age91_180: getCellNumber(sheet, row, 'F'),
+                        age180plus: getCellNumber(sheet, row, 'G'),
+                        oldRatio: getCellNumber(sheet, row, 'H')
+                    });
+                }
+            }
+
+            // Age distribution (rows 23-27)
+            for (let row = 25; row <= 29; row++) {
+                const range = getCellValue(sheet, row, 'A');
+                if (range) {
+                    data.ageDistribution.push({
+                        range: range,
+                        count: getCellNumber(sheet, row, 'B'),
+                        amount: getCellNumber(sheet, row, 'C'),
+                        ratio: getCellNumber(sheet, row, 'D')
+                    });
+                }
+            }
+
+            // TOP10 (rows 31+)
+            for (let row = 33; row <= 42; row++) {
+                const rank = getCellValue(sheet, row, 'A');
+                if (rank && rank.toString().trim() !== '') {
+                    data.top10.push({
+                        rank: rank,
+                        supplier: getCellValue(sheet, row, 'B'),
+                        amount: getCellNumber(sheet, row, 'C'),
+                        maxAge: getCellValue(sheet, row, 'D'),
+                        docCount: getCellNumber(sheet, row, 'E')
+                    });
+                }
+            }
+
+            return data;
+        }
+
+        // Parse approval data from Sheet4
+        function parseApprovalData(sheet) {
+            const data = {
+                basic: {},
+                categories: [],
+                flowTypes: [],
+                expenses: [],
+                topApplicants: []
+            };
+
+            if (!sheet) return data;
+
+            // Basic info (rows 5-10)
+            data.basic = {
+                period: getCellValue(sheet, 5, 'B'),
+                totalCount: getCellNumber(sheet, 6, 'B'),
+                validCount: getCellNumber(sheet, 7, 'B'),
+                validAmount: getCellNumber(sheet, 8, 'B'),
+                approvedAmount: getCellNumber(sheet, 9, 'B'),
+                pendingAmount: getCellNumber(sheet, 10, 'B')
+            };
+
+            // Categories (rows 14-18)
+            for (let row = 15; row <= 19; row++) {
+                const category = getCellValue(sheet, row, 'A');
+                if (category) {
+                    data.categories.push({
+                        name: category,
+                        count: getCellNumber(sheet, row, 'B'),
+                        amount: getCellNumber(sheet, row, 'C'),
+                        ratio: getCellNumber(sheet, row, 'D')
+                    });
+                }
+            }
+
+            // Flow types (rows 21-24)
+            for (let row = 23; row <= 26; row++) {
+                const type = getCellValue(sheet, row, 'A');
+                if (type) {
+                    data.flowTypes.push({
+                        name: type,
+                        count: getCellNumber(sheet, row, 'B'),
+                        amount: getCellNumber(sheet, row, 'C'),
+                        ratio: getCellNumber(sheet, row, 'D')
+                    });
+                }
+            }
+
+            // Expense details (rows 28-42)
+            for (let row = 30; row <= 44; row++) {
+                const name = getCellValue(sheet, row, 'A');
+                if (name) {
+                    data.expenses.push({
+                        name: name,
+                        count: getCellNumber(sheet, row, 'B'),
+                        amount: getCellNumber(sheet, row, 'C'),
+                        ratio: getCellNumber(sheet, row, 'D')
+                    });
+                }
+            }
+
+            // TOP5 applicants (rows 46-50)
+            for (let row = 48; row <= 52; row++) {
+                const rank = getCellValue(sheet, row, 'A');
+                if (rank) {
+                    data.topApplicants.push({
+                        rank: rank,
+                        name: getCellValue(sheet, row, 'B'),
+                        count: getCellNumber(sheet, row, 'C'),
+                        amount: getCellNumber(sheet, row, 'D')
+                    });
+                }
+            }
+
+            return data;
+        }
+
+        // Parse weekly report text from Sheet5
+        function parseWeeklyReport(sheet) {
+            const data = {
+                period: '',
+                week: '',
+                lastWeekTasks: [],
+                nextWeekTasks: [],
+                specialNotes: ''
+            };
+
+            if (!sheet) return data;
+
+            data.period = getCellValue(sheet, 5, 'B') || '';
+            data.week = getCellValue(sheet, 6, 'B') || '';
+
+            // Last week tasks (B7-B13)
+            for (let row = 7; row <= 13; row++) {
+                const task = getCellValue(sheet, row, 'B');
+                if (task && task.toString().trim() !== '') {
+                    data.lastWeekTasks.push(task);
+                }
+            }
+
+            // Next week tasks (B14-B18)
+            for (let row = 15; row <= 19; row++) {
+                const task = getCellValue(sheet, row, 'B');
+                if (task && task.toString().trim() !== '') {
+                    data.nextWeekTasks.push(task);
+                }
+            }
+
+            data.specialNotes = getCellValue(sheet, 19, 'B') || '';
+
+            return data;
+        }
+
+        // Render Tab1: 经营总览
+        function renderTab1(basicInfo, budgetData, weeklyData, receivableData) {
+            const weeks = weeklyData.weeks;
+            const currentWeek = weeks[weeks.length - 1] || { totalSales: 0, totalReceipts: 0 };
+            const lastWeek = weeks.length > 1 ? weeks[weeks.length - 2] : { totalSales: 0, totalReceipts: 0 };
+
+            // Calculate cumulative values
+            let cumSales = 0, cumReceipts = 0;
+            weeks.forEach(w => {
+                cumSales += w.totalSales;
+                cumReceipts += w.totalReceipts;
+            });
+
+            // Sales change
+            const salesChange = currentWeek.totalSales - lastWeek.totalSales;
+            const salesChangePercent = lastWeek.totalSales ? (salesChange / lastWeek.totalSales * 100) : 0;
+
+            // Receipts change
+            const receiptsChange = currentWeek.totalReceipts - lastWeek.totalReceipts;
+            const receiptsChangePercent = lastWeek.totalReceipts ? (receiptsChange / lastWeek.totalReceipts * 100) : 0;
+
+            // Get target from budget (合计 in income)
+            const totalTarget = budgetData.income.find(i => i.name.includes('合计'))?.amount || 
+                               budgetData.income.reduce((sum, i) => sum + i.amount, 0);
+            
+            // Get B-end and C-end targets
+            const bTarget = budgetData.income.find(i => i.name.includes('B端') || i.name.includes('B端销售'))?.amount || 0;
+            const cTarget = budgetData.income.find(i => i.name.includes('C端') || i.name.includes('C端销售'))?.amount || 0;
+
+            // Calculate completion rate
+            const completionRate = totalTarget ? (cumSales / totalTarget * 100) : 0;
+            const timeProgress = getTimeProgress(parseInt(basicInfo.month));
+
+            // Overall receivable rate from Sheet3
+            const overallReceivableRate = receivableData.totalReceivable ? 
+                                          (receivableData.totalReceived / receivableData.totalReceivable * 100) : 0;
+
+            // Render KPI cards
+            const kpiHtml = `
+                <div class="kpi-card">
+                    <div class="kpi-label">本周销售额</div>
+                    <div class="kpi-value blue">${formatCurrency(currentWeek.totalSales)}</div>
+                    <div class="kpi-change ${salesChange >= 0 ? 'up' : 'down'}">
+                        ${salesChange >= 0 ? '↑' : '↓'} ${fmt(Math.abs(salesChangePercent))}%
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">本周回款</div>
+                    <div class="kpi-value green">${formatCurrency(currentWeek.totalReceipts)}</div>
+                    <div class="kpi-change ${receiptsChange >= 0 ? 'up' : 'down'}">
+                        ${receiptsChange >= 0 ? '↑' : '↓'} ${fmt(Math.abs(receiptsChangePercent))}%
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">本月累计销售</div>
+                    <div class="kpi-value blue">${formatCurrency(cumSales)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">本月累计回款</div>
+                    <div class="kpi-value green">${formatCurrency(cumReceipts)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">目标完成率</div>
+                    <div class="kpi-value ${completionRate >= timeProgress ? 'green' : (completionRate >= timeProgress - 5 ? 'yellow' : 'red')}">${fmt(completionRate)}%</div>
+                    <div class="progress-container" style="margin-top: 10px;">
+                        <div class="progress-bar">
+                            <div class="progress-fill ${completionRate >= timeProgress ? 'green' : (completionRate >= timeProgress - 5 ? 'yellow' : 'red')}" style="width: ${Math.min(completionRate, 100)}%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">整体回款率</div>
+                    <div class="kpi-value green">${fmt(overallReceivableRate)}%</div>
+                    <div class="kpi-change">累计已回款/累计销售额</div>
+                </div>
+            `;
+            document.getElementById('kpiOverview').innerHTML = kpiHtml;
+
+            // Render sales trend chart
+            const labels = weeks.map(w => w.week);
+            const bSales = weeks.map(w => w.bSales);
+            const cSales = weeks.map(w => w.cSales);
+            const liuSales = weeks.map(w => w.liuSales);
+            const totalSales = weeks.map(w => w.totalSales);
+
+            charts.chartSales = new Chart(document.getElementById('chartSales'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'B端销售',
+                            data: bSales,
+                            borderColor: '#38bdf8',
+                            backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'C端销售',
+                            data: cSales,
+                            borderColor: '#818cf8',
+                            backgroundColor: 'rgba(129, 140, 248, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '刘义虎',
+                            data: liuSales,
+                            borderColor: '#4ade80',
+                            backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '合计',
+                            data: totalSales,
+                            borderColor: '#fbbf24',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            borderDash: []
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Render receipts trend chart
+            const receipts = weeks.map(w => w.totalReceipts);
+            charts.chartReceipts = new Chart(document.getElementById('chartReceipts'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '总回款',
+                            data: receipts,
+                            borderColor: '#4ade80',
+                            backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '销售额(对照)',
+                            data: totalSales,
+                            borderColor: '#f87171',
+                            backgroundColor: 'transparent',
+                            borderDash: [5, 5],
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Render target progress
+            let progressHtml = '';
+            if (bTarget > 0) {
+                const bProgress = (weeks.reduce((sum, w) => sum + w.bSales, 0) / bTarget * 100);
+                progressHtml += `
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>B端销售</span>
+                            <span>${fmt(bProgress)}% (${fmtInt(weeks.reduce((sum, w) => sum + w.bSales, 0))} / ${fmtInt(bTarget)})</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill blue" style="width: ${Math.min(bProgress, 100)}%"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            if (cTarget > 0) {
+                const cProgress = (weeks.reduce((sum, w) => sum + w.cSales, 0) / cTarget * 100);
+                progressHtml += `
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>C端销售</span>
+                            <span>${fmt(cProgress)}% (${fmtInt(weeks.reduce((sum, w) => sum + w.cSales, 0))} / ${fmtInt(cTarget)})</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill blue" style="width: ${Math.min(cProgress, 100)}%"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            progressHtml += `
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>合计销售</span>
+                        <span>${fmt(completionRate)}% (${fmtInt(cumSales)} / ${fmtInt(totalTarget)})</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ${completionRate >= timeProgress ? 'green' : 'yellow'}" style="width: ${Math.min(completionRate, 100)}%"></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('targetProgress').innerHTML = progressHtml;
+        }
+
+        // Render Tab2: 预算达成
+        function renderTab2(budgetData, weeklyData) {
+            // Calculate cumulative values from weekly data
+            const weeks = weeklyData.weeks;
+            let cumSales = weeks.reduce((sum, w) => sum + w.totalSales, 0);
+            let cumCost = weeklyData.costs.reduce((sum, c) => sum + c.total, 0);
+            let cumExpense = weeklyData.expenses.reduce((sum, e) => sum + e.total, 0);
+
+            // Total budget
+            const totalIncomeBudget = budgetData.income.reduce((sum, i) => sum + i.amount, 0);
+            const totalCostBudget = budgetData.cost.reduce((sum, i) => sum + i.amount, 0);
+            const totalExpenseBudget = budgetData.expense.reduce((sum, i) => sum + i.amount, 0);
+
+            const timeProgress = getTimeProgress(new Date().getMonth() + 1);
+            const timeProgressDecimal = timeProgress / 100;
+
+            // KPI cards
+            const kpiHtml = `
+                <div class="kpi-card">
+                    <div class="kpi-label">月度收入预算</div>
+                    <div class="kpi-value blue">${formatCurrency(totalIncomeBudget)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">累计实际</div>
+                    <div class="kpi-value green">${formatCurrency(cumSales)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">完成进度</div>
+                    <div class="kpi-value">${fmt(totalIncomeBudget ? cumSales / totalIncomeBudget * 100 : 0)}%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">时间进度</div>
+                    <div class="kpi-value yellow">${fmt(timeProgress)}%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">偏差</div>
+                    <div class="kpi-value ${cumSales / totalIncomeBudget * 100 >= timeProgress ? 'green' : 'red'}">
+                        ${fmt((cumSales / totalIncomeBudget * 100) - timeProgress)}%
+                    </div>
+                </div>
+            `;
+            document.getElementById('kpiBudget').innerHTML = kpiHtml;
+
+            // Budget vs Actual chart
+            const categories = ['收入', '成本', '费用'];
+            const budgets = [totalIncomeBudget, totalCostBudget, totalExpenseBudget];
+            const actuals = [cumSales, cumCost, cumExpense];
+            const forecasts = budgets.map(b => timeProgressDecimal > 0 ? b / timeProgressDecimal * timeProgressDecimal : 0);
+
+            charts.chartBudget = new Chart(document.getElementById('chartBudget'), {
+                type: 'bar',
+                data: {
+                    labels: categories,
+                    datasets: [
+                        {
+                            label: '月度预算',
+                            data: budgets,
+                            backgroundColor: 'rgba(148, 163, 184, 0.5)',
+                            borderColor: 'rgba(148, 163, 184, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '截至本周累计',
+                            data: actuals,
+                            backgroundColor: 'rgba(56, 189, 248, 0.7)',
+                            borderColor: '#38bdf8',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '预测月底',
+                            data: forecasts,
+                            backgroundColor: 'transparent',
+                            borderColor: '#4ade80',
+                            borderWidth: 2,
+                            type: 'bar',
+                            borderDash: [5, 5]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Budget detail table
+            let tableHtml = `
+                <thead>
+                    <tr>
+                        <th>科目</th>
+                        <th class="num">月度预算</th>
+                        <th class="num">累计实际</th>
+                        <th class="num">完成率</th>
+                        <th class="num">时间进度</th>
+                        <th class="num">偏差</th>
+                        <th class="num">预测月底</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            // Income rows
+            budgetData.income.forEach(item => {
+                const actual = item.name.includes('B端') ? weeks.reduce((s, w) => s + w.bSales, 0) :
+                              item.name.includes('C端') ? weeks.reduce((s, w) => s + w.cSales, 0) :
+                              item.name.includes('刘义虎') ? weeks.reduce((s, w) => s + w.liuSales, 0) :
+                              cumSales;
+                const progress = item.amount ? actual / item.amount * 100 : 0;
+                const deviation = progress - timeProgress;
+                const forecast = timeProgressDecimal > 0 ? actual / timeProgressDecimal : 0;
+                tableHtml += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td class="num">${formatCurrency(item.amount)}</td>
+                        <td class="num">${formatCurrency(actual)}</td>
+                        <td class="num"><span class="tag ${progress >= timeProgress ? 'green' : progress >= timeProgress - 5 ? 'yellow' : 'red'}">${fmt(progress)}%</span></td>
+                        <td class="num"><span class="tag blue">${fmt(timeProgress)}%</span></td>
+                        <td class="num"><span class="tag ${deviation >= 0 ? 'green' : 'red'}">${fmt(deviation)}%</span></td>
+                        <td class="num">${formatCurrency(forecast)}</td>
+                    </tr>
+                `;
+            });
+
+            // Cost rows
+            budgetData.cost.forEach(item => {
+                const actual = weeklyData.costs.length > 0 ? weeklyData.costs.reduce((s, c) => {
+                    return s + (item.name.includes('主营') ? c.mainCost :
+                               item.name.includes('物流') ? c.logistics :
+                               item.name.includes('折旧') ? c.depreciation :
+                               item.name.includes('租金') ? c.rent :
+                               item.name.includes('人工') ? c.labor : c.otherFixed);
+                }, 0) : 0;
+                const progress = item.amount ? actual / item.amount * 100 : 0;
+                const deviation = progress - timeProgress;
+                const forecast = timeProgressDecimal > 0 ? actual / timeProgressDecimal : 0;
+                tableHtml += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td class="num">${formatCurrency(item.amount)}</td>
+                        <td class="num">${formatCurrency(actual)}</td>
+                        <td class="num"><span class="tag ${progress >= timeProgress ? 'green' : progress >= timeProgress - 5 ? 'yellow' : 'red'}">${fmt(progress)}%</span></td>
+                        <td class="num"><span class="tag blue">${fmt(timeProgress)}%</span></td>
+                        <td class="num"><span class="tag ${deviation >= 0 ? 'green' : 'red'}">${fmt(deviation)}%</span></td>
+                        <td class="num">${formatCurrency(forecast)}</td>
+                    </tr>
+                `;
+            });
+
+            // Expense rows
+            budgetData.expense.forEach(item => {
+                const actual = weeklyData.expenses.length > 0 ? weeklyData.expenses.reduce((s, e) => {
+                    return s + (item.name.includes('招待') ? e.entertainment :
+                               item.name.includes('差旅') ? e.travel :
+                               item.name.includes('车辆') ? e.vehicle :
+                               item.name.includes('办公') ? e.office :
+                               item.name.includes('生活') ? e.living :
+                               item.name.includes('宿舍') ? e.dormitory : e.other);
+                }, 0) : 0;
+                const progress = item.amount ? actual / item.amount * 100 : 0;
+                const deviation = progress - timeProgress;
+                const forecast = timeProgressDecimal > 0 ? actual / timeProgressDecimal : 0;
+                tableHtml += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td class="num">${formatCurrency(item.amount)}</td>
+                        <td class="num">${formatCurrency(actual)}</td>
+                        <td class="num"><span class="tag ${progress >= timeProgress ? 'green' : progress >= timeProgress - 5 ? 'yellow' : 'red'}">${fmt(progress)}%</span></td>
+                        <td class="num"><span class="tag blue">${fmt(timeProgress)}%</span></td>
+                        <td class="num"><span class="tag ${deviation >= 0 ? 'green' : 'red'}">${fmt(deviation)}%</span></td>
+                        <td class="num">${formatCurrency(forecast)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += '</tbody>';
+            document.getElementById('tableBudget').innerHTML = tableHtml;
+        }
+
+        // Render Tab3: 销售分析
+        function renderTab3(weeklyData, budgetData) {
+            const weeks = weeklyData.weeks;
+            const currentWeek = weeks[weeks.length - 1] || { bSales: 0, cSales: 0, liuSales: 0, totalSales: 0 };
+            const lastWeek = weeks.length > 1 ? weeks[weeks.length - 2] : { bSales: 0, cSales: 0, liuSales: 0, totalSales: 0 };
+
+            // Sales changes
+            const salesChange = currentWeek.totalSales - lastWeek.totalSales;
+            const salesChangePercent = lastWeek.totalSales ? (salesChange / lastWeek.totalSales * 100) : 0;
+
+            // Per capita
+            const totalSales = weeks.reduce((sum, w) => sum + w.totalSales, 0);
+            const perCapitaSales = totalSales; // No staff count from weekly data
+
+            // KPI
+            const kpiHtml = `
+                <div class="kpi-card">
+                    <div class="kpi-label">本周总销售</div>
+                    <div class="kpi-value blue">${formatCurrency(currentWeek.totalSales)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">环比增减</div>
+                    <div class="kpi-value ${salesChange >= 0 ? 'green' : 'red'}">${salesChange >= 0 ? '+' : ''}${formatCurrency(salesChange)}</div>
+                    <div class="kpi-change ${salesChangePercent >= 0 ? 'up' : 'down'}">${fmt(salesChangePercent)}%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">人均产出</div>
+                    <div class="kpi-value green">${formatCurrency(perCapitaSales)}</div>
+                </div>
+            `;
+            document.getElementById('kpiSales').innerHTML = kpiHtml;
+
+            // Sales ranking chart (by week totals, simplified)
+            const labels = weeks.map(w => w.week);
+            charts.chartSalesRank = new Chart(document.getElementById('chartSalesRank'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '周销售总额',
+                        data: weeks.map(w => w.totalSales),
+                        backgroundColor: 'rgba(56, 189, 248, 0.7)',
+                        borderColor: '#38bdf8',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                        },
+                        y: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Sales pie chart
+            const bTotal = weeks.reduce((sum, w) => sum + w.bSales, 0);
+            const cTotal = weeks.reduce((sum, w) => sum + w.cSales, 0);
+            const liuTotal = weeks.reduce((sum, w) => sum + w.liuSales, 0);
+
+            charts.chartSalesPie = new Chart(document.getElementById('chartSalesPie'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['B端销售', 'C端销售', '刘义虎'],
+                    datasets: [{
+                        data: [bTotal, cTotal, liuTotal],
+                        backgroundColor: ['#38bdf8', '#818cf8', '#4ade80'],
+                        borderColor: 'rgba(30, 58, 138, 0.3)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+
+            // Weekly sales detail table
+            let tableHtml = `
+                <thead>
+                    <tr>
+                        <th>周次</th>
+                        <th class="num">B端</th>
+                        <th class="num">C端</th>
+                        <th class="num">刘义虎</th>
+                        <th class="num">合计</th>
+                        <th class="num">环比</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            weeks.forEach((w, i) => {
+                const prevSales = i > 0 ? weeks[i - 1].totalSales : 0;
+                const change = prevSales ? ((w.totalSales - prevSales) / prevSales * 100) : 0;
+                tableHtml += `
+                    <tr>
+                        <td>${w.week}</td>
+                        <td class="num">${formatCurrency(w.bSales)}</td>
+                        <td class="num">${formatCurrency(w.cSales)}</td>
+                        <td class="num">${formatCurrency(w.liuSales)}</td>
+                        <td class="num">${formatCurrency(w.totalSales)}</td>
+                        <td class="num"><span class="tag ${change >= 0 ? 'green' : 'red'}">${fmt(change)}%</span></td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += '</tbody>';
+            document.getElementById('tableSales').innerHTML = tableHtml;
+        }
+
+        // Render Tab4: 应收账款
+        function renderTab4(receivableData, weeklyData) {
+            const totalReceivable = receivableData.totalReceivable;
+            // 应收总额 = 业务员未结算合计
+            const arTotal = receivableData.salespeople.reduce((sum, s) => sum + s.unsettled, 0);
+            const apTotal = payableData.totalPayable || 0;
+            const netReceivable = arTotal - apTotal;
+            // 整体回款率 = 累计已回款 / 累计销售额
+            const cumulativeSales = receivableData.totalReceivable; // B2=累计销售额
+            const cumulativeReceived = receivableData.totalReceived; // B3=累计已回款
+            const receivableRate = cumulativeSales ? (cumulativeReceived / cumulativeSales * 100) : 0;
+
+            // KPI
+            const kpiHtml = `
+                <div class="kpi-card">
+                    <div class="kpi-label">应收总额</div>
+                    <div class="kpi-value blue">${formatCurrency(arTotal)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">应付总额</div>
+                    <div class="kpi-value yellow">${formatCurrency(apTotal)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">净应收</div>
+                    <div class="kpi-value ${netReceivable >= 0 ? 'blue' : 'green'}">${formatCurrency(netReceivable)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">整体回款率</div>
+                    <div class="kpi-value green">${fmt(receivableRate)}%</div>
+                </div>
+            `;
+            document.getElementById('kpiReceivable').innerHTML = kpiHtml;
+
+            // Age distribution pie chart
+            const ageData = receivableData.ageDistribution;
+            charts.chartReceivableAge = new Chart(document.getElementById('chartReceivableAge'), {
+                type: 'doughnut',
+                data: {
+                    labels: ageData.map(d => d.range),
+                    datasets: [{
+                        data: ageData.map(d => d.amount),
+                        backgroundColor: ['#4ade80', '#fbbf24', '#fb923c', '#f87171'],
+                        borderColor: 'rgba(30, 58, 138, 0.3)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+
+            // Salesperson ranking chart
+            const salespeople = receivableData.salespeople.slice(0, 8);
+            charts.chartReceivableRank = new Chart(document.getElementById('chartReceivableRank'), {
+                type: 'bar',
+                data: {
+                    labels: salespeople.map(s => s.name),
+                    datasets: [{
+                        label: '未结算金额',
+                        data: salespeople.map(s => s.unsettled),
+                        backgroundColor: 'rgba(56, 189, 248, 0.7)',
+                        borderColor: '#38bdf8',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                        },
+                        y: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // TOP10 customers
+            let top10Html = '';
+            receivableData.top10.slice(0, 10).forEach(c => {
+                const urgency = c.maxAge && c.maxAge.includes('180') ? 'urgent' : 
+                               c.maxAge && (c.maxAge.includes('90') || c.maxAge.includes('31')) ? 'warning' : 'normal';
+                top10Html += `
+                    <div class="top10-card ${urgency}">
+                        <div class="top10-rank">#${c.rank} ${c.customer}</div>
+                        <div class="top10-info">
+                            <div>业务员: ${c.salesperson}</div>
+                            <div>最大账龄: ${c.maxAge}</div>
+                            <div>单据数: ${c.docCount}</div>
+                        </div>
+                        <div class="top10-amount">${formatCurrency(c.amount)}</div>
+                    </div>
+                `;
+            });
+            document.getElementById('top10Customers').innerHTML = top10Html;
+        }
+
+        // Render Tab5: 应付账款
+        function renderTab5(payableData, receivableData) {
+            // KPI
+            const kpiHtml = `
+                <div class="kpi-card">
+                    <div class="kpi-label">应付总额</div>
+                    <div class="kpi-value yellow">${formatCurrency(payableData.totalPayable)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">本周付款</div>
+                    <div class="kpi-value green">${formatCurrency(0)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">本月累计付款</div>
+                    <div class="kpi-value green">${formatCurrency(payableData.monthPaid)}</div>
+                </div>
+            `;
+            document.getElementById('kpiPayable').innerHTML = kpiHtml;
+
+            // Age distribution pie chart
+            const ageData = payableData.ageDistribution;
+            charts.chartPayableAge = new Chart(document.getElementById('chartPayableAge'), {
+                type: 'doughnut',
+                data: {
+                    labels: ageData.length > 0 ? ageData.map(d => d.range) : ['暂无数据'],
+                    datasets: [{
+                        data: ageData.length > 0 ? ageData.map(d => d.amount) : [1],
+                        backgroundColor: ageData.length > 0 ? ['#4ade80', '#fbbf24', '#fb923c', '#f87171'] : ['#94a3b8'],
+                        borderColor: 'rgba(30, 58, 138, 0.3)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+
+            // Supplier ranking chart
+            const suppliers = payableData.suppliers.slice(0, 8);
+            charts.chartPayableRank = new Chart(document.getElementById('chartPayableRank'), {
+                type: 'bar',
+                data: {
+                    labels: suppliers.map(s => s.name),
+                    datasets: [{
+                        label: '未付款金额',
+                        data: suppliers.map(s => s.unpaid),
+                        backgroundColor: 'rgba(251, 191, 36, 0.7)',
+                        borderColor: '#fbbf24',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                        },
+                        y: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Balance trend chart
+            const weeks = [1, 2, 3, 4, 5, 6];
+            const receivableTrend = weeks.map(() => receivableData.totalReceivable || 0);
+            const payableTrend = weeks.map(() => payableData.totalPayable || 0);
+
+            charts.chartBalance = new Chart(document.getElementById('chartBalance'), {
+                type: 'line',
+                data: {
+                    labels: weeks.map(w => `第${w}周`),
+                    datasets: [
+                        {
+                            label: '应收',
+                            data: receivableTrend,
+                            borderColor: '#38bdf8',
+                            backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '应付',
+                            data: payableTrend,
+                            borderColor: '#fbbf24',
+                            backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Supplier detail table
+            let tableHtml = `
+                <thead>
+                    <tr>
+                        <th>供应商</th>
+                        <th class="num">单据数</th>
+                        <th class="num">未付款</th>
+                        <th class="num">30天以上占比</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            payableData.suppliers.forEach(s => {
+                tableHtml += `
+                    <tr>
+                        <td>${s.name}</td>
+                        <td class="num">${s.docCount}</td>
+                        <td class="num">${formatCurrency(s.unpaid)}</td>
+                        <td class="num"><span class="tag ${s.oldRatio > 50 ? 'red' : s.oldRatio > 20 ? 'yellow' : 'green'}">${fmt(s.oldRatio)}%</span></td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += '</tbody>';
+            document.getElementById('tablePayable').innerHTML = tableHtml;
+        }
+
+        // Render Tab6: 成本费用
+        function renderTab6(budgetData, weeklyData, approvalData) {
+            const currentCost = weeklyData.costs.length > 0 ? weeklyData.costs[weeklyData.costs.length - 1].total : 0;
+            const currentExpense = weeklyData.expenses.length > 0 ? weeklyData.expenses[weeklyData.expenses.length - 1].total : 0;
+            const totalSales = weeklyData.weeks.reduce((sum, w) => sum + w.totalSales, 0);
+
+            const costRate = totalSales ? (currentCost / totalSales * 100) : 0;
+            const expenseRate = totalSales ? (currentExpense / totalSales * 100) : 0;
+
+            // KPI
+            const kpiHtml = `
+                <div class="kpi-card">
+                    <div class="kpi-label">本周成本</div>
+                    <div class="kpi-value red">${formatCurrency(currentCost)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">本周费用</div>
+                    <div class="kpi-value yellow">${formatCurrency(currentExpense)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">成本率</div>
+                    <div class="kpi-value ${costRate > 50 ? 'red' : costRate > 30 ? 'yellow' : 'green'}">${fmt(costRate)}%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">费用率</div>
+                    <div class="kpi-value ${expenseRate > 20 ? 'red' : expenseRate > 10 ? 'yellow' : 'green'}">${fmt(expenseRate)}%</div>
+                </div>
+            `;
+            document.getElementById('kpiCost').innerHTML = kpiHtml;
+
+            // Cost structure pie chart
+            const totalCostBudget = budgetData.cost.reduce((sum, i) => sum + i.amount, 0);
+            const totalExpenseBudget = budgetData.expense.reduce((sum, i) => sum + i.amount, 0);
+
+            charts.chartCostStructure = new Chart(document.getElementById('chartCostStructure'), {
+                type: 'pie',
+                data: {
+                    labels: ['成本', '费用'],
+                    datasets: [{
+                        data: [totalCostBudget || 1, totalExpenseBudget || 1],
+                        backgroundColor: ['#f87171', '#fbbf24'],
+                        borderColor: 'rgba(30, 58, 138, 0.3)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+
+            // Expense trend chart
+            const weeks = weeklyData.expenses;
+            const expenseLabels = weeks.map(w => w.week);
+            const expenseTotals = weeks.map(w => w.total);
+
+            charts.chartExpenseTrend = new Chart(document.getElementById('chartExpenseTrend'), {
+                type: 'line',
+                data: {
+                    labels: expenseLabels,
+                    datasets: [{
+                        label: '费用合计',
+                        data: expenseTotals,
+                        borderColor: '#fbbf24',
+                        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Expense detail table
+            let tableHtml = `
+                <thead>
+                    <tr>
+                        <th>科目</th>
+                        <th class="num">本周</th>
+                        <th class="num">本月累计</th>
+                        <th class="num">月度预算</th>
+                        <th class="num">预算完成率</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            const expenseItems = [
+                { name: '业务招待费', key: 'entertainment' },
+                { name: '差旅费', key: 'travel' },
+                { name: '车辆费', key: 'vehicle' },
+                { name: '办公用品', key: 'office' },
+                { name: '生活费', key: 'living' },
+                { name: '宿舍费', key: 'dormitory' },
+                { name: '其他费用', key: 'other' }
+            ];
+
+            const currentWeek = weeklyData.expenses[weeklyData.expenses.length - 1] || {};
+            const cumExpenses = weeklyData.expenses.reduce((sum, e) => sum + e.total, 0);
+
+            expenseItems.forEach(item => {
+                const weeklyAmount = currentWeek[item.key] || 0;
+                const budget = budgetData.expense.find(e => e.name.includes(item.name.split('费')[0].slice(-2)))?.amount || 0;
+                const progress = budget ? (weeklyAmount / budget * 100) : 0;
+
+                tableHtml += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td class="num">${formatCurrency(weeklyAmount)}</td>
+                        <td class="num">${formatCurrency(cumExpenses)}</td>
+                        <td class="num">${formatCurrency(budget)}</td>
+                        <td class="num"><span class="tag ${progress <= 100 ? 'green' : 'red'}">${fmt(progress)}%</span></td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += `
+                <tr style="font-weight: bold; background: rgba(56, 189, 248, 0.1);">
+                    <td>合计</td>
+                    <td class="num">${formatCurrency(currentWeek.total || 0)}</td>
+                    <td class="num">${formatCurrency(cumExpenses)}</td>
+                    <td class="num">${formatCurrency(totalExpenseBudget)}</td>
+                    <td class="num"><span class="tag">${fmt(totalExpenseBudget ? cumExpenses / totalExpenseBudget * 100 : 0)}%</span></td>
+                </tr>
+            `;
+            tableHtml += '</tbody>';
+            document.getElementById('tableExpense').innerHTML = tableHtml;
+
+            // Approval data summary
+            if (approvalData.basic && approvalData.basic.totalCount) {
+                const approvalKpi = `
+                    <div class="kpi-card">
+                        <div class="kpi-label">总笔数</div>
+                        <div class="kpi-value blue">${approvalData.basic.totalCount}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">有效笔数</div>
+                        <div class="kpi-value green">${approvalData.basic.validCount}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">有效金额</div>
+                        <div class="kpi-value">${formatCurrency(approvalData.basic.validAmount)}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">审批中</div>
+                        <div class="kpi-value yellow">${formatCurrency(approvalData.basic.pendingAmount)}</div>
+                    </div>
+                `;
+                document.getElementById('kpiApproval').innerHTML = approvalKpi;
+
+                // Flow type table
+                let flowHtml = `
+                    <thead>
+                        <tr><th>流程类型</th><th class="num">笔数</th><th class="num">金额</th></tr>
+                    </thead>
+                    <tbody>
+                `;
+                approvalData.flowTypes.forEach(f => {
+                    flowHtml += `<tr><td>${f.name}</td><td class="num">${f.count}</td><td class="num">${formatCurrency(f.amount)}</td></tr>`;
+                });
+                flowHtml += '</tbody>';
+                document.getElementById('tableFlowType').innerHTML = flowHtml;
+
+                // TOP5 applicants
+                let topHtml = `
+                    <thead>
+                        <tr><th>排名</th><th>申请人</th><th class="num">笔数</th><th class="num">金额</th></tr>
+                    </thead>
+                    <tbody>
+                `;
+                approvalData.topApplicants.forEach(a => {
+                    topHtml += `<tr><td>${a.rank}</td><td>${a.name}</td><td class="num">${a.count}</td><td class="num">${formatCurrency(a.amount)}</td></tr>`;
+                });
+                topHtml += '</tbody>';
+                document.getElementById('tableTopApplicant').innerHTML = topHtml;
+            }
+        }
+
+        // Render Tab7: 周报事项
+        function renderTab7(weeklyReport, approvalData) {
+            // Last week tasks
+            let lastWeekHtml = '';
+            if (weeklyReport.lastWeekTasks.length > 0) {
+                weeklyReport.lastWeekTasks.forEach(task => {
+                    lastWeekHtml += `<li><span class="check">✓</span><span>${task}</span></li>`;
+                });
+            } else {
+                lastWeekHtml = '<li><span class="bullet">•</span>暂无数据</li>';
+            }
+            document.getElementById('lastWeekTasks').innerHTML = lastWeekHtml;
+
+            // Next week tasks
+            let nextWeekHtml = '';
+            if (weeklyReport.nextWeekTasks.length > 0) {
+                weeklyReport.nextWeekTasks.forEach(task => {
+                    nextWeekHtml += `<li><span class="bullet">▸</span><span>${task}</span></li>`;
+                });
+            } else {
+                nextWeekHtml = '<li><span class="bullet">•</span>暂无数据</li>';
+            }
+            document.getElementById('nextWeekTasks').innerHTML = nextWeekHtml;
+
+            // Special notes
+            document.getElementById('specialNotes').innerHTML = weeklyReport.specialNotes || '暂无特别说明';
+
+            // Approval summary
+            let approvalHtml = '';
+            if (approvalData.basic && approvalData.basic.totalCount) {
+                approvalHtml = `
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                        <div class="kpi-card">
+                            <div class="kpi-label">审批笔数</div>
+                            <div class="kpi-value blue">${approvalData.basic.validCount} / ${approvalData.basic.totalCount}</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">有效金额</div>
+                            <div class="kpi-value green">${formatCurrency(approvalData.basic.validAmount)}</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">已通过</div>
+                            <div class="kpi-value">${formatCurrency(approvalData.basic.approvedAmount)}</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">审批中</div>
+                            <div class="kpi-value yellow">${formatCurrency(approvalData.basic.pendingAmount)}</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                approvalHtml = '<p style="color: var(--text-secondary);">暂无审批数据</p>';
+            }
+            document.getElementById('approvalSummary').innerHTML = approvalHtml;
+        }
+    </script>
 </body>
 </html>
