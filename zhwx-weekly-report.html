@@ -555,26 +555,33 @@ function renderCost(d) {
 
     // 费用滚动预算表（实际来自审批数据）
     html += `<div class="card"><div class="card-title">📊 费用滚动预算（第${ed}/${td}天，实际数据来自审批系统）</div><table><thead><tr><th>科目</th><th class="text-right">月预算</th><th class="text-right">日均</th><th class="text-right">应达成</th><th class="text-right">实际达成</th><th class="text-center">达成率</th><th class="text-right">剩余每天需</th></tr></thead><tbody>`;
+    // 费用预算中需要从成本预算取金额的科目映射
+    const expenseFromCostBudget = {'运杂物流费':'物流费'};
     // 有预算的费用项：匹配审批实际
     d.budget.expense.forEach(i => {
         const approvalName = budgetToApproval[i.item];
         const actual = approvalName && expTypeMap[approvalName] ? expTypeMap[approvalName].amount : 0;
-        const r = rollingBudget(i.amount, actual, td, ed);
+        // 某些费用项预算金额为0但实际预算在成本预算里（如运杂物流费→物流费）
+        let budgetAmt = i.amount;
+        if(budgetAmt === 0 && expenseFromCostBudget[i.item]) {
+            budgetAmt = d.budget.cost.find(c=>c.item===expenseFromCostBudget[i.item])?.amount || 0;
+        }
+        if(budgetAmt === 0 && actual === 0) return; // 跳过无预算无实际的空行
+        const r = rollingBudget(budgetAmt, actual, td, ed);
         const onTrack = r.progressRate >= r.timeRate;
-        html += `<tr><td>${i.item||'-'}</td><td class="text-right">${fmt(i.amount)}</td><td class="text-right">${fmt(r.dailyBudget)}</td><td class="text-right">${fmt(r.shouldAchieve)}</td><td class="text-right" style="${onTrack?'color:#4ade80':'color:#f87171'}">${actual>0?fmt(actual):'-'}</td><td class="text-center">${actual>0?'<span class="badge '+((actual/i.amount)>=r.timeRate?'badge-green':'badge-red')+'">'+pct(actual/i.amount)+'</span>':'-'}</td><td class="text-right ${onTrack?'budget-ok':'budget-gap'}">${actual>0&&r.remaining>0?fmt(r.dailyNeed):actual>0?'已完成':'-'}</td></tr>`;
+        const isCostItem = i.item === '运杂物流费';
+        const rowStyle = isCostItem ? 'style="color:#94a3b8;background:rgba(100,116,139,0.06)"' : '';
+        const label = isCostItem ? `⚠️ ${i.item} <span style="font-size:11px;color:#64748b">（属成本项）</span>` : i.item;
+        html += `<tr ${rowStyle}><td>${label}</td><td class="text-right">${fmt(budgetAmt)}</td><td class="text-right">${fmt(r.dailyBudget)}</td><td class="text-right">${fmt(r.shouldAchieve)}</td><td class="text-right" style="${actual>0?(onTrack?'color:#4ade80':'color:#f87171'):''}">${actual>0?fmt(actual):'-'}</td><td class="text-center">${actual>0&&budgetAmt>0?'<span class="badge '+(onTrack?'badge-green':'badge-red')+'">'+pct(actual/budgetAmt)+'</span>':'-'}</td><td class="text-right ${actual>0&&onTrack?'budget-ok':actual>0?'budget-gap':''}">${actual>0&&r.remaining>0?fmt(r.dailyNeed):actual>0?'已完成':'-'}</td></tr>`;
     });
     // 有审批实际但无预算的费用项
     const budgetMatchedNames = new Set(Object.values(budgetToApproval).filter(Boolean));
     d.approval.expenseTypes.forEach(e => {
-        if(e.item === '运杂物流费') return; // 属成本项，单独标注
+        if(e.item === '运杂物流费') return; // 已在上面处理
         if(budgetMatchedNames.has(e.item)) return; // 已在预算项中匹配
+        if(e.amount === 0) return;
         html += `<tr style="color:#94a3b8"><td>${e.item} <span style="font-size:11px;color:#64748b">（无预算）</span></td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right" style="color:#fbbf24">${fmt(e.amount)}</td><td class="text-center">-</td><td class="text-right">-</td></tr>`;
     });
-    // 运杂物流费标注
-    const yzItem = expTypeMap['运杂物流费'];
-    if(yzItem) {
-        html += `<tr style="color:#64748b;background:rgba(100,116,139,0.08)"><td>⚠️ 运杂物流费 <span style="font-size:11px">（属成本项，不计入费用）</span></td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right">${fmt(yzItem.amount)}</td><td class="text-center">-</td><td class="text-right">-</td></tr>`;
-    }
     html += `<tr style="background:rgba(14,165,233,0.1);font-weight:600"><td>费用合计（排除运杂物流费）</td><td class="text-right">${fmt(totalExpBudget)}</td><td class="text-right">${fmt(expRoll.dailyBudget)}</td><td class="text-right">${fmt(expRoll.shouldAchieve)}</td><td class="text-right" style="${expRoll.onTrack?'color:#4ade80':'color:#f87171'}">${fmt(d.monthTotalExpense)}</td><td class="text-center"><span class="badge ${expRoll.onTrack?'badge-green':'badge-yellow'}">${pct(expRoll.progressRate)}</span></td><td class="text-right ${expRoll.onTrack?'budget-ok':'budget-gap'}">${expRoll.remaining>0?fmt(expRoll.dailyNeed):'已完成'}</td></tr>`;
     html += `</tbody></table></div>`;
 
@@ -610,9 +617,11 @@ function renderCost(d) {
         d.approval.expenseTypes.forEach(e => {
             const isCostItem = e.item === '运杂物流费';
             const budgetName = approvalToBudget[e.item];
-            const budgetAmt = budgetName ? (d.budget.expense.find(b=>b.item===budgetName)?.amount || 0) : 0;
+            let budgetAmt = budgetName ? (d.budget.expense.find(b=>b.item===budgetName)?.amount || 0) : 0;
+            // 运杂物流费预算在成本预算的"物流费"项
+            if(isCostItem) budgetAmt = d.budget.cost.find(c=>c.item==='物流费')?.amount || 0;
             const budgetCompare = budgetAmt > 0 ? `${pct(e.amount/budgetAmt)}（预算${fmt(budgetAmt)}）` : (isCostItem ? '属成本项' : '-');
-            const rowStyle = isCostItem ? 'style="color:#64748b;background:rgba(100,116,139,0.08)"' : '';
+            const rowStyle = isCostItem ? 'style="color:#94a3b8;background:rgba(100,116,139,0.08)"' : '';
             const itemLabel = isCostItem ? `⚠️ ${e.item}` : e.item;
             html += `<tr ${rowStyle}><td>${itemLabel}</td><td class="text-right">${e.count}</td><td class="text-right">${fmt(e.amount)}</td><td class="text-center">${fmtRatio(e.ratio)}</td><td class="text-center" style="font-size:12px">${budgetCompare}</td></tr>`;
         });
