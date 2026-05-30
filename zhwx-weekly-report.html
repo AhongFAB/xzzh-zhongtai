@@ -215,6 +215,12 @@ function parseWorkbook(wb) {
     // ===== Sheet4 审批数据 =====
     if(s4) {
         d.approval.basic = {period:v(s4,5,2),totalCount:n(s4,6,2),validCount:n(s4,7,2),validAmount:n(s4,8,2),approvedAmount:n(s4,9,2),pendingAmount:n(s4,10,2)};
+        // 从审批类别推算基本信息（如果B列为空）
+        if(!d.approval.basic.validAmount && d.approval.categories.length) {
+            d.approval.basic.validAmount = d.approval.categories.reduce((s,c)=>s+c.amount,0);
+            d.approval.basic.totalCount = d.approval.categories.reduce((s,c)=>s+c.count,0);
+            d.approval.basic.validCount = d.approval.basic.totalCount;
+        }
         for(let r=15;r<=18;r++) { const cat=v(s4,r,1); if(cat) d.approval.categories.push({category:cat,count:n(s4,r,2),amount:n(s4,r,3),ratio:v(s4,r,4)}); }
         for(let r=23;r<=26;r++) { const type=v(s4,r,1); if(type) d.approval.flowTypes.push({type,count:n(s4,r,2),amount:n(s4,r,3),ratio:v(s4,r,4)}); }
         for(let r=30;r<=40;r++) { const item=v(s4,r,1); if(item) d.approval.expenseTypes.push({item,count:n(s4,r,2),amount:n(s4,r,3),ratio:v(s4,r,4)}); }
@@ -269,6 +275,9 @@ function parseWorkbook(wb) {
     // 成本费用汇总
     d.monthTotalCost = d.weekly.cost.reduce((s,w)=>s+w.total,0);
     d.monthTotalExpense = d.weekly.expense.reduce((s,w)=>s+w.total,0);
+    // 审批金额（Sheet4审批类别的成本/费用）
+    d.approvedCost = d.approval.categories.find(c=>c.category==='成本')?.amount || 0;
+    d.approvedExpense = d.approval.categories.find(c=>c.category==='费用')?.amount || 0;
 
     // 每周天数（用于预算分配）
     d.weekly.sales.forEach(w => { w.days = parseDaysInWeek(w.date); });
@@ -313,6 +322,7 @@ function renderOverview(d) {
     html+='<div class="kpi-card"><div class="kpi-label">费用进度</div><div class="kpi-value '+(expRoll.onTrack?'green':'red')+'">'+pct(expRoll.progressRate)+'</div><div class="kpi-sub">预算'+fmt(expBudgetTotal)+' | 实际'+fmt(d.monthTotalExpense)+'</div><div class="kpi-extra">剩余每天需'+fmt(expRoll.dailyNeed)+'</div></div>';
 
     html+='<div class="kpi-card"><div class="kpi-label">毛利率</div><div class="kpi-value blue">'+pct(d.monthTotalSales>0?(d.monthTotalSales-d.monthTotalCost)/d.monthTotalSales:0)+'</div><div class="kpi-sub">销售'+fmt(d.monthTotalSales)+' - 成本'+fmt(d.monthTotalCost)+'</div></div>';
+    html+='<div class="kpi-card"><div class="kpi-label">审批成本</div><div class="kpi-value '+(d.approvedCost>0?'yellow':'blue')+'">'+fmt(d.approvedCost)+'</div><div class="kpi-sub">来自审批系统(Sheet4)</div></div>';
     html+='</div>';
 
     // 滚动预算达成表 - 收入
@@ -442,6 +452,7 @@ function renderCost(d) {
     html+='<div class="kpi-card"><div class="kpi-label">成本累计</div><div class="kpi-value '+(costRoll.onTrack?'green':'red')+'">'+fmt(d.monthTotalCost)+'</div><div class="kpi-sub">达成率'+pct(costRoll.progressRate)+' | 时间进度'+pct(costRoll.timeRate)+'</div></div>';
     html+='<div class="kpi-card"><div class="kpi-label">剩余预算</div><div class="kpi-value yellow">'+fmt(costRoll.remaining)+'</div><div class="kpi-sub">剩余每天需'+fmt(costRoll.dailyNeed)+'</div></div>';
     html+='<div class="kpi-card"><div class="kpi-label">毛利率</div><div class="kpi-value blue">'+pct(d.monthTotalSales>0?(d.monthTotalSales-d.monthTotalCost)/d.monthTotalSales:0)+'</div><div class="kpi-sub">销售'+fmt(d.monthTotalSales)+' - 成本'+fmt(d.monthTotalCost)+'</div></div>';
+    html+='<div class="kpi-card"><div class="kpi-label">审批成本</div><div class="kpi-value '+(d.approvedCost>0?'yellow':'blue')+'">'+fmt(d.approvedCost)+'</div><div class="kpi-sub">来自审批系统(Sheet4)</div></div>';
     html+='</div>';
 
     // 成本结构图
@@ -462,6 +473,11 @@ function renderCost(d) {
     html+='<tr><td>其他固定</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right">'+fmt(otherFixedTotal)+'</td><td class="text-center">-</td><td class="text-center">-</td><td class="text-right">-</td></tr>';
     // 合计
     html+='<tr style="background:rgba(14,165,233,0.1);font-weight:600"><td>成本合计</td><td class="text-right">'+fmt(costBudgetTotal)+'</td><td class="text-right">'+fmt(costRoll.dailyBudget)+'</td><td class="text-right">'+fmt(costRoll.shouldAchieve)+'</td><td class="text-right" style="'+(costRoll.onTrack?'color:#4ade80':'color:#f87171')+'">'+fmt(d.monthTotalCost)+'</td><td class="text-center"><span class="badge '+(costRoll.onTrack?'badge-green':'badge-red')+'">'+pct(costRoll.progressRate)+'</span></td><td class="text-center">'+pct(costRoll.timeRate)+'</td><td class="text-right '+(costRoll.onTrack?'budget-ok':'budget-gap')+'">'+(costRoll.remaining>0?fmt(costRoll.dailyNeed):'已完成')+'</td></tr>';
+    // 审批金额对比
+    if(d.approvedCost>0) {
+        const appCostRate=costBudgetTotal>0?d.approvedCost/costBudgetTotal:0;
+        html+='<tr style="background:rgba(245,158,11,0.1)"><td>审批成本</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right" style="color:#fbbf24;font-weight:600">'+fmt(d.approvedCost)+'</td><td class="text-center"><span class="badge badge-yellow">'+pct(appCostRate)+'</span></td><td class="text-center">审批达成</td><td class="text-right">-</td></tr>';
+    }
     html+='</tbody></table></div></div>';
 
     // 周度成本明细 + 环比
@@ -528,6 +544,7 @@ function renderExpense(d) {
     html+='<div class="kpi-card"><div class="kpi-label">费用累计</div><div class="kpi-value '+(expRoll.onTrack?'green':'yellow')+'">'+fmt(d.monthTotalExpense)+'</div><div class="kpi-sub">达成率'+pct(expRoll.progressRate)+' | 时间进度'+pct(expRoll.timeRate)+'</div></div>';
     html+='<div class="kpi-card"><div class="kpi-label">剩余预算</div><div class="kpi-value yellow">'+fmt(expRoll.remaining)+'</div><div class="kpi-sub">剩余每天需'+fmt(expRoll.dailyNeed)+'</div></div>';
     html+='<div class="kpi-card"><div class="kpi-label">费用占销售比</div><div class="kpi-value blue">'+pct(d.monthTotalSales>0?d.monthTotalExpense/d.monthTotalSales:0)+'</div></div>';
+    html+='<div class="kpi-card"><div class="kpi-label">审批费用</div><div class="kpi-value '+(d.approvedExpense>0?'yellow':'blue')+'">'+fmt(d.approvedExpense)+'</div><div class="kpi-sub">来自审批系统(Sheet4)</div></div>';
     html+='</div>';
 
     // 费用结构图
@@ -557,7 +574,18 @@ function renderExpense(d) {
     });
     // 合计
     html+='<tr style="background:rgba(14,165,233,0.1);font-weight:600"><td>费用合计</td><td class="text-right">'+fmt(expBudgetTotal)+'</td><td class="text-right">'+fmt(expRoll.dailyBudget)+'</td><td class="text-right">'+fmt(expRoll.shouldAchieve)+'</td><td class="text-right" style="'+(expRoll.onTrack?'color:#4ade80':'color:#f87171')+'">'+fmt(d.monthTotalExpense)+'</td><td class="text-center"><span class="badge '+(expRoll.onTrack?'badge-green':'badge-red')+'">'+pct(expRoll.progressRate)+'</span></td><td class="text-center">'+pct(expRoll.timeRate)+'</td><td class="text-right '+(expRoll.onTrack?'budget-ok':'budget-gap')+'">'+(expRoll.remaining>0?fmt(expRoll.dailyNeed):'已完成')+'</td></tr>';
+    // 审批金额对比
+    if(d.approvedExpense>0) {
+        const appExpRate=expBudgetTotal>0?d.approvedExpense/expBudgetTotal:0;
+        html+='<tr style="background:rgba(245,158,11,0.1)"><td>审批费用</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right" style="color:#fbbf24;font-weight:600">'+fmt(d.approvedExpense)+'</td><td class="text-center"><span class="badge badge-yellow">'+pct(appExpRate)+'</span></td><td class="text-center">审批达成</td><td class="text-right">-</td></tr>';
+    }
     html+='</tbody></table></div></div>';
+    // Sheet4 费用分类明细（审批实际）
+    if(d.approval.expenseTypes.length) {
+        html+='<div class="card"><div class="card-title">&#128203; 审批费用分类明细（来自审批系统 Sheet4）</div><div class="scroll-table"><table><thead><tr><th>科目</th><th class="text-right">笔数</th><th class="text-right">审批金额</th><th class="text-center">占审批总额比</th></tr></thead><tbody>';
+        d.approval.expenseTypes.forEach(e=>{html+='<tr><td>'+e.item+'</td><td class="text-right">'+e.count+'</td><td class="text-right" style="color:#fbbf24;font-weight:600">'+fmt(e.amount)+'</td><td class="text-center">'+fmtRatio(e.ratio)+'</td></tr>';});
+        html+='</tbody></table></div></div>';
+    }
 
     // 周度费用明细 + 环比
     html+='<div class="card"><div class="card-title">&#128203; 周度费用明细（含环比）</div><div class="scroll-table"><table><thead><tr><th>周次</th><th class="text-right">周预算</th><th class="text-right">业务招待费</th><th class="text-right">维修维护费</th><th class="text-right">差旅费</th><th class="text-right">交通费</th><th class="text-right">车辆使用费</th><th class="text-right">办公费</th><th class="text-right">服务费</th><th class="text-right">福利费</th><th class="text-right">通讯费</th><th class="text-right">其它</th><th class="text-right">合计</th><th class="text-center">环比</th></tr></thead><tbody>';
@@ -648,14 +676,17 @@ function renderApproval(d) {
     let html='';
     const ap=d.approval.basic;
 
-    // 基本信息
-    html+='<div class="card"><div class="card-title">&#128203; 审批基本信息</div><div class="summary-grid">';
-    html+='<div class="summary-item"><div class="label">统计期间</div><div class="value" style="font-size:13px">'+(ap.period||'-')+'</div></div>';
-    html+='<div class="summary-item"><div class="label">总笔数</div><div class="value">'+(ap.totalCount||'-')+'</div></div>';
-    html+='<div class="summary-item"><div class="label">有效笔数</div><div class="value">'+(ap.validCount||'-')+'</div></div>';
-    html+='<div class="summary-item"><div class="label">有效金额</div><div class="value" style="font-size:13px">'+fmt(ap.validAmount)+'</div></div>';
-    html+='<div class="summary-item"><div class="label">已通过</div><div class="value" style="color:#4ade80;font-size:13px">'+fmt(ap.approvedAmount)+'</div></div>';
-    html+='<div class="summary-item"><div class="label">审批中</div><div class="value" style="color:#fbbf24;font-size:13px">'+fmt(ap.pendingAmount)+'</div></div>';
+    // 基本信息（从审批类别合计推算）
+    const validAmt = ap.validAmount || d.approval.categories.reduce((s,c)=>s+c.amount,0);
+    const totalCount = ap.totalCount || d.approval.categories.reduce((s,c)=>s+c.count,0);
+    html+='<div class="card"><div class="card-title">&#128203; 审批汇总</div><div class="summary-grid">';
+    if(ap.period) html+='<div class="summary-item"><div class="label">统计期间</div><div class="value" style="font-size:13px">'+ap.period+'</div></div>';
+    html+='<div class="summary-item"><div class="label">总笔数</div><div class="value">'+totalCount+'</div></div>';
+    html+='<div class="summary-item"><div class="label">审批总金额</div><div class="value" style="font-size:13px">'+fmt(validAmt)+'</div></div>';
+    html+='<div class="summary-item"><div class="label">成本审批</div><div class="value" style="color:#f87171;font-size:13px">'+fmt(d.approvedCost)+'</div></div>';
+    html+='<div class="summary-item"><div class="label">费用审批</div><div class="value" style="color:#fbbf24;font-size:13px">'+fmt(d.approvedExpense)+'</div></div>';
+    if(ap.approvedAmount) html+='<div class="summary-item"><div class="label">已通过</div><div class="value" style="color:#4ade80;font-size:13px">'+fmt(ap.approvedAmount)+'</div></div>';
+    if(ap.pendingAmount) html+='<div class="summary-item"><div class="label">审批中</div><div class="value" style="color:#fbbf24;font-size:13px">'+fmt(ap.pendingAmount)+'</div></div>';
     html+='</div></div>';
 
     // 两栏：审批类别 + 流程类型
