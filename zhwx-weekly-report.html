@@ -762,6 +762,21 @@
         // Global data store
         let workbookData = null;
         let charts = {};
+        
+        function createChart(canvasId, config) {
+            const key = canvasId;
+            if (charts[key]) {
+                charts[key].destroy();
+                delete charts[key];
+            }
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return null;
+            // Also clear any existing Chart instance on this canvas
+            const existingChart = Chart.getChart(canvas);
+            if (existingChart) existingChart.destroy();
+            charts[key] = new Chart(canvas, config);
+            return charts[key];
+        }
 
         // Chart.js default config
         Chart.defaults.color = '#94a3b8';
@@ -1395,7 +1410,7 @@
             const liuSales = weeks.map(w => w.liuSales);
             const totalSales = weeks.map(w => w.totalSales);
 
-            charts.chartSales = new Chart(document.getElementById('chartSales'), {
+            charts.chartSales = createChart('chartSales', {
                 type: 'line',
                 data: {
                     labels: labels,
@@ -1455,7 +1470,7 @@
 
             // Render receipts trend chart
             const receipts = weeks.map(w => w.totalReceipts);
-            charts.chartReceipts = new Chart(document.getElementById('chartReceipts'), {
+            charts.chartReceipts = createChart('chartReceipts', {
                 type: 'line',
                 data: {
                     labels: labels,
@@ -1589,7 +1604,7 @@
             const actuals = [cumSales, cumCost, cumExpense];
             const forecasts = budgets.map(b => timeProgressDecimal > 0 ? b / timeProgressDecimal * timeProgressDecimal : 0);
 
-            charts.chartBudget = new Chart(document.getElementById('chartBudget'), {
+            charts.chartBudget = createChart('chartBudget', {
                 type: 'bar',
                 data: {
                     labels: categories,
@@ -1764,7 +1779,7 @@
 
             // Sales ranking chart (by week totals, simplified)
             const labels = weeks.map(w => w.week);
-            charts.chartSalesRank = new Chart(document.getElementById('chartSalesRank'), {
+            charts.chartSalesRank = createChart('chartSalesRank', {
                 type: 'bar',
                 data: {
                     labels: labels,
@@ -1800,7 +1815,7 @@
             const cTotal = weeks.reduce((sum, w) => sum + w.cSales, 0);
             const liuTotal = weeks.reduce((sum, w) => sum + w.liuSales, 0);
 
-            charts.chartSalesPie = new Chart(document.getElementById('chartSalesPie'), {
+            charts.chartSalesPie = createChart('chartSalesPie', {
                 type: 'doughnut',
                 data: {
                     labels: ['B端销售', 'C端销售', '刘义虎'],
@@ -1889,7 +1904,7 @@
 
             // Age distribution pie chart
             const ageData = receivableData.ageDistribution;
-            charts.chartReceivableAge = new Chart(document.getElementById('chartReceivableAge'), {
+            charts.chartReceivableAge = createChart('chartReceivableAge', {
                 type: 'doughnut',
                 data: {
                     labels: ageData.map(d => d.range),
@@ -1911,7 +1926,7 @@
 
             // Salesperson ranking chart
             const salespeople = receivableData.salespeople.slice(0, 8);
-            charts.chartReceivableRank = new Chart(document.getElementById('chartReceivableRank'), {
+            charts.chartReceivableRank = createChart('chartReceivableRank', {
                 type: 'bar',
                 data: {
                     labels: salespeople.map(s => s.name),
@@ -1983,7 +1998,7 @@
 
             // Age distribution pie chart
             const ageData = payableData.ageDistribution;
-            charts.chartPayableAge = new Chart(document.getElementById('chartPayableAge'), {
+            charts.chartPayableAge = createChart('chartPayableAge', {
                 type: 'doughnut',
                 data: {
                     labels: ageData.length > 0 ? ageData.map(d => d.range) : ['暂无数据'],
@@ -2005,7 +2020,7 @@
 
             // Supplier ranking chart
             const suppliers = payableData.suppliers.slice(0, 8);
-            charts.chartPayableRank = new Chart(document.getElementById('chartPayableRank'), {
+            charts.chartPayableRank = createChart('chartPayableRank', {
                 type: 'bar',
                 data: {
                     labels: suppliers.map(s => s.name),
@@ -2041,7 +2056,7 @@
             const receivableTrend = weeks.map(() => receivableData.totalReceivable || 0);
             const payableTrend = weeks.map(() => payableData.totalPayable || 0);
 
-            charts.chartBalance = new Chart(document.getElementById('chartBalance'), {
+            charts.chartBalance = createChart('chartBalance', {
                 type: 'line',
                 data: {
                     labels: weeks.map(w => `第${w}周`),
@@ -2144,7 +2159,7 @@
             const totalCostBudget = budgetData.cost.reduce((sum, i) => sum + i.amount, 0);
             const totalExpenseBudget = budgetData.expense.reduce((sum, i) => sum + i.amount, 0);
 
-            charts.chartCostStructure = new Chart(document.getElementById('chartCostStructure'), {
+            charts.chartCostStructure = createChart('chartCostStructure', {
                 type: 'pie',
                 data: {
                     labels: ['成本', '费用'],
@@ -2169,7 +2184,7 @@
             const expenseLabels = weeks.map(w => w.week);
             const expenseTotals = weeks.map(w => w.total);
 
-            charts.chartExpenseTrend = new Chart(document.getElementById('chartExpenseTrend'), {
+            charts.chartExpenseTrend = createChart('chartExpenseTrend', {
                 type: 'line',
                 data: {
                     labels: expenseLabels,
