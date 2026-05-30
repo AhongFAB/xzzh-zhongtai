@@ -321,14 +321,12 @@ function parseWorkbook(wb) {
     // 审批费用金额(含运杂物流费，来自审批类别)
     d.approvalExpenseAmount = d.approval.categories.find(c => c.category === '费用')?.amount || 0;
 
-    // 毛利计算：仅取主营成本+运杂物流费，折旧/租金/人工不参与
+    // 毛利计算：仅取主营成本，运杂物流费/折旧/租金/人工都不参与
     d.cogsMain = d.weekly.cost.reduce((s,w) => s + w.mainCost, 0);         // 主营成本合计
-    d.cogsLogistics = d.weekly.cost.reduce((s,w) => s + w.logistics, 0);   // 运杂物流费合计
-    d.cogsTotal = d.cogsMain + d.cogsLogistics;                            // 销货成本
-    d.grossProfit = d.monthTotalSales - d.cogsTotal;                       // 毛利
+    d.grossProfit = d.monthTotalSales - d.cogsMain;                         // 毛利
     d.grossMargin = d.monthTotalSales > 0 ? d.grossProfit / d.monthTotalSales : 0; // 毛利率
-    // 毛利预算（主营成本预算+物流费预算）
-    d.cogsBudget = (d.budget.cost.find(i=>i.item&&i.item.includes('主营业务成本'))?.amount || 0) + (d.budget.cost.find(i=>i.item&&i.item.includes('物流费'))?.amount || 0);
+    // 毛利预算（仅主营成本预算）
+    d.cogsBudget = d.budget.cost.find(i=>i.item&&i.item.includes('主营业务成本'))?.amount || 0;
     d.grossProfitBudget = d.salesTarget - d.cogsBudget;
     d.grossMarginBudget = d.salesTarget > 0 ? d.grossProfitBudget / d.salesTarget : 0;
 
@@ -378,7 +376,7 @@ function renderOverview(d) {
 
         <div class="kpi-card"><div class="kpi-label">成本费用进度</div><div class="kpi-value blue">${pct((d.monthTotalCost+d.monthTotalExpense)/d.salesTarget||0)}</div><div class="kpi-sub">成本${fmt(d.monthTotalCost)} + 费用${fmt(d.monthTotalExpense)}</div><div class="kpi-extra">占销售比 ${pct((d.monthTotalCost+d.monthTotalExpense)/(d.monthTotalSales||1))}</div></div>
 
-        <div class="kpi-card"><div class="kpi-label">毛利率</div><div class="kpi-value ${d.grossMargin>=d.grossMarginBudget?'green':d.grossMargin>=0.2?'yellow':'red'}">${pct(d.grossMargin)}</div><div class="kpi-sub">毛利${fmt(d.grossProfit)} | 预算${pct(d.grossMarginBudget)}</div><div class="kpi-extra">销货成本(主营+物流)${fmt(d.cogsTotal)}</div><div class="progress-bar"><div class="progress-fill ${d.grossMargin>=d.grossMarginBudget?'high':'low'}" style="width:${Math.min(Math.abs(d.grossMargin)*100,100)}%"></div></div></div>
+        <div class="kpi-card"><div class="kpi-label">毛利率</div><div class="kpi-value ${d.grossMargin>=d.grossMarginBudget?'green':d.grossMargin>=0.2?'yellow':'red'}">${pct(d.grossMargin)}</div><div class="kpi-sub">毛利${fmt(d.grossProfit)} | 预算${pct(d.grossMarginBudget)}</div><div class="kpi-extra">主营成本${fmt(d.cogsMain)}</div><div class="progress-bar"><div class="progress-fill ${d.grossMargin>=d.grossMarginBudget?'high':'low'}" style="width:${Math.min(Math.abs(d.grossMargin)*100,100)}%"></div></div></div>
 
         <div class="kpi-card"><div class="kpi-label">审批成本</div><div class="kpi-value yellow">${fmt(d.approvalCostAmount)}</div><div class="kpi-sub">${d.approval.categories.find(c=>c.category==='成本')?.count||0}笔审批</div></div>
         <div class="kpi-card"><div class="kpi-label">审批费用</div><div class="kpi-value blue">${fmt(d.approvalExpenseAmount)}</div><div class="kpi-sub">${d.approval.categories.find(c=>c.category==='费用')?.count||0}笔审批</div></div>
@@ -514,20 +512,18 @@ function renderCost(d) {
     html += `<div class="kpi-grid">
         <div class="kpi-card"><div class="kpi-label">成本进度</div><div class="kpi-value ${costRoll.onTrack?'green':'red'}">${pct(costRoll.progressRate)}</div><div class="kpi-sub">预算${fmt(totalCostBudget)} | 实际${fmt(d.monthTotalCost)}</div><div class="kpi-extra">时间进度${pct(costRoll.timeRate)} | 剩余每天需${fmt(costRoll.dailyNeed)}</div></div>
         <div class="kpi-card"><div class="kpi-label">费用进度</div><div class="kpi-value ${expRoll.onTrack?'green':'red'}">${pct(expRoll.progressRate)}</div><div class="kpi-sub">预算${fmt(totalExpBudget)} | 实际${fmt(d.monthTotalExpense)}</div><div class="kpi-extra">时间进度${pct(expRoll.timeRate)} | 剩余每天需${fmt(expRoll.dailyNeed)}</div></div>
-        <div class="kpi-card"><div class="kpi-label">毛利率</div><div class="kpi-value ${d.grossMargin>=d.grossMarginBudget?'green':d.grossMargin>=0.2?'yellow':'red'}">${pct(d.grossMargin)}</div><div class="kpi-sub">毛利${fmt(d.grossProfit)} | 预算${pct(d.grossMarginBudget)}</div><div class="kpi-extra">销货成本(主营+物流)${fmt(d.cogsTotal)}</div><div class="progress-bar"><div class="progress-fill ${d.grossMargin>=d.grossMarginBudget?'high':'low'}" style="width:${Math.min(Math.abs(d.grossMargin)*100,100)}%"></div></div></div>
+        <div class="kpi-card"><div class="kpi-label">毛利率</div><div class="kpi-value ${d.grossMargin>=d.grossMarginBudget?'green':d.grossMargin>=0.2?'yellow':'red'}">${pct(d.grossMargin)}</div><div class="kpi-sub">毛利${fmt(d.grossProfit)} | 预算${pct(d.grossMarginBudget)}</div><div class="kpi-extra">主营成本${fmt(d.cogsMain)}</div><div class="progress-bar"><div class="progress-fill ${d.grossMargin>=d.grossMarginBudget?'high':'low'}" style="width:${Math.min(Math.abs(d.grossMargin)*100,100)}%"></div></div></div>
         <div class="kpi-card"><div class="kpi-label">审批成本</div><div class="kpi-value yellow">${fmt(d.approvalCostAmount)}</div><div class="kpi-sub">${d.approval.categories.find(c=>c.category==='成本')?.count||0}笔审批通过</div></div>
         <div class="kpi-card"><div class="kpi-label">审批费用</div><div class="kpi-value blue">${fmt(d.approvalExpenseAmount)}</div><div class="kpi-sub">${d.approval.categories.find(c=>c.category==='费用')?.count||0}笔审批通过</div><div class="kpi-extra">含运杂物流费${fmt(expTypeMap['运杂物流费']?.amount||0)}（属成本项）</div></div>
     </div>`;
 
     // 毛利分析卡片
-    html += `<div class="card"><div class="card-title">💎 毛利分析（主营成本+运杂物流费）</div><table><thead><tr><th>项目</th><th class="text-right">预算</th><th class="text-right">实际</th><th class="text-center">差异</th><th class="text-center">达成率</th></tr></thead><tbody>`;
+    html += `<div class="card"><div class="card-title">💎 毛利分析（仅主营成本）</div><table><thead><tr><th>项目</th><th class="text-right">预算</th><th class="text-right">实际</th><th class="text-center">差异</th><th class="text-center">达成率</th></tr></thead><tbody>`;
     html += `<tr><td>当月销售</td><td class="text-right">${fmt(d.salesTarget)}</td><td class="text-right" style="color:#38bdf8;font-weight:600">${fmt(d.monthTotalSales)}</td><td class="text-center" style="color:${d.monthTotalSales>=d.salesTarget?'#4ade80':'#f87171'}">${d.monthTotalSales>=d.salesTarget?'+':''}${fmt(d.monthTotalSales-d.salesTarget)}</td><td class="text-center"><span class="badge ${d.monthTotalSales/d.salesTarget>=1?'badge-green':'badge-yellow'}">${pct(d.monthTotalSales/d.salesTarget||0)}</span></td></tr>`;
-    html += `<tr><td>主营成本</td><td class="text-right">${fmt(d.budget.cost.find(i=>i.item&&i.item.includes('主营业务成本'))?.amount||0)}</td><td class="text-right" style="color:#f87171">${fmt(d.cogsMain)}</td><td class="text-center">-</td><td class="text-center">-</td></tr>`;
-    html += `<tr><td>运杂物流费</td><td class="text-right">${fmt(d.budget.cost.find(i=>i.item&&i.item.includes('物流费'))?.amount||0)}</td><td class="text-right" style="color:#f87171">${fmt(d.cogsLogistics)}</td><td class="text-center">-</td><td class="text-center">-</td></tr>`;
-    html += `<tr style="background:rgba(14,165,233,0.08)"><td>销货成本合计</td><td class="text-right">${fmt(d.cogsBudget)}</td><td class="text-right" style="color:#f87171;font-weight:600">${fmt(d.cogsTotal)}</td><td class="text-center">-</td><td class="text-center">-</td></tr>`;
+    html += `<tr><td>主营成本</td><td class="text-right">${fmt(d.cogsBudget)}</td><td class="text-right" style="color:#f87171">${fmt(d.cogsMain)}</td><td class="text-center">-</td><td class="text-center">-</td></tr>`;
     html += `<tr style="background:rgba(74,222,128,0.08)"><td><strong>毛利</strong></td><td class="text-right">${fmt(d.grossProfitBudget)}</td><td class="text-right" style="color:#4ade80;font-weight:700">${fmt(d.grossProfit)}</td><td class="text-center" style="color:${d.grossProfit>=d.grossProfitBudget?'#4ade80':'#f87171'}">${d.grossProfit>=d.grossProfitBudget?'+':''}${fmt(d.grossProfit-d.grossProfitBudget)}</td><td class="text-center"><span class="badge ${d.grossProfit>=d.grossProfitBudget?'badge-green':'badge-red'}">${pct(d.grossProfit/d.grossProfitBudget||0)}</span></td></tr>`;
     html += `<tr style="background:rgba(56,189,248,0.08)"><td><strong>毛利率</strong></td><td class="text-right">${pct(d.grossMarginBudget)}</td><td class="text-right" style="color:#38bdf8;font-weight:700">${pct(d.grossMargin)}</td><td class="text-center" style="color:${d.grossMargin>=d.grossMarginBudget?'#4ade80':'#f87171'}">${(d.grossMargin-d.grossMarginBudget>=0?'+':'')+(d.grossMargin-d.grossMarginBudget).toFixed(1)+'pp'}</td><td class="text-center"><span class="badge ${d.grossMargin>=d.grossMarginBudget?'badge-green':'badge-red'}">${d.grossMargin>=d.grossMarginBudget?'达标':'未达标'}</span></td></tr>`;
-    html += `</tbody></table><div style="margin-top:10px;font-size:12px;color:#64748b">💡 毛利=销售-主营成本-运杂物流费，折旧/租金/人工属期间费用不参与毛利计算</div></div>`;
+    html += `</tbody></table><div style="margin-top:10px;font-size:12px;color:#64748b">💡 毛利=销售-主营成本，运杂物流费/折旧/租金/人工不参与毛利计算</div></div>`;
 
     html += `<div class="two-col">`;
     // 成本结构图
