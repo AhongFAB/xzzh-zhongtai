@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>采购成本计算器 | 财务工具箱</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --primary: #0ea5e9;
+  --primary-light: #38bdf8;
+  --bg-dark: #0f172a;
+  --bg-card: rgba(30, 41, 59, 0.7);
+  --border: rgba(56, 189, 248, 0.15);
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+}
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+.orb { position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.15; pointer-events: none; z-index: 0; }
+.orb-1 { width: 500px; height: 500px; background: #0ea5e9; top: -100px; right: -100px; animation: drift1 20s ease-in-out infinite; }
+.orb-2 { width: 400px; height: 400px; background: #8b5cf6; bottom: -50px; left: -50px; animation: drift2 25s ease-in-out infinite; }
+.orb-3 { width: 300px; height: 300px; background: #0ea5e9; top: 50%; left: 50%; animation: drift3 18s ease-in-out infinite; }
+@keyframes drift1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-60px,80px)} }
+@keyframes drift2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(80px,-60px)} }
+@keyframes drift3 { 0%,100%{transform:translate(-50%,-50%)} 50%{transform:translate(-30%,-70%)} }
+
+.glass { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 16px; }
+.glass-sm { background: rgba(30,41,59,0.5); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 10px; }
+
+input[type="number"], input[type="text"], select {
+  background: rgba(15,23,42,0.8); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); padding: 8px 12px; font-size: 14px; width: 100%; outline: none; transition: all 0.2s;
+}
+input[type="number"]:focus, input[type="text"]:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,0.15); }
+input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
+
+.btn { padding: 10px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; font-size: 14px; }
+.btn-primary { background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(14,165,233,0.4); }
+.btn-secondary { background: rgba(56,189,248,0.1); color: var(--primary-light); border: 1px solid var(--border); }
+.btn-secondary:hover { background: rgba(56,189,248,0.2); }
+.btn-danger { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+.btn-danger:hover { background: rgba(239,68,68,0.25); }
+
+label { font-size: 13px; color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 4px; }
+
+.result-card { transition: all 0.3s; }
+.result-card.best { border-color: rgba(16,185,129,0.5); box-shadow: 0 0 30px rgba(16,185,129,0.1); }
+.result-card.worst { border-color: rgba(239,68,68,0.3); }
+.badge-best { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge-worst { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+
+.calc-step { font-size: 13px; line-height: 1.8; color: var(--text-muted); }
+.calc-step .val { color: var(--primary-light); font-weight: 600; }
+.calc-step .neg { color: var(--danger); font-weight: 600; }
+.calc-step .pos { color: var(--success); font-weight: 600; }
+.calc-step .warn { color: var(--warning); font-weight: 600; }
+
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th { background: rgba(14,165,233,0.1); color: var(--primary-light); padding: 10px 12px; text-align: center; font-weight: 600; border-bottom: 1px solid var(--border); }
+.data-table td { padding: 8px 12px; text-align: center; border-bottom: 1px solid rgba(56,189,248,0.05); }
+.data-table tr:hover td { background: rgba(14,165,233,0.03); }
+.data-table .best-row td { background: rgba(16,185,129,0.08); }
+.data-table .worst-row td { background: rgba(239,68,68,0.05); }
+
+.product-row { animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.2); border-radius: 3px; }
+
+.footer { text-align: center; padding: 20px; color: var(--text-muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div style="position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:20px;">
+  <div style="text-align:center;margin-bottom:24px;">
+    <h1 style="font-size:28px;font-weight:700;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+      采购成本计算器
+    </h1>
+    <p style="color:var(--text-muted);font-size:14px;margin-top:4px;">一般纳税人 vs 小规模纳税人 · 四种方案全对比 · 含增值税+企业所得税</p>
+  </div>
+
+  <!-- 参数设置 -->
+  <div class="glass" style="padding:20px;margin-bottom:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="font-size:16px;font-weight:600;color:var(--primary-light);">📊 参数设置</h2>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="addProduct()" style="font-size:13px;padding:6px 16px;">+ 添加品种</button>
+      </div>
+    </div>
+    
+    <div class="glass-sm" style="padding:14px;margin-bottom:16px;">
+      <div style="font-size:13px;color:var(--primary-light);font-weight:600;margin-bottom:10px;">税率参数（全局）</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
+        <div>
+          <label>专票加价(%)</label>
+          <input type="number" id="vatMarkup" value="12" step="1" min="0" max="50">
+        </div>
+        <div>
+          <label>普票加价(%)</label>
+          <input type="number" id="normalMarkup" value="3" step="1" min="0" max="50">
+        </div>
+        <div>
+          <label>一般纳税人增值税率(%)</label>
+          <input type="number" id="vatRateGeneral" value="13" step="1">
+        </div>
+        <div>
+          <label>小规模征收率(%)</label>
+          <input type="number" id="vatRateSmall" value="1" step="0.5">
+        </div>
+        <div>
+          <label>企业所得税率(%)</label>
+          <input type="number" id="citRate" value="5" step="1">
+        </div>
+      </div>
+    </div>
+
+    <div id="productList">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 40px;gap:12px;padding:0 4px 8px;font-size:12px;color:var(--text-muted);font-weight:600;">
+        <span>品种名称</span>
+        <span>不含税单价</span>
+        <span>含税售价</span>
+        <span>数量</span>
+        <span></span>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-bottom:24px;">
+    <button class="btn btn-primary" onclick="calculate()" style="font-size:16px;padding:12px 48px;">计 算</button>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="glass" style="padding:20px;margin-bottom:20px;">
+      <h2 style="font-size:16px;font-weight:600;color:var(--primary-light);margin-bottom:16px;">📋 方案对比汇总</h2>
+      <div id="summaryTable" style="overflow-x:auto;"></div>
+    </div>
+    <div id="detailCards"></div>
+    <div class="glass" style="padding:20px;margin-top:20px;" id="amountSection"></div>
+  </div>
+</div>
+
+<div class="footer">开发者：张洪杰 | 西藏中合五金供应链科技有限公司 财务部</div>
+
+<script>
+let productCount = 0;
+
+function addProduct(name='', cost='', price='', qty='') {
+  productCount++;
+  const id = productCount;
+  const list = document.getElementById('productList');
+  const row = document.createElement('div');
+  row.className = 'product-row';
+  row.id = `product-${id}`;
+  row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr 40px;gap:12px;margin-bottom:8px;align-items:center;';
+  row.innerHTML = `
+    <input type="text" value="${name}" placeholder="品种名称" style="background:rgba(15,23,42,0.8);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:14px;outline:none;">
+    <input type="number" class="cost-input" value="${cost}" placeholder="不含税单价" step="0.01">
+    <input type="number" class="price-input" value="${price}" placeholder="含税售价" step="0.01">
+    <input type="number" class="qty-input" value="${qty}" placeholder="数量" step="1">
+    <button onclick="removeProduct(${id})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:18px;padding:4px;">×</button>
+  `;
+  list.appendChild(row);
+}
+
+function removeProduct(id) {
+  const el = document.getElementById(`product-${id}`);
+  if (el) el.remove();
+}
+
+function getProducts() {
+  const rows = document.querySelectorAll('.product-row');
+  const products = [];
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const name = inputs[0].value.trim() || '未命名';
+    const cost = parseFloat(inputs[1].value);
+    const price = parseFloat(inputs[2].value);
+    const qty = parseFloat(inputs[3].value) || 0;
+    if (!isNaN(cost) && !isNaN(price) && cost > 0 && price > 0) {
+      products.push({ name, cost, price, qty });
+    }
+  });
+  return products;
+}
+
+function getParams() {
+  return {
+    vatMarkup: parseFloat(document.getElementById('vatMarkup').value) / 100,
+    normalMarkup: parseFloat(document.getElementById('normalMarkup').value) / 100,
+    vatRateGeneral: parseFloat(document.getElementById('vatRateGeneral').value) / 100,
+    vatRateSmall: parseFloat(document.getElementById('vatRateSmall').value) / 100,
+    citRate: parseFloat(document.getElementById('citRate').value) / 100,
+  };
+}
+
+function fmt(n) { return n.toFixed(4); }
+function fmtMoney(n) { return n.toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+function calcProduct(p, params) {
+  const { vatMarkup, normalMarkup, vatRateGeneral, vatRateSmall, citRate } = params;
+  const results = [];
+
+  // 方案①：一般纳税人 + 专票(加价X%)
+  {
+    const purchase = p.cost * (1 + vatMarkup);
+    const costExVat = purchase / (1 + vatRateGeneral);
+    const inputVat = purchase / (1 + vatRateGeneral) * vatRateGeneral;
+    const sellExVat = p.price / (1 + vatRateGeneral);
+    const outputVat = p.price / (1 + vatRateGeneral) * vatRateGeneral;
+    const vatDue = outputVat - inputVat;
+    const profit = sellExVat - costExVat;
+    const cit = Math.max(profit, 0) * citRate;
+    const netProfit = profit - cit;
+    results.push({
+      label: '① 一般纳税人+专票',
+      labelShort: '一般纳税人+专票',
+      cost: costExVat, purchase, sellExVat, inputVat, outputVat, vatDue, profit, cit, netProfit,
+      hasInvoice: true, canDeductVat: true, canDeductCIT: true,
+      steps: [
+        `含税采购价 = ${fmt(p.cost)} × (1+${(vatMarkup*100).toFixed(0)}%) = <span class="val">${fmt(purchase)}</span>`,
+        `不含税成本 = ${fmt(purchase)} ÷ ${(1+vatRateGeneral).toFixed(2)} = <span class="val">${fmt(costExVat)}</span>（专票可税前扣除）`,
+        `可抵扣进项税 = ${fmt(purchase)} ÷ ${(1+vatRateGeneral).toFixed(2)} × ${(vatRateGeneral*100).toFixed(0)}% = <span class="val">${fmt(inputVat)}</span>`,
+        `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateGeneral).toFixed(2)} = <span class="val">${fmt(sellExVat)}</span>`,
+        `销项税 = ${fmt(p.price)} ÷ ${(1+vatRateGeneral).toFixed(2)} × ${(vatRateGeneral*100).toFixed(0)}% = <span class="val">${fmt(outputVat)}</span>`,
+        `应缴增值税 = ${fmt(outputVat)} - ${fmt(inputVat)} = <span class="${vatDue>=0?'val':'pos'}">${fmt(vatDue)}</span>${vatDue<0?'（留抵）':''}`,
+        `毛利 = ${fmt(sellExVat)} - ${fmt(costExVat)} = <span class="${profit>=0?'pos':'neg'}">${fmt(profit)}</span>`,
+        profit >= 0
+          ? `所得税(${(citRate*100).toFixed(0)}%) = ${fmt(profit)} × ${(citRate*100).toFixed(0)}% = <span class="neg">${fmt(cit)}</span>`
+          : `所得税 = 0（亏损无需缴纳）`,
+        `净利润 = ${fmt(profit)} - ${fmt(cit)} = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
+      ]
+    });
+  }
+
+  // 方案②：小规模 + 普票(加价X%)
+  {
+    const purchase = p.cost * (1 + normalMarkup);
+    const sellExVat = p.price / (1 + vatRateSmall);
+    const outputVat = p.price / (1 + vatRateSmall) * vatRateSmall;
+    const profit = sellExVat - purchase;
+    const cit = Math.max(profit, 0) * citRate;
+    const netProfit = profit - cit;
+    results.push({
+      label: '② 小规模+普票',
+      labelShort: '小规模+普票',
+      cost: purchase, purchase, sellExVat, inputVat: 0, outputVat, vatDue: outputVat, profit, cit, netProfit,
+      hasInvoice: true, canDeductVat: false, canDeductCIT: true,
+      steps: [
+        `含税采购价 = ${fmt(p.cost)} × (1+${(normalMarkup*100).toFixed(0)}%) = <span class="val">${fmt(purchase)}</span>（全额进成本）`,
+        `成本 = <span class="val">${fmt(purchase)}</span>（普票可在所得税前扣除）`,
+        `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateSmall).toFixed(4)} = <span class="val">${fmt(sellExVat)}</span>`,
+        `应缴增值税 = ${fmt(p.price)} ÷ ${(1+vatRateSmall).toFixed(4)} × ${(vatRateSmall*100).toFixed(1)}% = <span class="val">${fmt(outputVat)}</span>`,
+        `毛利 = ${fmt(sellExVat)} - ${fmt(purchase)} = <span class="${profit>=0?'pos':'neg'}">${fmt(profit)}</span>`,
+        profit >= 0
+          ? `所得税(${(citRate*100).toFixed(0)}%) = ${fmt(profit)} × ${(citRate*100).toFixed(0)}% = <span class="neg">${fmt(cit)}</span>`
+          : `所得税 = 0（亏损无需缴纳）`,
+        `净利润 = ${fmt(profit)} - ${fmt(cit)} = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
+      ]
+    });
+  }
+
+  // 方案③A：不要票 - 走一般纳税人
+  {
+    const costNo = p.cost;
+    const sellExVat = p.price / (1 + vatRateGeneral);
+    const outputVat = p.price / (1 + vatRateGeneral) * vatRateGeneral;
+    const accountingProfit = sellExVat - costNo;
+    const taxableIncome = sellExVat;
+    const cit = Math.max(taxableIncome, 0) * citRate;
+    const netProfit = accountingProfit - cit;
+    results.push({
+      label: '③A 一般纳税人+不要票',
+      labelShort: '一般纳税人+不要票',
+      cost: costNo, purchase: costNo, sellExVat, inputVat: 0, outputVat, vatDue: outputVat, profit: accountingProfit, cit, netProfit,
+      hasInvoice: false, canDeductVat: false, canDeductCIT: false,
+      steps: [
+        `采购成本 = <span class="val">${fmt(costNo)}</span>（无发票）`,
+        `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateGeneral).toFixed(2)} = <span class="val">${fmt(sellExVat)}</span>`,
+        `销项税 = ${fmt(p.price)} ÷ ${(1+vatRateGeneral).toFixed(2)} × ${(vatRateGeneral*100).toFixed(0)}% = <span class="val">${fmt(outputVat)}</span>（无进项抵扣，全额缴）`,
+        `账面毛利 = ${fmt(sellExVat)} - ${fmt(costNo)} = <span class="${accountingProfit>=0?'pos':'neg'}">${fmt(accountingProfit)}</span>`,
+        `<span class="warn">⚠️ 无发票，成本${fmt(costNo)}不能税前扣除，需纳税调增${fmt(costNo)}</span>`,
+        `应纳税所得额 = ${fmt(accountingProfit)} + ${fmt(costNo)} = <span class="warn">${fmt(taxableIncome)}</span>（=全部收入！）`,
+        `所得税(${(citRate*100).toFixed(0)}%) = ${fmt(taxableIncome)} × ${(citRate*100).toFixed(0)}% = <span class="neg">${fmt(cit)}</span>`,
+        `净利润 = ${fmt(accountingProfit)} - ${fmt(cit)} = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
+      ]
+    });
+  }
+
+  // 方案③B：不要票 - 走小规模
+  {
+    const costNo = p.cost;
+    const sellExVat = p.price / (1 + vatRateSmall);
+    const outputVat = p.price / (1 + vatRateSmall) * vatRateSmall;
+    const accountingProfit = sellExVat - costNo;
+    const taxableIncome = sellExVat;
+    const cit = Math.max(taxableIncome, 0) * citRate;
+    const netProfit = accountingProfit - cit;
+    results.push({
+      label: '③B 小规模+不要票',
+      labelShort: '小规模+不要票',
+      cost: costNo, purchase: costNo, sellExVat, inputVat: 0, outputVat, vatDue: outputVat, profit: accountingProfit, cit, netProfit,
+      hasInvoice: false, canDeductVat: false, canDeductCIT: false,
+      steps: [
+        `采购成本 = <span class="val">${fmt(costNo)}</span>（无发票）`,
+        `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateSmall).toFixed(4)} = <span class="val">${fmt(sellExVat)}</span>`,
+        `应缴增值税 = ${fmt(p.price)} ÷ ${(1+vatRateSmall).toFixed(4)} × ${(vatRateSmall*100).toFixed(1)}% = <span class="val">${fmt(outputVat)}</span>`,
+        `账面毛利 = ${fmt(sellExVat)} - ${fmt(costNo)} = <span class="${accountingProfit>=0?'pos':'neg'}">${fmt(accountingProfit)}</span>`,
+        `<span class="warn">⚠️ 无发票，成本${fmt(costNo)}不能税前扣除，需纳税调增${fmt(costNo)}</span>`,
+        `应纳税所得额 = ${fmt(accountingProfit)} + ${fmt(costNo)} = <span class="warn">${fmt(taxableIncome)}</span>（=全部收入！）`,
+        `所得税(${(citRate*100).toFixed(0)}%) = ${fmt(taxableIncome)} × ${(citRate*100).toFixed(0)}% = <span class="neg">${fmt(cit)}</span>`,
+        `净利润 = ${fmt(accountingProfit)} - ${fmt(cit)} = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
+      ]
+    });
+  }
+
+  return results;
+}
+
+function calculate() {
+  const products = getProducts();
+  if (products.length === 0) {
+    alert('请至少添加一个品种并填写不含税单价和含税售价');
+    return;
+  }
+  const params = getParams();
+  document.getElementById('results').style.display = 'block';
+
+  let summaryHTML = `<table class="data-table">
+    <thead><tr>
+      <th>品种</th><th>方案</th><th>单位成本</th><th>应缴增值税</th><th>毛利</th><th>所得税</th><th>净利润</th><th>净利率</th>
+    </tr></thead><tbody>`;
+
+  const allResults = {};
+  products.forEach(p => { allResults[p.name] = calcProduct(p, params); });
+
+  products.forEach(p => {
+    const results = allResults[p.name];
+    let bestIdx = 0, worstIdx = 0;
+    results.forEach((r, i) => {
+      if (r.netProfit > results[bestIdx].netProfit) bestIdx = i;
+      if (r.netProfit < results[worstIdx].netProfit) worstIdx = i;
+    });
+    results.forEach((r, i) => {
+      const cls = i === bestIdx ? 'best-row' : (i === worstIdx ? 'worst-row' : '');
+      const badge = i === bestIdx ? ' <span class="badge-best">最优</span>' : (i === worstIdx && results[worstIdx].netProfit < 0 ? ' <span class="badge-worst">最差</span>' : '');
+      const margin = r.sellExVat > 0 ? (r.netProfit / r.sellExVat * 100) : 0;
+      summaryHTML += `<tr class="${cls}">
+        <td style="font-weight:600;">${p.name}</td>
+        <td>${r.labelShort}${badge}</td>
+        <td>${fmt(r.cost)}</td>
+        <td style="color:${r.vatDue<0?'var(--success)':'var(--text-muted)'}">${fmt(r.vatDue)}</td>
+        <td style="color:${r.profit>=0?'var(--success)':'var(--danger)'}">${fmt(r.profit)}</td>
+        <td style="color:var(--danger)">${fmt(r.cit)}</td>
+        <td style="font-weight:700;color:${r.netProfit>=0?'var(--success)':'var(--danger)'}">${fmt(r.netProfit)}</td>
+        <td style="font-weight:600;color:${margin>=0?'var(--success)':'var(--danger)'}">${margin.toFixed(2)}%</td>
+      </tr>`;
+    });
+    summaryHTML += `<tr><td colspan="8" style="border:none;height:8px;"></td></tr>`;
+  });
+  summaryHTML += '</tbody></table>';
+  document.getElementById('summaryTable').innerHTML = summaryHTML;
+
+  let detailHTML = '';
+  products.forEach(p => {
+    const results = allResults[p.name];
+    let bestIdx = 0, worstIdx = 0;
+    results.forEach((r, i) => {
+      if (r.netProfit > results[bestIdx].netProfit) bestIdx = i;
+      if (r.netProfit < results[worstIdx].netProfit) worstIdx = i;
+    });
+
+    detailHTML += `<h3 style="font-size:18px;font-weight:600;margin:20px 0 12px;color:var(--text);">${p.name} <span style="font-size:13px;color:var(--text-muted);font-weight:400;">不含税单价 ${p.cost} · 含税售价 ${p.price}</span></h3>`;
+    detailHTML += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">';
+    
+    results.forEach((r, i) => {
+      const isBest = i === bestIdx;
+      const isWorst = i === worstIdx && r.netProfit < 0;
+      const cardCls = isBest ? 'best' : (isWorst ? 'worst' : '');
+      const margin = r.sellExVat > 0 ? (r.netProfit / r.sellExVat * 100) : 0;
+      
+      detailHTML += `<div class="glass result-card ${cardCls}" style="padding:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <span style="font-weight:600;font-size:14px;color:var(--primary-light);">${r.label}</span>
+          ${isBest ? '<span class="badge-best">✓ 最优</span>' : ''}
+          ${isWorst ? '<span class="badge-worst">✗ 最差</span>' : ''}
+        </div>
+        <div style="font-size:28px;font-weight:700;color:${r.netProfit>=0?'var(--success)':'var(--danger)'};margin-bottom:4px;">
+          ${r.netProfit>=0?'+':''}${fmt(r.netProfit)} <span style="font-size:14px;font-weight:400;">/单位</span>
+        </div>
+        <div style="font-size:14px;color:${margin>=0?'var(--success)':'var(--danger)'};margin-bottom:12px;">
+          净利率 ${margin.toFixed(2)}%
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:10px;">
+          ${r.steps.map((s, si) => `<div class="calc-step">${si+1}. ${s}</div>`).join('')}
+        </div>
+      </div>`;
+    });
+    detailHTML += '</div>';
+  });
+  document.getElementById('detailCards').innerHTML = detailHTML;
+
+  // 金额测算
+  if (products.some(p => p.qty > 0)) {
+    let amtHTML = `<h2 style="font-size:16px;font-weight:600;color:var(--primary-light);margin-bottom:16px;">💰 金额测算（按数量）</h2>`;
+    amtHTML += `<table class="data-table"><thead><tr><th>品种</th><th>方案</th><th>数量</th><th>毛利合计</th><th>净利润合计</th></tr></thead><tbody>`;
+    
+    products.forEach(p => {
+      if (p.qty <= 0) return;
+      const results = allResults[p.name];
+      results.forEach(r => {
+        const totalProfit = r.profit * p.qty;
+        const totalNet = r.netProfit * p.qty;
+        amtHTML += `<tr>
+          <td style="font-weight:600;">${p.name}</td>
+          <td>${r.labelShort}</td>
+          <td>${p.qty}</td>
+          <td style="color:${totalProfit>=0?'var(--success)':'var(--danger)'}">${totalProfit>=0?'+':''}${fmtMoney(totalProfit)}元</td>
+          <td style="font-weight:700;color:${totalNet>=0?'var(--success)':'var(--danger)'}">${totalNet>=0?'+':''}${fmtMoney(totalNet)}元</td>
+        </tr>`;
+      });
+      amtHTML += `<tr><td colspan="5" style="border:none;height:6px;"></td></tr>`;
+    });
+    amtHTML += '</tbody></table>';
+
+    // 各方案总净利润对比
+    const schemeNames = ['① 一般纳税人+专票','② 小规模+普票','③A 一般纳税人+不要票','③B 小规模+不要票'];
+    amtHTML += `<div style="margin-top:16px;" class="glass-sm"><div style="padding:14px;">`;
+    amtHTML += `<div style="font-size:13px;color:var(--primary-light);font-weight:600;margin-bottom:10px;">各方案总净利润对比</div>`;
+    amtHTML += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">`;
+    
+    let bestSchemeIdx = 0, bestTotal = -Infinity;
+    const schemeTotals = [];
+    schemeNames.forEach((sn, si) => {
+      let total = 0;
+      products.forEach(p => {
+        if (p.qty > 0 && allResults[p.name][si]) {
+          total += allResults[p.name][si].netProfit * p.qty;
+        }
+      });
+      schemeTotals.push(total);
+      if (total > bestTotal) { bestTotal = total; bestSchemeIdx = si; }
+    });
+
+    schemeNames.forEach((sn, si) => {
+      const total = schemeTotals[si];
+      const isBest = si === bestSchemeIdx;
+      amtHTML += `<div class="glass-sm" style="padding:12px;${isBest?'border-color:rgba(16,185,129,0.5);':''}">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">${sn}${isBest?' ✓':''}</div>
+        <div style="font-size:22px;font-weight:700;color:${total>=0?'var(--success)':'var(--danger)'}">
+          ${total>=0?'+':''}${fmtMoney(total)}元
+        </div>
+      </div>`;
+    });
+    amtHTML += `</div></div></div>`;
+    
+    document.getElementById('amountSection').innerHTML = amtHTML;
+  } else {
+    document.getElementById('amountSection').innerHTML = '';
+  }
+
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+// 默认空一行
+addProduct();
+</script>
+</body>
+</html>
