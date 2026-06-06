@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- v1.0.1 cache-refresh -->
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -325,6 +324,18 @@
     </style>
 </head>
 <body>
+    <div id="loadStatus" style="position:fixed;top:10px;right:10px;background:#0ea5e9;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;z-index:9999;">页面加载中...</div>
+    <script>
+    window.onerror = function(msg, url, line) {
+        var el = document.getElementById('loadStatus');
+        if(el) { el.style.background='#ef4444'; el.textContent = 'JS错误: ' + msg + ' (行' + line + ')'; }
+    };
+    window.onload = function() {
+        var el = document.getElementById('loadStatus');
+        if(el) { el.style.background='#10b981'; el.textContent = '✅ 页面加载完成'; setTimeout(function(){el.style.display='none';}, 3000); }
+    };
+    </script>
+
     <div class="header">
         <h1>🏪 中合五金月报生成器 V1.0</h1>
         <p>支持上传经营决算表和现金流量表，自动生成可视化月报</p>
