@@ -49,6 +49,19 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 .tab-c{display:none}.tab-c.on{display:block}
 .ft{text-align:center;padding:20px;color:var(--t2);font-size:12px}
 .neg{color:var(--ng)}.pos{color:var(--ok)}
+.rec-card{border-radius:14px;padding:18px;margin-bottom:16px;position:relative;overflow:hidden}
+.rec-card.best{background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(16,185,129,.04));border:1.5px solid rgba(16,185,129,.4)}
+.rec-card.ok{background:linear-gradient(135deg,rgba(56,189,248,.08),rgba(56,189,248,.03));border:1px solid rgba(56,189,248,.2)}
+.rec-card.warn{background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(245,158,11,.03));border:1px solid rgba(245,158,11,.25)}
+.rec-card.bad{background:linear-gradient(135deg,rgba(239,68,68,.08),rgba(239,68,68,.03));border:1px solid rgba(239,68,68,.3)}
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-weight:700;font-size:13px;margin-right:8px}
+.rank-1{background:linear-gradient(135deg,#10b981,#059669);color:#fff}
+.rank-2{background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff}
+.rank-3{background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff}
+.rank-4{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+.rank-5{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
+.bar-bg{background:rgba(30,41,59,.6);border-radius:6px;height:22px;overflow:hidden;position:relative}
+.bar-fill{height:22px;border-radius:6px;transition:width .6s ease;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:600;color:#fff;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -56,13 +69,14 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 <div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:20px;">
 <div style="text-align:center;margin-bottom:20px;">
 <h1 style="font-size:26px;font-weight:700;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">采购成本计算器 V4</h1>
-<p style="color:var(--t2);font-size:13px;margin-top:4px;">五主体年度规划 · 核定征收无票避风港 · 增值税+所得税+期间费用+动态风险</p>
+<p style="color:var(--t2);font-size:13px;margin-top:4px;">五主体年度规划 · 核定征收无票避风港 · 发票开哪里 · 增值税+所得税+期间费用+动态风险</p>
 </div>
 <div style="display:flex;gap:0;margin-bottom:0;">
 <button class="tab-b on" onclick="stab('plan',this)">🏢 五主体年度规划</button>
-<button class="tab-b" onclick="stab('product',this)">📦 单品方案对比</button>
+<button class="tab-b" onclick="stab('product',this)">📦 发票开哪里</button>
 </div>
 
+<!-- ==================== TAB 1: 五主体年度规划 ==================== -->
 <div id="tab-plan" class="tab-c on gl" style="border-radius:0 16px 16px 16px;">
 <h2 style="font-size:16px;font-weight:600;color:var(--c2);margin-bottom:14px;">📊 五家主体配置</h2>
 <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;" id="eCards"></div>
@@ -91,30 +105,41 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 </div>
 </div>
 
+<!-- ==================== TAB 2: 发票开哪里 ==================== -->
 <div id="tab-product" class="tab-c gl" style="border-radius:0 16px 16px 16px;">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-<h2 style="font-size:16px;font-weight:600;color:var(--c2);">📦 单品方案对比</h2>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+<h2 style="font-size:16px;font-weight:600;color:var(--c2);">📦 发票开哪里？</h2>
 <button class="btn bp" onclick="addP()" style="font-size:13px;padding:6px 16px;">+ 添加品种</button>
 </div>
-<div class="gs" style="padding:14px;margin-bottom:16px;">
-<div style="font-size:13px;color:var(--c2);font-weight:600;margin-bottom:10px;">税率参数</div>
-<div style="display:grid;grid-template-columns:repeat(4,1fr) 1.5fr;gap:12px;">
-<div><label>专票加价(%)</label><input type="number" id="vm" value="12" step="1"></div>
-<div><label>普票加价(%)</label><input type="number" id="nm" value="3" step="1"></div>
-<div><label>一般纳税人增值税率(%)</label><input type="number" id="vrg" value="13" step="1"></div>
-<div><label>小规模征收率(%)</label><input type="number" id="vrs" value="1" step="0.5"></div>
-<div><label>企业所得税类型</label><select id="cit2"><option value="5">小微企业(5%)</option><option value="9">西藏(9%)</option><option value="15">西部(15%)</option><option value="25">一般(25%)</option></select></div>
+<div class="gs" style="border-color:rgba(139,92,246,.2);margin-bottom:14px;">
+<div style="font-size:12px;color:var(--pu);line-height:1.7;">
+💡 填入品种价格 → 点击"🧮 生成建议" → 系统自动读取第一个tab的五主体配置，计算每个品种在五家主体下的净利，告诉你<strong>发票开在哪里最划算</strong>
 </div>
 </div>
+
 <div style="font-size:13px;color:var(--ok);font-weight:600;margin-bottom:8px;">📦 品种价格（填这里 ↓）</div>
-<div id="pList"><div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 40px;gap:10px;padding:0 4px 8px;font-size:12px;color:var(--t2);font-weight:600;"><span>品种名称</span><span>不含税单价<br><span style="font-size:10px">(有票基价)</span></span><span>无票采购价<br><span style="font-size:10px">(实际进货价)</span></span><span>含税售价</span><span>数量</span><span></span></div></div>
-<div style="text-align:center;margin:20px 0;"><button class="btn bp" onclick="calcProd()" style="font-size:16px;padding:12px 48px;">计 算</button></div>
+<div id="pList" style="margin-bottom:16px;">
+<div style="display:grid;grid-template-columns:1.2fr 0.8fr 0.8fr 0.8fr 0.7fr 0.9fr 32px;gap:8px;padding:0 4px 8px;font-size:11px;color:var(--t2);font-weight:600;">
+<span>品种名称</span>
+<span>不含税单价<br><span style="font-size:9px">(有票基价)</span></span>
+<span>无票采购价<br><span style="font-size:9px">(同左留空)</span></span>
+<span>含税售价</span>
+<span>数量</span>
+<span>采购方式<br><span style="font-size:9px">(影响建议)</span></span>
+<span></span>
+</div>
+</div>
+
+<div style="text-align:center;margin:16px 0;">
+<button class="btn bp" onclick="calcProd()" style="font-size:16px;padding:12px 48px;">🧮 生成建议</button>
+</div>
 <div id="pRes2" style="display:none;"></div>
 </div>
-</div>
+
 <div class="ft">开发者：张洪杰 | 西藏中合五金供应链科技有限公司 财务部</div>
 
 <script>
+/* ==================== 共用常量与函数 ==================== */
 const EN=[
 {n:'中合五金',t:'general',lb:'一般纳税人',vr:.13,sl:0,ml:0},
 {n:'小规模公司',t:'small',lb:'小规模纳税人',vr:.01,sl:500,ml:0},
@@ -128,9 +153,9 @@ function gCR(c,w){if(c==='5')return w<=300?.05:.25;if(c==='9')return.09;if(c==='
 function gCL(c,w){if(c==='5')return w<=300?'5%':'25%悬崖!';if(c==='9')return '9%';if(c==='15')return '15%';return '25%'}
 function fW(n){return n==null||isNaN(n)?'-':n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fP(n){return(n*100).toFixed(2)+'%'}
-
 function stab(id,b){document.querySelectorAll('.tab-c').forEach(c=>c.classList.remove('on'));document.querySelectorAll('.tab-b').forEach(x=>x.classList.remove('on'));document.getElementById('tab-'+id).classList.add('on');b.classList.add('on')}
 
+/* ==================== TAB 1: 五主体年度规划 ==================== */
 function rCards(){
 const tc={general:'background:rgba(14,165,233,.15);color:#38bdf8',small:'background:rgba(16,185,129,.15);color:#34d399',individual:'background:rgba(139,92,246,.15);color:#a78bfa'};
 document.getElementById('eCards').innerHTML=EN.map(e=>{
@@ -298,36 +323,427 @@ h+=`<div style="background:rgba(30,41,59,.6);border:1px solid var(--bd);border-r
 document.getElementById('sStrat').innerHTML=h;
 }
 
+/* ==================== TAB 2: 发票开哪里 ==================== */
 let pc=0;
-function addP(n,c,ni,p,q){pc++;const id=pc,l=document.getElementById('pList'),r=document.createElement('div');r.className='product-row';r.id='product-'+id;r.style.cssText='display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 40px;gap:10px;margin-bottom:8px;align-items:center;';r.innerHTML=`<input type="text" value="${n||''}" placeholder="品种名称"><input type="number" class="ci" value="${c||''}" placeholder="不含税单价" step="0.01"><input type="number" class="ni" value="${ni||''}" placeholder="同左留空" step="0.01" style="border-color:rgba(245,158,11,.3)"><input type="number" class="pi" value="${p||''}" placeholder="含税售价" step="0.01"><input type="number" class="qi" value="${q||''}" placeholder="数量" step="1"><button onclick="document.getElementById('product-'+${id}).remove()" style="background:none;border:none;color:var(--ng);cursor:pointer;font-size:18px;padding:4px">×</button>`;l.appendChild(r)}
-
-function calcProd(){
-const rows=document.querySelectorAll('.product-row'),products=[];
-rows.forEach(row=>{const inp=row.querySelectorAll('input');const name=inp[0].value.trim()||'未命名';const cost=parseFloat(inp[1].value);const nir=parseFloat(inp[2].value);const price=parseFloat(inp[3].value);const qty=parseFloat(inp[4].value)||0;if(!isNaN(cost)&&!isNaN(price)&&cost>0&&price>0)products.push({name,cost,ni:isNaN(nir)?cost:nir,price,qty})});
-if(!products.length){alert('请至少填写一个品种');return}
-const vm=parseFloat(document.getElementById('vm').value)/100,nm=parseFloat(document.getElementById('nm').value)/100,vg=parseFloat(document.getElementById('vrg').value)/100,vs=parseFloat(document.getElementById('vrs').value)/100;
-let h=`<h3 style="font-size:15px;font-weight:600;color:var(--c2);margin-bottom:12px">📋 单品方案对比</h3>`;
-products.forEach(p=>{
-const sc=[];
-const pu1=p.cost*(1+vm),c1=pu1/(1+vg),iv1=c1*vg,s1=p.price/(1+vg),ov1=s1*vg,vd1=ov1-iv1,gp1=s1-c1,gm1=s1?gp1/s1:0;
-sc.push({l:'①一般+专票',c:c1,s:s1,v:vd1,g:gp1,m:gm1,i:true});
-const pu2=p.cost*(1+nm),c2=pu2,s2=p.price/(1+vs),vd2=s2*vs,gp2=s2-c2,gm2=s2?gp2/s2:0;
-sc.push({l:'②小规模+普票',c:c2,s:s2,v:vd2,g:gp2,m:gm2,i:true});
-const c3a=p.ni,s3a=p.price/(1+vg),vd3a=s3a*vg,gp3a=s3a-c3a,gm3a=s3a?gp3a/s3a:0;
-sc.push({l:'③A一般+无票',c:c3a,s:s3a,v:vd3a,g:gp3a,m:gm3a,i:false});
-const c3b=p.ni,s3b=p.price/(1+vs),vd3b=s3b*vs,gp3b=s3b-c3b,gm3b=s3b?gp3b/s3b:0;
-sc.push({l:'③B小规模+无票',c:c3b,s:s3b,v:vd3b,g:gp3b,m:gm3b,i:false});
-const bi=sc.reduce((b,s,i)=>s.m>sc[b].m?i:b,0),wi=sc.reduce((w,s,i)=>s.m<sc[w].m?i:w,0);
-h+=`<div style="margin-bottom:16px"><div style="font-weight:600;font-size:14px;color:var(--c2);margin-bottom:8px">${p.name}</div>`;
-h+=`<div style="overflow-x:auto"><table class="tb" style="min-width:600px"><thead><tr><th>方案</th><th>不含税成本</th><th>不含税售价</th><th>增值税</th><th>毛利</th><th>毛利率</th><th>评价</th></tr></thead><tbody>`;
-sc.forEach((s,i)=>{
-const bg=i===bi?'<span style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">最优</span>':i===wi?'<span style="background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">最差</span>':!s.i?'<span style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">⚠️不可持续</span>':'';
-h+=`<tr style="${i===bi?'background:rgba(16,185,129,.06)':i===wi?'background:rgba(239,68,68,.04)':''}"><td style="text-align:left;font-weight:600">${s.l}</td><td>${s.c.toFixed(4)}</td><td>${s.s.toFixed(4)}</td><td>${s.v.toFixed(4)}</td><td class="${s.g>=0?'pos':'neg'}" style="font-weight:600">${s.g.toFixed(4)}</td><td style="font-weight:600;color:${s.m>=.15?'var(--ok)':s.m>=0?'var(--wn)':'var(--ng)'}">${(s.m*100).toFixed(2)}%</td><td>${bg}</td></tr>`});
-h+=`</tbody></table></div></div>`});
-document.getElementById('pRes2').style.display='block';document.getElementById('pRes2').innerHTML=h;document.getElementById('pRes2').scrollIntoView({behavior:'smooth'});
+function addP(n,c,ni,p,q,it){
+  pc++;const id=pc,l=document.getElementById('pList'),r=document.createElement('div');
+  r.className='product-row';r.id='product-'+id;
+  r.style.cssText='display:grid;grid-template-columns:1.2fr 0.8fr 0.8fr 0.8fr 0.7fr 0.9fr 32px;gap:8px;margin-bottom:8px;align-items:center;';
+  r.innerHTML=`<input type="text" value="${n||''}" placeholder="品种名称">
+<input type="number" class="ci" value="${c||''}" placeholder="不含税单价" step="0.01">
+<input type="number" class="ni" value="${ni||''}" placeholder="同左留空" step="0.01" style="border-color:rgba(245,158,11,.3)">
+<input type="number" class="pi" value="${p||''}" placeholder="含税售价" step="0.01">
+<input type="number" class="qi" value="${q||''}" placeholder="数量" step="1">
+<select class="it" style="font-size:12px;padding:8px 6px"><option value="special" ${it==='special'?'selected':''}>有专票</option><option value="normal" ${it==='normal'?'selected':''}>有普票</option><option value="none" ${it==='none'||!it?'selected':''}>无票</option></select>
+<button onclick="document.getElementById('product-'+${id}).remove()" style="background:none;border:none;color:var(--ng);cursor:pointer;font-size:18px;padding:4px">×</button>`;
+  l.appendChild(r);
 }
 
-rCards();addP('圆钉50MM','4.25','','4.65','1000');addP('焊条J422','','','','');
+/* 读取Tab1参数 */
+function gTab1Params(){
+  return {
+    citType: document.getElementById('citT').value,
+    expRate: (parseFloat(document.getElementById('eRate').value)||15)/100,
+    deemedRate: (parseFloat(document.getElementById('dRate').value)||10)/100,
+    vatMarkup: (parseFloat(document.getElementById('vm')?.value)||12)/100,
+    normMarkup: (parseFloat(document.getElementById('nm')?.value)||3)/100,
+    vatGen: (parseFloat(document.getElementById('vrg')?.value)||13)/100,
+    vatSmall: (parseFloat(document.getElementById('vrs')?.value)||1)/100
+  };
+}
+
+/* 单品五主体P&L计算 */
+function calcProdEntity(p, pr){
+  const {citType, expRate, deemedRate, vatMarkup, normMarkup, vatGen, vatSmall} = pr;
+  const totalSell = p.sellPrice * p.qty; // 含税收入
+  const results = [];
+
+  EN.forEach((entity, idx) => {
+    const R = {name: entity.n, type: entity.t, label: entity.lb, limit: entity.sl};
+
+    if(entity.t === 'general'){
+      // === 一般纳税人 ===
+      // 有专票场景
+      const invPrice = p.baseCost * (1 + vatMarkup); // 含专票采购价
+      const costExVAT = invPrice / (1 + vatGen); // 不含税成本
+      const inputVAT = costExVAT * vatGen;
+      const revExVAT = totalSell / (1 + vatGen);
+      const outputVAT = revExVAT * vatGen;
+      const vat = outputVAT - inputVAT;
+      const gp = revExVAT - costExVAT;
+      const gm = revExVAT ? gp / revExVAT : 0;
+      const opex = totalSell * expRate;
+      const opl = gp - opex;
+      const crate = gCR(citType, opl);
+      const cit = Math.max(0, opl * crate);
+      const np = opl - cit;
+      const nm = revExVAT ? np / revExVAT : 0;
+
+      R.inv = {
+        label: '一般+专票', revExVAT, costExVAT, vat, gp, gm, opex, opl,
+        citRate: gCL(citType, opl), cit, np, nm, hasInvoice: true
+      };
+
+      // 无票场景
+      const costNoInv = p.noInvCost * p.qty;
+      const revExVAT2 = totalSell / (1 + vatGen);
+      const outputVAT2 = revExVAT2 * vatGen;
+      const vat2 = outputVAT2;
+      const gp2 = revExVAT2 - costNoInv;
+      const gm2 = revExVAT2 ? gp2 / revExVAT2 : 0;
+      const opex2 = totalSell * expRate;
+      const opl2 = gp2 - opex2;
+      const adj2 = costNoInv;
+      const ti2 = opl2 + adj2;
+      const crate2 = gCR(citType, ti2);
+      const cit2 = Math.max(0, ti2 * crate2);
+      const np2 = opl2 - cit2;
+      const nm2 = revExVAT2 ? np2 / revExVAT2 : 0;
+
+      R.noInv = {
+        label: '一般+无票', revExVAT: revExVAT2, cost: costNoInv, vat: vat2,
+        gp: gp2, gm: gm2, opex: opex2, opl: opl2,
+        adj: adj2, ti: ti2, citRate: gCL(citType, ti2), cit: cit2, np: np2, nm: nm2,
+        hasInvoice: false
+      };
+
+      // 根据采购方式选场景
+      if(p.invType === 'special') R.best = R.inv;
+      else R.best = R.noInv;
+
+    } else if(entity.t === 'small'){
+      // === 小规模 ===
+      // 有普票场景
+      const invPrice = p.baseCost * (1 + normMarkup);
+      const cost = invPrice * p.qty;
+      const revExVAT = totalSell / (1 + vatSmall);
+      const vat = revExVAT * vatSmall;
+      const gp = revExVAT - cost;
+      const gm = revExVAT ? gp / revExVAT : 0;
+      const opex = totalSell * expRate;
+      const opl = gp - opex;
+      const crate = gCR(citType, opl);
+      const cit = Math.max(0, opl * crate);
+      const np = opl - cit;
+      const nm = revExVAT ? np / revExVAT : 0;
+
+      R.inv = {
+        label: '小规模+普票', revExVAT, cost, vat, gp, gm, opex, opl,
+        citRate: gCL(citType, opl), cit, np, nm, hasInvoice: true
+      };
+
+      // 无票场景
+      const costNoInv = p.noInvCost * p.qty;
+      const gp2 = revExVAT - costNoInv;
+      const gm2 = revExVAT ? gp2 / revExVAT : 0;
+      const opex2 = totalSell * expRate;
+      const opl2 = gp2 - opex2;
+      const adj2 = costNoInv;
+      const ti2 = opl2 + adj2;
+      const crate2 = gCR(citType, ti2);
+      const cit2 = Math.max(0, ti2 * crate2);
+      const np2 = opl2 - cit2;
+      const nm2 = revExVAT ? np2 / revExVAT : 0;
+
+      R.noInv = {
+        label: '小规模+无票', revExVAT, cost: costNoInv, vat,
+        gp: gp2, gm: gm2, opex: opex2, opl: opl2,
+        adj: adj2, ti: ti2, citRate: gCL(citType, ti2), cit: cit2, np: np2, nm: nm2,
+        hasInvoice: false
+      };
+
+      if(p.invType === 'special' || p.invType === 'normal') R.best = R.inv;
+      else R.best = R.noInv;
+
+    } else {
+      // === 个体户(核定征收) ===
+      const monthlySell = totalSell / 12;
+      const vatExempt = monthlySell <= 10;
+      const rev = vatExempt ? totalSell : totalSell / (1 + vatSmall);
+      const vat = vatExempt ? 0 : rev * vatSmall;
+      const cost = p.noInvCost * p.qty;
+      const gp = rev - cost;
+      const gm = rev ? gp / rev : 0;
+      const opex = totalSell * expRate;
+      const opl = gp - opex;
+      const deemedIncome = rev * deemedRate;
+      let pit = pitP(deemedIncome * 1e4) / 1e4;
+      if(deemedIncome <= 200) pit *= 0.5;
+      const np = opl - pit;
+      const nm = rev ? np / rev : 0;
+
+      R.best = {
+        label: '个体户(核定)', rev, cost, vat, gp, gm, opex, opl,
+        deemedIncome, pit, np, nm, hasInvoice: null, vatExempt,
+        noCostInvoice: true
+      };
+    }
+
+    results.push(R);
+  });
+
+  return results;
+}
+
+/* 生成建议 */
+function genRecommendation(p, results, pr){
+  // 按best.nm排序
+  const sorted = results.map((r,i)=>({r,i})).sort((a,b)=>b.r.best.nm - a.r.best.nm);
+  const best = sorted[0].r;
+  const worst = sorted[sorted.length-1].r;
+  const diff = best.best.nm - worst.best.nm;
+
+  let rec = '';
+  const invLabel = p.invType==='special'?'有专票':p.invType==='normal'?'有普票':'无票';
+
+  if(best.type === 'individual'){
+    rec += `<div style="font-size:15px;font-weight:700;color:var(--ok);margin-bottom:8px">✅ 建议：发票开在【${best.name}】</div>`;
+    rec += `<div style="font-size:13px;line-height:1.8">`;
+    if(p.invType === 'none'){
+      rec += `<div>▸ 无票采购+核定征收=<strong style="color:var(--pu)">不需要成本票</strong>，无票在个体户里完全不是问题</div>`;
+    } else {
+      rec += `<div>▸ 虽然${invLabel}，但个体户核定征收税负极低，综合更优</div>`;
+    }
+    rec += `<div>▸ 净利率 <strong style="color:var(--ok)">${fP(best.best.nm)}</strong>，比最差方案(${worst.name})高 <strong>${(diff*100).toFixed(1)}</strong> 个百分点</div>`;
+    if(best.limit > 0){
+      rec += `<div style="color:var(--wn)">▸ ⚠️ ${best.name}年限额${best.limit}万，注意年度分配空间</div>`;
+    }
+    rec += `</div>`;
+  } else if(best.type === 'small'){
+    rec += `<div style="font-size:15px;font-weight:700;color:var(--c2);margin-bottom:8px">✅ 建议：发票开在【${best.name}】</div>`;
+    rec += `<div style="font-size:13px;line-height:1.8">`;
+    if(p.invType === 'none'){
+      rec += `<div>▸ 无票走小规模也有纳税调增，但比一般纳税人税负轻</div>`;
+      rec += `<div style="color:var(--wn)">▸ ⚠️ 无票采购成本不能税前扣除，建议争取拿普票(仅加3%)</div>`;
+    } else {
+      rec += `<div>▸ ${invLabel}+小规模征收率1%，低毛利品种最优</div>`;
+    }
+    rec += `<div>▸ 净利率 <strong style="color:var(--ok)">${fP(best.best.nm)}</strong></div>`;
+    rec += `<div style="color:var(--wn)">▸ ⚠️ 小规模年限额500万，超限强制升级一般纳税人</div>`;
+    rec += `</div>`;
+  } else {
+    rec += `<div style="font-size:15px;font-weight:700;color:var(--c2);margin-bottom:8px">✅ 建议：发票开在【${best.name}】</div>`;
+    rec += `<div style="font-size:13px;line-height:1.8">`;
+    if(p.invType === 'special'){
+      rec += `<div>▸ 有专票可抵进项，高毛利品种走一般纳税人更优</div>`;
+    } else {
+      rec += `<div style="color:var(--ng)">▸ ⚠️ 无票走一般纳税人是<strong>最差选择</strong>——无进项+纳税调增，强烈建议走个体户</div>`;
+    }
+    rec += `<div>▸ 净利率 <strong>${fP(best.best.nm)}</strong></div>`;
+    rec += `</div>`;
+  }
+
+  return rec;
+}
+
+/* 渲染单品对比 */
+function renderProdResult(p, results, pr){
+  const sorted = results.map((r,i)=>({r,i})).sort((a,b)=>b.r.best.nm - a.r.best.nm);
+  const rank = sorted.map(s=>s.r.name);
+  const invLabel = p.invType==='special'?'有专票':p.invType==='normal'?'有普票':'无票';
+  const maxNm = Math.max(...results.map(r=>r.best.nm));
+  const minNm = Math.min(...results.map(r=>r.best.nm));
+  const range = maxNm - minNm || 0.01;
+
+  const typeColor = {general:'#38bdf8', small:'#34d399', individual:'#a78bfa'};
+  const typeBg = {general:'rgba(14,165,233,.08)', small:'rgba(16,185,129,.08)', individual:'rgba(139,92,246,.08)'};
+  const cardClass = (i) => i===0?'best':sorted[i].r.best.nm>=0?'ok':sorted[i].r.best.nm>=-0.1?'warn':'bad';
+  const rankClass = (i) => `rank-${i+1}`;
+
+  let h = `<div style="margin-bottom:24px">`;
+  h += `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">`;
+  h += `<div style="font-weight:700;font-size:16px;color:var(--c2)">${p.name}</div>`;
+  h += `<div style="background:rgba(139,92,246,.15);color:var(--pu);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600">${invLabel}</div>`;
+  h += `<div style="color:var(--t2);font-size:12px">不含税成本 ${p.baseCost} · 含税售价 ${p.sellPrice} · 数量 ${fW(p.qty)}</div>`;
+  h += `</div>`;
+
+  // 五主体排名卡片
+  sorted.forEach((s, si) => {
+    const r = s.r;
+    const b = r.best;
+    const pct = range > 0 ? Math.max(5, ((b.nm - minNm) / range) * 100) : 50;
+    const barColor = b.nm >= 0.05 ? 'linear-gradient(90deg,#10b981,#059669)' :
+                     b.nm >= 0 ? 'linear-gradient(90deg,#0ea5e9,#0284c7)' :
+                     b.nm >= -0.05 ? 'linear-gradient(90deg,#f59e0b,#d97706)' :
+                     'linear-gradient(90deg,#ef4444,#dc2626)';
+
+    h += `<div class="rec-card ${cardClass(si)}" style="margin-bottom:10px">`;
+    h += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">`;
+    h += `<div style="display:flex;align-items:center">`;
+    h += `<span class="rank-badge ${rankClass(si)}">${si+1}</span>`;
+    h += `<span style="font-weight:700;font-size:14px;color:${typeColor[r.type]}">${r.name}</span>`;
+    h += `<span style="margin-left:8px;font-size:11px;color:var(--t2);background:${typeBg[r.type]};padding:2px 8px;border-radius:12px">${r.label}</span>`;
+    h += `</div>`;
+    h += `<div style="text-align:right">`;
+    h += `<div style="font-size:20px;font-weight:700;color:${b.nm>=0?'var(--ok)':'var(--ng)'}">${fP(b.nm)}</div>`;
+    h += `<div style="font-size:11px;color:var(--t2)">净利率</div>`;
+    h += `</div></div>`;
+
+    // 净利率条
+    h += `<div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${barColor}">${fP(b.nm)}</div></div>`;
+
+    // 关键数据行
+    h += `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px;font-size:12px">`;
+    h += `<div><span style="color:var(--t2)">收入</span><div style="font-weight:600">${fW(b.revExVAT||b.rev)}</div></div>`;
+    h += `<div><span style="color:var(--t2)">成本</span><div style="font-weight:600">${fW(b.costExVAT||b.cost||0)}</div></div>`;
+    h += `<div><span style="color:var(--t2)">毛利/率</span><div style="font-weight:600;color:${b.gm>=0?'var(--ok)':'var(--ng)'}">${fP(b.gm)}</div></div>`;
+    h += `<div><span style="color:var(--t2)">${b.pit!==undefined?'个税':'所得税'}</span><div style="font-weight:600;color:var(--wn)">${fW(b.cit||b.pit||0)}</div></div>`;
+    h += `<div><span style="color:var(--t2)">净利润</span><div style="font-weight:700;color:${b.np>=0?'var(--ok)':'var(--ng)'}">${fW(b.np)}</div></div>`;
+    h += `</div>`;
+
+    // 无票场景额外信息
+    if(r.noInv && r.best === r.inv){
+      // 当前是有票场景最优，但无票场景也展示
+      h += `<div style="margin-top:8px;font-size:11px;color:var(--wn);border-top:1px dashed rgba(245,158,11,.2);padding-top:6px">`;
+      h += `如果无票：净利率 ${fP(r.noInv.nm)} ${r.noInv.adj?`| 纳税调增 ${fW(r.noInv.adj)}`:''} | <strong>建议走个体户</strong>`;
+      h += `</div>`;
+    }
+    if(r.noInv && r.best === r.noInv && r.noInv.adj){
+      h += `<div style="margin-top:8px;font-size:11px;color:var(--ng);border-top:1px dashed rgba(239,68,68,.2);padding-top:6px">`;
+      h += `⚠️ 无票成本${fW(r.noInv.adj)}纳税调增→税负暴增！有票场景净利率：${fP(r.inv?.nm||0)}`;
+      h += `</div>`;
+    }
+    if(r.best.noCostInvoice){
+      h += `<div style="margin-top:8px;font-size:11px;color:var(--pu);border-top:1px dashed rgba(139,92,246,.2);padding-top:6px">`;
+      h += `✅ 核定征收不需要成本票 · ${r.best.vatExempt?'月销≤10万免增值税':'月销>10万缴1%增值税'}`;
+      h += `</div>`;
+    }
+
+    h += `</div>`; // rec-card
+  });
+
+  // 建议
+  h += `<div style="background:rgba(16,185,129,.08);border:1.5px solid rgba(16,185,129,.35);border-radius:14px;padding:16px;margin-top:8px">`;
+  h += genRecommendation(p, results, pr);
+  h += `</div>`;
+
+  // 展开详细P&L
+  h += `<details style="margin-top:12px"><summary style="cursor:pointer;color:var(--t2);font-size:12px;font-weight:600;padding:6px 0">📋 展开详细P&L数据</summary>`;
+  h += `<div style="overflow-x:auto;margin-top:8px"><table class="tb" style="min-width:700px"><thead><tr><th style="text-align:left;width:130px">项目</th>`;
+  results.forEach(r=>{
+    h+=`<th style="background:${typeBg[r.type]}">${r.name}</th>`;
+  });
+  h+=`</tr></thead><tbody>`;
+
+  const detailRows = [
+    {l:'采购方式', c: r=>r.best.label, f:'txt'},
+    {l:'不含税收入', c: r=>r.best.revExVAT||r.best.rev},
+    {l:'成本', c: r=>r.best.costExVAT||r.best.cost||0},
+    {l:'增值税', c: r=>r.best.vat},
+    {l:'毛利', c: r=>r.best.gp},
+    {l:'毛利率', c: r=>r.best.gm, f:'pct'},
+    {l:'期间费用', c: r=>r.best.opex},
+    {l:'营业利润', c: r=>r.best.opl},
+  ];
+
+  // 根据类型添加不同行
+  results.forEach(r => {
+    if(r.best.adj !== undefined){
+      detailRows.push({l:'纳税调增', c: x=>x.best.adj, t:['general','small'], fb:'不适用✅'});
+      detailRows.push({l:'应纳税所得额', c: x=>x.best.ti, t:['general','small'], fb:'-'});
+    }
+  });
+
+  // 去重
+  const seen = new Set();
+  const uniqueRows = detailRows.filter(row => {
+    const key = row.l;
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  uniqueRows.forEach(row => {
+    h += `<tr><td>${row.l}</td>`;
+    results.forEach((r, i) => {
+      if(row.t && !row.t.includes(r.type)){
+        h+=`<td style="color:var(--pu)">${row.fb||'-'}</td>`;return;
+      }
+      let v = row.c(r);
+      if(row.f==='pct'){h+=`<td>${fP(v)}</td>`;return}
+      if(row.f==='txt'){h+=`<td style="font-size:11px;color:var(--wn)">${v}</td>`;return}
+      if(typeof v==='number') h+=`<td class="${v<0?'neg':v>0?'pos':''}">${fW(v)}</td>`;
+      else h+=`<td>${v}</td>`;
+    });
+    h+=`</tr>`;
+  });
+
+  // 个体户特殊行
+  const hasIndividual = results.some(r=>r.type==='individual');
+  if(hasIndividual){
+    h+=`<tr><td>核定应税所得额</td>`;
+    results.forEach(r=>{
+      if(r.type==='individual') h+=`<td>${fW(r.best.deemedIncome)}</td>`;
+      else h+=`<td style="color:var(--t2)">-</td>`;
+    });
+    h+=`</tr>`;
+  }
+
+  // 税和净利润
+  h+=`<tr><td>${hasIndividual?'所得税/个税':'企业所得税'}</td>`;
+  results.forEach(r=>{
+    const tax = r.best.cit||r.best.pit||0;
+    h+=`<td style="color:var(--wn);font-weight:600">${fW(tax)}</td>`;
+  });
+  h+=`</tr>`;
+
+  h+=`<tr class="tt"><td>净利润</td>`;
+  results.forEach(r=>{
+    h+=`<td class="${r.best.np>=0?'pos':'neg'}" style="font-weight:700;font-size:14px">${fW(r.best.np)}</td>`;
+  });
+  h+=`</tr>`;
+
+  h+=`<tr class="tt"><td>净利率</td>`;
+  results.forEach(r=>{
+    h+=`<td style="font-weight:700;font-size:14px;color:${r.best.nm>=0.05?'var(--ok)':r.best.nm>=0?'var(--c2)':r.best.nm>=-0.05?'var(--wn)':'var(--ng)'}">${fP(r.best.nm)}</td>`;
+  });
+  h+=`</tr>`;
+
+  h+=`</tbody></table></div></details>`;
+
+  h += `</div>`; // 最外层
+  return h;
+}
+
+/* 主计算函数 */
+function calcProd(){
+  const pr = gTab1Params();
+  const rows = document.querySelectorAll('.product-row');
+  const products = [];
+
+  rows.forEach(row => {
+    const inp = row.querySelectorAll('input');
+    const sel = row.querySelector('select.it');
+    const name = inp[0].value.trim() || '未命名';
+    const baseCost = parseFloat(inp[1].value);
+    const noInvRaw = parseFloat(inp[2].value);
+    const noInvCost = isNaN(noInvRaw) ? (isNaN(baseCost) ? 0 : baseCost) : noInvRaw;
+    const sellPrice = parseFloat(inp[3].value);
+    const qty = parseFloat(inp[4].value) || 1;
+    const invType = sel ? sel.value : 'none';
+    if(!isNaN(baseCost) && !isNaN(sellPrice) && baseCost > 0 && sellPrice > 0)
+      products.push({name, baseCost, noInvCost, sellPrice, qty, invType});
+  });
+
+  if(!products.length){alert('请至少填写一个品种的含税成本和售价');return}
+
+  let html = `<h3 style="font-size:16px;font-weight:700;color:var(--c2);margin-bottom:4px">📋 发票开哪里？——五主体建议</h3>`;
+  html += `<div style="font-size:12px;color:var(--t2);margin-bottom:16px">基于第一个tab的五主体配置：CIT ${gCL(pr.citType,0)} | 期间费用率${fP(pr.expRate)} | 个体户应税所得率${fP(pr.deemedRate)}</div>`;
+
+  products.forEach(p => {
+    const results = calcProdEntity(p, pr);
+    html += renderProdResult(p, results, pr);
+  });
+
+  document.getElementById('pRes2').style.display='block';
+  document.getElementById('pRes2').innerHTML=html;
+  document.getElementById('pRes2').scrollIntoView({behavior:'smooth'});
+}
+
+/* 初始化 */
+rCards();
+addP('圆钉50MM','4.25','','4.65','1000','none');
+addP('焊条J422','','','','','special');
 </script>
 </body>
 </html>
