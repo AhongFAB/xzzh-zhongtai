@@ -122,10 +122,12 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 </div>
 <div id="entityRows"></div>
 <div style="display:flex;gap:8px;margin-top:10px;">
-<button class="btn bs" onclick="downloadHistoryTemplate()" style="font-size:11px;padding:5px 12px;">📥 下载CSV模板</button>
-<button class="btn bs" onclick="document.getElementById('histCSV').click()" style="font-size:11px;padding:5px 12px;">📤 导入CSV</button>
+<button class="btn bs" onclick="downloadHistoryTemplate()" style="font-size:11px;padding:5px 12px;">📥 A区模板</button>
+<button class="btn bs" onclick="document.getElementById('histCSV').click()" style="font-size:11px;padding:5px 12px;">📤 导入A区</button>
 <input type="file" id="histCSV" accept=".csv" style="display:none" onchange="importHistoryCSV(event)">
 <button class="btn bs" onclick="clearHistory()" style="font-size:11px;padding:5px 12px;">🗑️ 清空</button>
+<button class="btn bp" onclick="document.getElementById('allDataCSV').click()" style="font-size:11px;padding:5px 12px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);">📥 导入全部数据</button>
+<input type="file" id="allDataCSV" accept=".csv" style="display:none" onchange="importAllData(event)">
 </div>
 </div>
 
@@ -719,10 +721,12 @@ function calcItemProfit(product, entity, specMk, normMk, avgGM, citType, deemedR
 function renderAllocResult(results, entities, params){
   const typeColor = {general:'#38bdf8', small:'#34d399', individual:'#a78bfa'};
 
-  let h = `<div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">`;
+  let h = `<div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">`;
   h += `<h3 style="font-size:16px;font-weight:700;color:var(--c2);">🧠 智能分配结果</h3>`;
-  h += `<div style="font-size:12px;color:var(--t2)">平均毛利率 ${fP(params.avgGM)} | 专票加价 ${(params.specMk*100).toFixed(0)}% | 普票加价 ${(params.normMk*100).toFixed(0)}%</div>`;
-  h += `</div>`;
+  h += `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">`;
+  h += `<div style="font-size:12px;color:var(--t2)">毛利率 ${fP(params.avgGM)} | 专票+${(params.specMk*100).toFixed(0)}% | 普票+${(params.normMk*100).toFixed(0)}%</div>`;
+  h += `<button class="btn bs" onclick="exportAllData()" style="font-size:11px;padding:5px 12px;">📤 导出全部数据</button>`;
+  h += `</div></div>`;
 
   // 分配总览表
   h += `<div style="overflow-x:auto;margin-bottom:20px"><table class="tb" style="min-width:800px"><thead><tr><th style="text-align:left">主体</th><th>类型</th><th>已用(万)</th><th>新分配(万)</th><th>分配后(万)</th><th>限额(万)</th><th>占用率</th><th>状态</th></tr></thead><tbody>`;
@@ -736,107 +740,230 @@ function renderAllocResult(results, entities, params){
   });
   h += `</tbody></table></div>`;
 
-  // 每个品种的分配结果
-  h += `<h4 style="font-size:14px;font-weight:600;color:var(--c2);margin-bottom:10px">📋 品种分配明细（可手动调整）</h4>`;
+  // 每个品种：五主体完整对比 + 最优推荐
+  h += `<h4 style="font-size:14px;font-weight:600;color:var(--c2);margin-bottom:10px">📋 品种分配明细（五主体完整对比 + 最优推荐）</h4>`;
 
   results.forEach((r, i) => {
     const p = r.product;
     const e = r.entity;
     const profit = r.profit;
     const invLabel = p.invType === 'special' ? '有专票' : p.invType === 'normal' ? '有普票' : '无票';
+
+    // 计算所有5个主体的盈利
+    const allProfits = EN.map((en, ei) => {
+      const pf = calcItemProfit(p, en, params.specMk, params.normMk, params.avgGM, params.citType, params.deemedRate);
+      pf.entityIdx = ei;
+      return pf;
+    });
+
+    // 按净利润排序
+    const ranked = [...allProfits].sort((a,b) => b.np - a.np);
+    ranked.forEach((rp, ri) => { rp.rank = ri + 1; });
+    ranked.forEach(rp => { allProfits[rp.entityIdx].rank = rp.rank; });
+
+    const bestProfit = ranked[0];
+    const bestEntity = EN[bestProfit.entityIdx];
+    const isAutoBest = e.n === bestEntity.n;
+
     const cardClass = profit.nm >= 0.05 ? 'best' : profit.nm >= 0 ? 'ok' : profit.nm >= -0.05 ? 'warn' : 'bad';
 
-    h += `<div class="rec-card ${cardClass}" style="margin-bottom:10px">`;
-    h += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">`;
+    h += `<div class="rec-card ${cardClass}" style="margin-bottom:14px">`;
 
-    // 左侧：品种信息
+    // 头部：品种 + 下拉调整
+    h += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">`;
     h += `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">`;
     h += `<span style="font-weight:700;font-size:14px;color:var(--c2)">${p.name}</span>`;
     h += `<span style="background:rgba(139,92,246,.15);color:var(--pu);padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600">${invLabel}</span>`;
     h += `<span style="font-size:11px;color:var(--t2)">进${p.baseCost} × 售${p.sellPrice} × ${p.qty} = ${fW(p.sellPrice*p.qty)}元</span>`;
     h += `</div>`;
-
-    // 右侧：分配主体（可手动调整）
     h += `<div style="display:flex;align-items:center;gap:8px">`;
-    h += `<span style="font-size:12px;color:var(--t2)">发票开在：</span>`;
-    h += `<select onchange="manualAdjust(${i}, this.value)" style="font-size:12px;padding:4px 8px;width:auto;min-width:100px;background:rgba(14,165,233,.1);border-color:rgba(14,165,233,.3);color:var(--c2);font-weight:600">`;
+    h += `<span style="font-size:12px;color:var(--t2)">分配到：</span>`;
+    h += `<select onchange="manualAdjust(${i}, this.value)" style="font-size:12px;padding:4px 8px;width:auto;min-width:110px;background:rgba(14,165,233,.1);border-color:rgba(14,165,233,.3);color:var(--c2);font-weight:600">`;
     EN.forEach((en, ei) => {
       const sel = en.n === e.n ? 'selected' : '';
       h += `<option value="${ei}" ${sel}>${en.n}</option>`;
     });
-    h += `</select>`;
-    h += `</div>`;
+    h += `</select></div></div>`;
 
-    h += `</div>`;
+    // 最优推荐条
+    if(!isAutoBest){
+      h += `<div style="background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(16,185,129,.04));border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;line-height:1.6">`;
+      h += `<span style="color:var(--ok);font-weight:700">🏆 最优：${bestEntity.n}</span>`;
+      h += `<span style="color:var(--t2)"> — 净利率${fP(bestProfit.nm)}，比当前高<span style="color:var(--ok);font-weight:600"> ${fP(bestProfit.nm - profit.nm)}</span></span>`;
+      h += `</div>`;
+    } else {
+      h += `<div style="background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(16,185,129,.02));border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px">`;
+      h += `<span style="color:var(--ok);font-weight:700">🏆 当前已是最优分配</span>`;
+      h += `</div>`;
+    }
 
-    // 关键数据
-    h += `<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;font-size:12px">`;
-    h += `<div><span style="color:var(--t2)">分配主体</span><div style="font-weight:600;color:${typeColor[e.t]}">${e.n}</div></div>`;
-    h += `<div><span style="color:var(--t2)">发票类型</span><div style="font-weight:600">${profit.invLabel}</div></div>`;
-    h += `<div><span style="color:var(--t2)">毛利率</span><div style="font-weight:600;color:${profit.gm>=0?'var(--ok)':'var(--ng)'}">${fP(profit.gm)}</div></div>`;
-    h += `<div><span style="color:var(--t2)">${profit.pit?'个税':'所得税'}</span><div style="font-weight:600;color:var(--wn)">${fW(profit.cit||profit.pit||0)}</div></div>`;
-    h += `<div><span style="color:var(--t2)">净利润</span><div style="font-weight:700;color:${profit.np>=0?'var(--ok)':'var(--ng)'}">${fW(profit.np)}</div></div>`;
-    h += `<div><span style="color:var(--t2)">净利率</span><div style="font-weight:700;font-size:14px;color:${profit.nm>=0.05?'var(--ok)':profit.nm>=0?'var(--c2)':profit.nm>=-0.05?'var(--wn)':'var(--ng)'}">${fP(profit.nm)}</div></div>`;
-    h += `</div>`;
+    // 五主体对比表
+    h += `<div style="overflow-x:auto"><table class="tb" style="min-width:700px"><thead><tr>`;
+    h += `<th style="width:40px">排名</th><th style="text-align:left">主体</th><th>发票</th><th>毛利率</th><th>增值税</th><th>所得税</th><th>净利润</th><th>净利率</th><th>备注</th>`;
+    h += `</tr></thead><tbody>`;
+
+    allProfits.forEach(pf => {
+      const en = EN[pf.entityIdx];
+      const isCurrent = en.n === e.n;
+      const rowStyle = isCurrent ? 'background:rgba(14,165,233,.08);' : '';
+      const rankBadge = pf.rank === 1 ? 'rank-1' : pf.rank === 2 ? 'rank-2' : pf.rank === 3 ? 'rank-3' : pf.rank === 4 ? 'rank-4' : 'rank-5';
+      const taxVal = pf.cit || pf.pit || 0;
+      let note = '';
+      if(pf.noCostInvoice) note = '<span style="color:var(--pu)">无需成本票</span>';
+      else if(pf.adj) note = `<span style="color:var(--ng)">调增${fW(pf.adj)}</span>`;
+      if(pf.vatExempt) note += (note ? ' ' : '') + '<span style="color:var(--ok)">免增值税</span>';
+
+      h += `<tr style="${rowStyle}">`;
+      h += `<td style="text-align:center"><span class="rank-badge ${rankBadge}">${pf.rank}</span></td>`;
+      h += `<td style="text-align:left;font-weight:600;color:${typeColor[en.t]};white-space:nowrap">${en.n}${isCurrent ? ' ✅' : ''}</td>`;
+      h += `<td style="font-size:12px">${pf.invLabel}</td>`;
+      h += `<td style="color:${pf.gm>=0?'var(--ok)':'var(--ng)'};font-weight:600">${fP(pf.gm)}</td>`;
+      h += `<td style="font-size:12px">${fW(pf.vat||0)}</td>`;
+      h += `<td style="font-size:12px;color:var(--wn)">${fW(taxVal)}</td>`;
+      h += `<td style="font-weight:700;color:${pf.np>=0?'var(--ok)':'var(--ng)'}">${fW(pf.np)}</td>`;
+      h += `<td style="font-weight:700;font-size:13px;color:${pf.nm>=0.05?'var(--ok)':pf.nm>=0?'var(--c2)':pf.nm>=-0.05?'var(--wn)':'var(--ng)'}">${fP(pf.nm)}</td>`;
+      h += `<td style="font-size:11px">${note}</td>`;
+      h += `</tr>`;
+    });
+    h += `</tbody></table></div>`;
 
     // 分配原因
     h += `<div style="margin-top:8px;font-size:12px;color:var(--t2);border-top:1px dashed rgba(56,189,248,.1);padding-top:6px">`;
     h += `→ ${r.reason}`;
     if(profit.adj) h += ` | 纳税调增 <span style="color:var(--ng)">${fW(profit.adj)}元</span>`;
     if(profit.noCostInvoice) h += ` | <span style="color:var(--pu)">✅ 核定征收不需要成本票</span>`;
-    h += `</div>`;
-
-    h += `</div>`;
+    h += `</div></div>`;
   });
 
   document.getElementById('allocResult').innerHTML = h;
 }
 
-/* 手动调整分配 */
-function manualAdjust(resultIdx, newEntityIdx){
-  if(!allocData) return;
-  const r = allocData.results[resultIdx];
-  const newEntity = EN[newEntityIdx];
-  const params = allocData.params;
+/* 导出全部数据为CSV（下次可直接导入） */
+function exportAllData(){
+  const avgGM = document.getElementById('avgGM').value;
+  const specMk = document.getElementById('specMarkup').value;
+  const normMk = document.getElementById('normMarkup').value;
+  const citType = document.getElementById('citT2').value;
+  const dRate = document.getElementById('dRate2').value;
 
-  // 从旧实体移除
-  const oldEntity = allocData.entities[r.entity.idx];
-  const salesWan = r.product.sellPrice * r.product.qty / 10000;
-  oldEntity.remain += salesWan;
-  oldEntity.newAlloc -= salesWan;
-  oldEntity.items = oldEntity.items.filter(it => it.product !== r.product);
+  let csv = '# 采购成本计算器V4 数据导出\n';
+  csv += '# 导出时间: ' + new Date().toLocaleString('zh-CN') + '\n';
 
-  // 计算新品种盈利
-  const profit = calcItemProfit(r.product, newEntity, params.specMk, params.normMk, params.avgGM, params.citType, params.deemedRate);
+  // 参数区
+  csv += '## 参数\n';
+  csv += '参数名,值\n';
+  csv += `平均毛利率(%),${avgGM}\n`;
+  csv += `专票加价(%),${specMk}\n`;
+  csv += `普票加价(%),${normMk}\n`;
+  csv += `企业所得税类型,${citType}\n`;
+  csv += `核定应税所得率(%),${dRate}\n`;
 
-  // 更新结果
-  r.entity = { ...newEntity, idx: newEntityIdx };
-  r.profit = profit;
-  r.reason = '手动调整→' + newEntity.n;
+  // A区实体数据
+  csv += '\n## A区-已收进项\n';
+  csv += '主体名,已收进项或已销金额(万)\n';
+  EN.forEach((e, i) => {
+    const val = document.getElementById('inpInv'+i).value || '0';
+    csv += `${e.n},${val}\n`;
+  });
 
-  // 添加到新实体
-  const targetEntity = allocData.entities[newEntityIdx];
-  targetEntity.remain -= salesWan;
-  targetEntity.newAlloc += salesWan;
-  targetEntity.items.push({ product: r.product, salesWan, invType: r.product.invType });
+  // D区品种数据
+  csv += '\n## D区-采购品种\n';
+  csv += '品种名称,不含税进价,含税售价,数量,采购方式\n';
+  document.querySelectorAll('.product-row').forEach(row => {
+    const name = row.querySelector('.pn').value.trim() || '';
+    const baseCost = row.querySelector('.pc').value || '';
+    const sellPrice = row.querySelector('.pp').value || '';
+    const qty = row.querySelector('.pq').value || '';
+    const invType = row.querySelector('.pi').value || '';
+    if(name) csv += `${name},${baseCost},${sellPrice},${qty},${invType}\n`;
+  });
 
-  // 重新渲染
-  renderAllocResult(allocData.results, allocData.entities, allocData.params);
-  renderDistribution(allocData.entities, allocData.results);
-}
-
-/* ==================== TAB 3: 发票分布总览 ==================== */
-function renderDistribution(entities, results){
-  if(!entities || !results) {
-    document.getElementById('distContent').innerHTML = '<div style="text-align:center;padding:40px;color:var(--t2)">⚠️ 尚未进行智能分配</div>';
-    return;
+  // E区分配结果（如果有）
+  if(allocData && allocData.results.length > 0){
+    csv += '\n## E区-分配结果\n';
+    csv += '品种名称,分配主体,发票类型,毛利率(%),净利润(元),净利率(%),分配原因\n';
+    allocData.results.forEach(r => {
+      const p = r.product;
+      const pf = r.profit;
+      csv += `${p.name},${r.entity.n},${pf.invLabel},${(pf.gm*100).toFixed(2)},${pf.np.toFixed(2)},${(pf.nm*100).toFixed(2)},"${r.reason}"\n`;
+    });
   }
 
-  const typeColor = {general:'#38bdf8', small:'#34d399', individual:'#a78bfa'};
-  let h = '';
+  downloadCSV(csv, 'purchase-calculator-export.csv');
+}
 
-  // 1. 容量占用率
-  h += `<h3 style="font-size:15px;font-weight:600;color:var(--c2);margin-bottom:12px">📈 各主体容量占用率</h3>`;
+/* 导入全部数据（从导出的CSV） */
+function importAllData(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const text = e.target.result;
+    const lines = text.split('\n');
+    let section = '';
+    let productRows = [];
+
+    for(let line of lines){
+      line = line.trim();
+      if(!line || line.startsWith('#')) continue;
+
+      if(line.startsWith('## ')){
+        section = line.replace('## ', '').trim();
+        continue;
+      }
+
+      if(section === '参数'){
+        const parts = line.split(',');
+        if(parts.length >= 2){
+          const key = parts[0].trim();
+          const val = parts[1].trim();
+          if(key.includes('平均毛利率')) document.getElementById('avgGM').value = val;
+          else if(key.includes('专票加价')) document.getElementById('specMarkup').value = val;
+          else if(key.includes('普票加价')) document.getElementById('normMarkup').value = val;
+          else if(key.includes('企业所得税类型')) document.getElementById('citT2').value = val;
+          else if(key.includes('核定应税所得率')) document.getElementById('dRate2').value = val;
+        }
+      }
+
+      if(section === 'A区-已收进项'){
+        const parts = line.split(',');
+        if(parts.length >= 2 && parts[0].trim() !== '主体名'){
+          const name = parts[0].trim();
+          const val = parts[1].trim();
+          EN.forEach((en, i) => {
+            if(en.n === name){
+              document.getElementById('inpInv'+i).value = val;
+              updateEntityCalc(i);
+            }
+          });
+        }
+      }
+
+      if(section === 'D区-采购品种'){
+        const parts = line.split(',');
+        if(parts.length >= 5 && parts[0].trim() !== '品种名称'){
+          productRows.push({
+            name: parts[0].trim(),
+            baseCost: parts[1].trim(),
+            sellPrice: parts[2].trim(),
+            qty: parts[3].trim(),
+            invType: parts[4].trim()
+          });
+        }
+      }
+    }
+
+    if(productRows.length > 0){
+      document.getElementById('productList').innerHTML = '';
+      productRows.forEach(pr => addProduct(pr.name, pr.baseCost, pr.sellPrice, pr.qty, pr.invType));
+    }
+
+    alert('数据导入成功！');
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
   h += `<div style="display:grid;gap:12px;margin-bottom:24px">`;
 
   entities.forEach(e => {
