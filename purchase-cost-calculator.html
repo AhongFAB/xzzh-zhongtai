@@ -19,6 +19,7 @@
   --success: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
+  --info: #6366f1;
 }
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -51,7 +52,6 @@ input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
 .btn-secondary { background: rgba(56,189,248,0.1); color: var(--primary-light); border: 1px solid var(--border); }
 .btn-secondary:hover { background: rgba(56,189,248,0.2); }
 .btn-danger { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
-.btn-danger:hover { background: rgba(239,68,68,0.25); }
 
 label { font-size: 13px; color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 4px; }
 
@@ -66,6 +66,7 @@ label { font-size: 13px; color: var(--text-muted); font-weight: 500; display: bl
 .calc-step .neg { color: var(--danger); font-weight: 600; }
 .calc-step .pos { color: var(--success); font-weight: 600; }
 .calc-step .warn { color: var(--warning); font-weight: 600; }
+.calc-step .info { color: var(--info); font-weight: 600; }
 
 .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .data-table th { background: rgba(14,165,233,0.1); color: var(--primary-light); padding: 10px 12px; text-align: center; font-weight: 600; border-bottom: 1px solid var(--border); }
@@ -77,10 +78,24 @@ label { font-size: 13px; color: var(--text-muted); font-weight: 500; display: bl
 .product-row { animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
+.margin-box { padding: 14px; border-radius: 10px; text-align: center; }
+.margin-box .label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+.margin-box .value { font-size: 24px; font-weight: 700; }
+.margin-box.tax-incl { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); }
+.margin-box.tax-incl .value { color: var(--warning); }
+.margin-box.tax-excl { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); }
+.margin-box.tax-excl .value { color: var(--success); }
+.margin-box .note { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+
+.insight-box {
+  background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25); border-radius: 10px; padding: 14px 16px; margin: 12px 0;
+  font-size: 13px; color: var(--text); line-height: 1.7;
+}
+.insight-box .title { color: var(--info); font-weight: 600; margin-bottom: 6px; }
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.2); border-radius: 3px; }
-
 .footer { text-align: center; padding: 20px; color: var(--text-muted); font-size: 12px; }
 </style>
 </head>
@@ -94,16 +109,13 @@ label { font-size: 13px; color: var(--text-muted); font-weight: 500; display: bl
     <h1 style="font-size:28px;font-weight:700;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
       采购成本计算器
     </h1>
-    <p style="color:var(--text-muted);font-size:14px;margin-top:4px;">一般纳税人 vs 小规模纳税人 · 四种方案全对比 · 含增值税+企业所得税</p>
+    <p style="color:var(--text-muted);font-size:14px;margin-top:4px;">一般纳税人 vs 小规模纳税人 · 有票/无票全对比 · 含增值税+企业所得税+真实毛利率</p>
   </div>
 
-  <!-- 参数设置 -->
   <div class="glass" style="padding:20px;margin-bottom:20px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <h2 style="font-size:16px;font-weight:600;color:var(--primary-light);">📊 参数设置</h2>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-secondary" onclick="addProduct()" style="font-size:13px;padding:6px 16px;">+ 添加品种</button>
-      </div>
+      <button class="btn btn-secondary" onclick="addProduct()" style="font-size:13px;padding:6px 16px;">+ 添加品种</button>
     </div>
     
     <div class="glass-sm" style="padding:14px;margin-bottom:16px;">
@@ -133,9 +145,10 @@ label { font-size: 13px; color: var(--text-muted); font-weight: 500; display: bl
     </div>
 
     <div id="productList">
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 40px;gap:12px;padding:0 4px 8px;font-size:12px;color:var(--text-muted);font-weight:600;">
+      <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 40px;gap:10px;padding:0 4px 8px;font-size:12px;color:var(--text-muted);font-weight:600;">
         <span>品种名称</span>
-        <span>不含税单价</span>
+        <span>不含税单价<br><span style="font-size:10px;font-weight:400;">(有票采购基价)</span></span>
+        <span>无票采购价<br><span style="font-size:10px;font-weight:400;">(无票实际进货价)</span></span>
         <span>含税售价</span>
         <span>数量</span>
         <span></span>
@@ -152,6 +165,7 @@ label { font-size: 13px; color: var(--text-muted); font-weight: 500; display: bl
       <h2 style="font-size:16px;font-weight:600;color:var(--primary-light);margin-bottom:16px;">📋 方案对比汇总</h2>
       <div id="summaryTable" style="overflow-x:auto;"></div>
     </div>
+    <div id="marginCompareSection"></div>
     <div id="detailCards"></div>
     <div class="glass" style="padding:20px;margin-top:20px;" id="amountSection"></div>
   </div>
@@ -162,17 +176,18 @@ label { font-size: 13px; color: var(--text-muted); font-weight: 500; display: bl
 <script>
 let productCount = 0;
 
-function addProduct(name='', cost='', price='', qty='') {
+function addProduct(name='', cost='', noInvCost='', price='', qty='') {
   productCount++;
   const id = productCount;
   const list = document.getElementById('productList');
   const row = document.createElement('div');
   row.className = 'product-row';
   row.id = `product-${id}`;
-  row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr 40px;gap:12px;margin-bottom:8px;align-items:center;';
+  row.style.cssText = 'display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 40px;gap:10px;margin-bottom:8px;align-items:center;';
   row.innerHTML = `
     <input type="text" value="${name}" placeholder="品种名称" style="background:rgba(15,23,42,0.8);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:14px;outline:none;">
     <input type="number" class="cost-input" value="${cost}" placeholder="不含税单价" step="0.01">
+    <input type="number" class="noinv-input" value="${noInvCost}" placeholder="同左则留空" step="0.01" style="border-color:rgba(245,158,11,0.3);">
     <input type="number" class="price-input" value="${price}" placeholder="含税售价" step="0.01">
     <input type="number" class="qty-input" value="${qty}" placeholder="数量" step="1">
     <button onclick="removeProduct(${id})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:18px;padding:4px;">×</button>
@@ -192,10 +207,12 @@ function getProducts() {
     const inputs = row.querySelectorAll('input');
     const name = inputs[0].value.trim() || '未命名';
     const cost = parseFloat(inputs[1].value);
-    const price = parseFloat(inputs[2].value);
-    const qty = parseFloat(inputs[3].value) || 0;
+    const noInvRaw = parseFloat(inputs[2].value);
+    const noInvCost = isNaN(noInvRaw) ? cost : noInvRaw; // 留空则默认同不含税单价
+    const price = parseFloat(inputs[3].value);
+    const qty = parseFloat(inputs[4].value) || 0;
     if (!isNaN(cost) && !isNaN(price) && cost > 0 && price > 0) {
-      products.push({ name, cost, price, qty });
+      products.push({ name, cost, noInvCost, price, qty });
     }
   });
   return products;
@@ -218,7 +235,7 @@ function calcProduct(p, params) {
   const { vatMarkup, normalMarkup, vatRateGeneral, vatRateSmall, citRate } = params;
   const results = [];
 
-  // 方案①：一般纳税人 + 专票(加价X%)
+  // ======== 方案①：一般纳税人 + 专票(加价X%) ========
   {
     const purchase = p.cost * (1 + vatMarkup);
     const costExVat = purchase / (1 + vatRateGeneral);
@@ -226,107 +243,133 @@ function calcProduct(p, params) {
     const sellExVat = p.price / (1 + vatRateGeneral);
     const outputVat = p.price / (1 + vatRateGeneral) * vatRateGeneral;
     const vatDue = outputVat - inputVat;
-    const profit = sellExVat - costExVat;
-    const cit = Math.max(profit, 0) * citRate;
-    const netProfit = profit - cit;
+    const grossProfit = sellExVat - costExVat;
+    const grossMargin = sellExVat > 0 ? grossProfit / sellExVat : 0;
+    const cit = Math.max(grossProfit, 0) * citRate;
+    const netProfit = grossProfit - cit;
+    const taxInclGP = p.price - purchase;
+    const taxInclGM = p.price > 0 ? taxInclGP / p.price : 0;
+
     results.push({
       label: '① 一般纳税人+专票',
-      labelShort: '一般纳税人+专票',
-      cost: costExVat, purchase, sellExVat, inputVat, outputVat, vatDue, profit, cit, netProfit,
-      hasInvoice: true, canDeductVat: true, canDeductCIT: true,
+      labelShort: '①一般+专票',
+      costExVat, purchase, sellExVat, inputVat, outputVat, vatDue,
+      grossProfit, grossMargin, cit, netProfit,
+      taxInclGP, taxInclGM,
+      hasInvoice: true, invType: '专票',
       steps: [
         `含税采购价 = ${fmt(p.cost)} × (1+${(vatMarkup*100).toFixed(0)}%) = <span class="val">${fmt(purchase)}</span>`,
-        `不含税成本 = ${fmt(purchase)} ÷ ${(1+vatRateGeneral).toFixed(2)} = <span class="val">${fmt(costExVat)}</span>（专票可税前扣除）`,
-        `可抵扣进项税 = ${fmt(purchase)} ÷ ${(1+vatRateGeneral).toFixed(2)} × ${(vatRateGeneral*100).toFixed(0)}% = <span class="val">${fmt(inputVat)}</span>`,
+        `不含税成本 = ${fmt(purchase)} ÷ ${(1+vatRateGeneral).toFixed(2)} = <span class="val">${fmt(costExVat)}</span>`,
+        `可抵扣进项税 = <span class="val">${fmt(inputVat)}</span>`,
         `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateGeneral).toFixed(2)} = <span class="val">${fmt(sellExVat)}</span>`,
-        `销项税 = ${fmt(p.price)} ÷ ${(1+vatRateGeneral).toFixed(2)} × ${(vatRateGeneral*100).toFixed(0)}% = <span class="val">${fmt(outputVat)}</span>`,
-        `应缴增值税 = ${fmt(outputVat)} - ${fmt(inputVat)} = <span class="${vatDue>=0?'val':'pos'}">${fmt(vatDue)}</span>${vatDue<0?'（留抵）':''}`,
-        `毛利 = ${fmt(sellExVat)} - ${fmt(costExVat)} = <span class="${profit>=0?'pos':'neg'}">${fmt(profit)}</span>`,
-        profit >= 0
-          ? `所得税(${(citRate*100).toFixed(0)}%) = ${fmt(profit)} × ${(citRate*100).toFixed(0)}% = <span class="neg">${fmt(cit)}</span>`
-          : `所得税 = 0（亏损无需缴纳）`,
-        `净利润 = ${fmt(profit)} - ${fmt(cit)} = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
+        `应缴增值税 = <span class="${vatDue>=0?'val':'pos'}">${fmt(vatDue)}</span>`,
+        `<span class="info">◆ 不含税毛利 = ${fmt(sellExVat)} - ${fmt(costExVat)} = <span class="${grossProfit>=0?'pos':'neg'}">${fmt(grossProfit)}</span>（毛利率 ${(grossMargin*100).toFixed(2)}%）</span>`,
+        `<span class="warn">◆ 含税口径毛利 = ${fmt(p.price)} - ${fmt(purchase)} = ${fmt(taxInclGP)}（毛利率 ${(taxInclGM*100).toFixed(2)}%）</span>`,
+        grossProfit >= 0
+          ? `所得税(${(citRate*100).toFixed(0)}%) = <span class="neg">${fmt(cit)}</span>`
+          : `所得税 = 0（亏损）`,
+        `净利润 = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
       ]
     });
   }
 
-  // 方案②：小规模 + 普票(加价X%)
+  // ======== 方案②：小规模 + 普票(加价X%) ========
   {
     const purchase = p.cost * (1 + normalMarkup);
     const sellExVat = p.price / (1 + vatRateSmall);
     const outputVat = p.price / (1 + vatRateSmall) * vatRateSmall;
-    const profit = sellExVat - purchase;
-    const cit = Math.max(profit, 0) * citRate;
-    const netProfit = profit - cit;
+    const grossProfit = sellExVat - purchase;
+    const grossMargin = sellExVat > 0 ? grossProfit / sellExVat : 0;
+    const cit = Math.max(grossProfit, 0) * citRate;
+    const netProfit = grossProfit - cit;
+    const taxInclGP = p.price - purchase;
+    const taxInclGM = p.price > 0 ? taxInclGP / p.price : 0;
+
     results.push({
       label: '② 小规模+普票',
-      labelShort: '小规模+普票',
-      cost: purchase, purchase, sellExVat, inputVat: 0, outputVat, vatDue: outputVat, profit, cit, netProfit,
-      hasInvoice: true, canDeductVat: false, canDeductCIT: true,
+      labelShort: '②小规模+普票',
+      costExVat: purchase, purchase, sellExVat, inputVat: 0, outputVat, vatDue: outputVat,
+      grossProfit, grossMargin, cit, netProfit,
+      taxInclGP, taxInclGM,
+      hasInvoice: true, invType: '普票',
       steps: [
         `含税采购价 = ${fmt(p.cost)} × (1+${(normalMarkup*100).toFixed(0)}%) = <span class="val">${fmt(purchase)}</span>（全额进成本）`,
-        `成本 = <span class="val">${fmt(purchase)}</span>（普票可在所得税前扣除）`,
         `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateSmall).toFixed(4)} = <span class="val">${fmt(sellExVat)}</span>`,
-        `应缴增值税 = ${fmt(p.price)} ÷ ${(1+vatRateSmall).toFixed(4)} × ${(vatRateSmall*100).toFixed(1)}% = <span class="val">${fmt(outputVat)}</span>`,
-        `毛利 = ${fmt(sellExVat)} - ${fmt(purchase)} = <span class="${profit>=0?'pos':'neg'}">${fmt(profit)}</span>`,
-        profit >= 0
-          ? `所得税(${(citRate*100).toFixed(0)}%) = ${fmt(profit)} × ${(citRate*100).toFixed(0)}% = <span class="neg">${fmt(cit)}</span>`
-          : `所得税 = 0（亏损无需缴纳）`,
-        `净利润 = ${fmt(profit)} - ${fmt(cit)} = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
+        `应缴增值税 = <span class="val">${fmt(outputVat)}</span>（${(vatRateSmall*100).toFixed(1)}%征收率）`,
+        `<span class="info">◆ 不含税毛利 = ${fmt(sellExVat)} - ${fmt(purchase)} = <span class="${grossProfit>=0?'pos':'neg'}">${fmt(grossProfit)}</span>（毛利率 ${(grossMargin*100).toFixed(2)}%）</span>`,
+        `<span class="warn">◆ 含税口径毛利 = ${fmt(p.price)} - ${fmt(purchase)} = ${fmt(taxInclGP)}（毛利率 ${(taxInclGM*100).toFixed(2)}%）</span>`,
+        grossProfit >= 0
+          ? `所得税(${(citRate*100).toFixed(0)}%) = <span class="neg">${fmt(cit)}</span>`
+          : `所得税 = 0（亏损）`,
+        `净利润 = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
       ]
     });
   }
 
-  // 方案③A：不要票 - 走一般纳税人
+  // ======== 方案③A：无票采购 + 一般纳税人卖出(13%) ========
   {
-    const costNo = p.cost;
+    const costNo = p.noInvCost;
     const sellExVat = p.price / (1 + vatRateGeneral);
     const outputVat = p.price / (1 + vatRateGeneral) * vatRateGeneral;
-    const accountingProfit = sellExVat - costNo;
-    const taxableIncome = sellExVat;
+    const grossProfit = sellExVat - costNo;
+    const grossMargin = sellExVat > 0 ? grossProfit / sellExVat : 0;
+    const taxableIncome = sellExVat; // 成本不能税前扣除，全额调增
     const cit = Math.max(taxableIncome, 0) * citRate;
-    const netProfit = accountingProfit - cit;
+    const netProfit = grossProfit - cit;
+    const taxInclGP = p.price - costNo;
+    const taxInclGM = p.price > 0 ? taxInclGP / p.price : 0;
+
     results.push({
-      label: '③A 一般纳税人+不要票',
-      labelShort: '一般纳税人+不要票',
-      cost: costNo, purchase: costNo, sellExVat, inputVat: 0, outputVat, vatDue: outputVat, profit: accountingProfit, cit, netProfit,
-      hasInvoice: false, canDeductVat: false, canDeductCIT: false,
+      label: '③A 无票采购+一般纳税人卖出',
+      labelShort: '③A无票+一般卖出',
+      costExVat: costNo, purchase: costNo, sellExVat, inputVat: 0, outputVat, vatDue: outputVat,
+      grossProfit, grossMargin, cit, netProfit,
+      taxInclGP, taxInclGM,
+      hasInvoice: false, invType: '无票',
       steps: [
-        `采购成本 = <span class="val">${fmt(costNo)}</span>（无发票）`,
+        `无票采购价 = <span class="val">${fmt(costNo)}</span>（无加价，不含税原价进成本）`,
         `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateGeneral).toFixed(2)} = <span class="val">${fmt(sellExVat)}</span>`,
-        `销项税 = ${fmt(p.price)} ÷ ${(1+vatRateGeneral).toFixed(2)} × ${(vatRateGeneral*100).toFixed(0)}% = <span class="val">${fmt(outputVat)}</span>（无进项抵扣，全额缴）`,
-        `账面毛利 = ${fmt(sellExVat)} - ${fmt(costNo)} = <span class="${accountingProfit>=0?'pos':'neg'}">${fmt(accountingProfit)}</span>`,
-        `<span class="warn">⚠️ 无发票，成本${fmt(costNo)}不能税前扣除，需纳税调增${fmt(costNo)}</span>`,
-        `应纳税所得额 = ${fmt(accountingProfit)} + ${fmt(costNo)} = <span class="warn">${fmt(taxableIncome)}</span>（=全部收入！）`,
-        `所得税(${(citRate*100).toFixed(0)}%) = ${fmt(taxableIncome)} × ${(citRate*100).toFixed(0)}% = <span class="neg">${fmt(cit)}</span>`,
-        `净利润 = ${fmt(accountingProfit)} - ${fmt(cit)} = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
+        `应缴增值税 = <span class="val">${fmt(outputVat)}</span>（无进项，全额缴${(vatRateGeneral*100).toFixed(0)}%）`,
+        `<span class="info">◆ 不含税毛利 = ${fmt(sellExVat)} - ${fmt(costNo)} = <span class="${grossProfit>=0?'pos':'neg'}">${fmt(grossProfit)}</span>（毛利率 ${(grossMargin*100).toFixed(2)}%）</span>`,
+        `<span class="warn">◆ 含税口径毛利 = ${fmt(p.price)} - ${fmt(costNo)} = ${fmt(taxInclGP)}（毛利率 ${(taxInclGM*100).toFixed(2)}%）</span>`,
+        `<span class="warn">⚠️ 无发票→成本不能税前扣除→纳税调增${fmt(costNo)}</span>`,
+        `应纳税所得额 = <span class="warn">${fmt(taxableIncome)}</span>（=全部不含税收入！）`,
+        `所得税(${(citRate*100).toFixed(0)}%) = <span class="neg">${fmt(cit)}</span>`,
+        `净利润 = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
       ]
     });
   }
 
-  // 方案③B：不要票 - 走小规模
+  // ======== 方案③B：无票采购 + 小规模卖出(1%) ========
   {
-    const costNo = p.cost;
+    const costNo = p.noInvCost;
     const sellExVat = p.price / (1 + vatRateSmall);
     const outputVat = p.price / (1 + vatRateSmall) * vatRateSmall;
-    const accountingProfit = sellExVat - costNo;
+    const grossProfit = sellExVat - costNo;
+    const grossMargin = sellExVat > 0 ? grossProfit / sellExVat : 0;
     const taxableIncome = sellExVat;
     const cit = Math.max(taxableIncome, 0) * citRate;
-    const netProfit = accountingProfit - cit;
+    const netProfit = grossProfit - cit;
+    const taxInclGP = p.price - costNo;
+    const taxInclGM = p.price > 0 ? taxInclGP / p.price : 0;
+
     results.push({
-      label: '③B 小规模+不要票',
-      labelShort: '小规模+不要票',
-      cost: costNo, purchase: costNo, sellExVat, inputVat: 0, outputVat, vatDue: outputVat, profit: accountingProfit, cit, netProfit,
-      hasInvoice: false, canDeductVat: false, canDeductCIT: false,
+      label: '③B 无票采购+小规模卖出',
+      labelShort: '③B无票+小规模卖出',
+      costExVat: costNo, purchase: costNo, sellExVat, inputVat: 0, outputVat, vatDue: outputVat,
+      grossProfit, grossMargin, cit, netProfit,
+      taxInclGP, taxInclGM,
+      hasInvoice: false, invType: '无票',
       steps: [
-        `采购成本 = <span class="val">${fmt(costNo)}</span>（无发票）`,
+        `无票采购价 = <span class="val">${fmt(costNo)}</span>（无加价，不含税原价进成本）`,
         `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateSmall).toFixed(4)} = <span class="val">${fmt(sellExVat)}</span>`,
-        `应缴增值税 = ${fmt(p.price)} ÷ ${(1+vatRateSmall).toFixed(4)} × ${(vatRateSmall*100).toFixed(1)}% = <span class="val">${fmt(outputVat)}</span>`,
-        `账面毛利 = ${fmt(sellExVat)} - ${fmt(costNo)} = <span class="${accountingProfit>=0?'pos':'neg'}">${fmt(accountingProfit)}</span>`,
-        `<span class="warn">⚠️ 无发票，成本${fmt(costNo)}不能税前扣除，需纳税调增${fmt(costNo)}</span>`,
-        `应纳税所得额 = ${fmt(accountingProfit)} + ${fmt(costNo)} = <span class="warn">${fmt(taxableIncome)}</span>（=全部收入！）`,
-        `所得税(${(citRate*100).toFixed(0)}%) = ${fmt(taxableIncome)} × ${(citRate*100).toFixed(0)}% = <span class="neg">${fmt(cit)}</span>`,
-        `净利润 = ${fmt(accountingProfit)} - ${fmt(cit)} = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
+        `应缴增值税 = <span class="val">${fmt(outputVat)}</span>（${(vatRateSmall*100).toFixed(1)}%征收率）`,
+        `<span class="info">◆ 不含税毛利 = ${fmt(sellExVat)} - ${fmt(costNo)} = <span class="${grossProfit>=0?'pos':'neg'}">${fmt(grossProfit)}</span>（毛利率 ${(grossMargin*100).toFixed(2)}%）</span>`,
+        `<span class="warn">◆ 含税口径毛利 = ${fmt(p.price)} - ${fmt(costNo)} = ${fmt(taxInclGP)}（毛利率 ${(taxInclGM*100).toFixed(2)}%）</span>`,
+        `<span class="warn">⚠️ 无发票→成本不能税前扣除→纳税调增${fmt(costNo)}</span>`,
+        `应纳税所得额 = <span class="warn">${fmt(taxableIncome)}</span>（=全部不含税收入！）`,
+        `所得税(${(citRate*100).toFixed(0)}%) = <span class="neg">${fmt(cit)}</span>`,
+        `净利润 = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
       ]
     });
   }
@@ -343,9 +386,10 @@ function calculate() {
   const params = getParams();
   document.getElementById('results').style.display = 'block';
 
+  // ====== 汇总表 ======
   let summaryHTML = `<table class="data-table">
     <thead><tr>
-      <th>品种</th><th>方案</th><th>单位成本</th><th>应缴增值税</th><th>毛利</th><th>所得税</th><th>净利润</th><th>净利率</th>
+      <th>品种</th><th>方案</th><th>不含税成本</th><th>不含税毛利率</th><th>含税口径毛利率</th><th>所得税</th><th>净利润</th><th>净利率</th>
     </tr></thead><tbody>`;
 
   const allResults = {};
@@ -365,9 +409,9 @@ function calculate() {
       summaryHTML += `<tr class="${cls}">
         <td style="font-weight:600;">${p.name}</td>
         <td>${r.labelShort}${badge}</td>
-        <td>${fmt(r.cost)}</td>
-        <td style="color:${r.vatDue<0?'var(--success)':'var(--text-muted)'}">${fmt(r.vatDue)}</td>
-        <td style="color:${r.profit>=0?'var(--success)':'var(--danger)'}">${fmt(r.profit)}</td>
+        <td>${fmt(r.costExVat)}</td>
+        <td style="font-weight:700;color:${r.grossMargin>=0?'var(--info)':'var(--danger)'}">${(r.grossMargin*100).toFixed(2)}%</td>
+        <td style="font-weight:600;color:${r.taxInclGM>=0?'var(--warning)':'var(--danger)'}">${(r.taxInclGM*100).toFixed(2)}%</td>
         <td style="color:var(--danger)">${fmt(r.cit)}</td>
         <td style="font-weight:700;color:${r.netProfit>=0?'var(--success)':'var(--danger)'}">${fmt(r.netProfit)}</td>
         <td style="font-weight:600;color:${margin>=0?'var(--success)':'var(--danger)'}">${margin.toFixed(2)}%</td>
@@ -378,6 +422,50 @@ function calculate() {
   summaryHTML += '</tbody></table>';
   document.getElementById('summaryTable').innerHTML = summaryHTML;
 
+  // ====== 毛利率口径对比 ======
+  let mcHTML = `<div class="glass" style="padding:20px;margin-bottom:20px;">
+    <h2 style="font-size:16px;font-weight:600;color:var(--primary-light);margin-bottom:16px;">🔍 毛利率口径对比（为什么账面毛利率和定价毛利率不一样）</h2>`;
+
+  products.forEach(p => {
+    const results = allResults[p.name];
+    mcHTML += `<div style="margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:10px;color:var(--text);">${p.name} <span style="font-size:12px;color:var(--text-muted);font-weight:400;">不含税进价${p.cost} · 无票价${p.noInvCost} · 含税售价${p.price}</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;">`;
+
+    results.forEach(r => {
+      mcHTML += `<div class="glass-sm" style="padding:12px;">
+        <div style="font-size:12px;color:var(--primary-light);font-weight:600;margin-bottom:8px;">${r.labelShort}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="margin-box tax-excl">
+            <div class="label">不含税毛利率</div>
+            <div class="value">${(r.grossMargin*100).toFixed(2)}%</div>
+            <div class="note">真实经营毛利</div>
+          </div>
+          <div class="margin-box tax-incl">
+            <div class="label">含税口径毛利率</div>
+            <div class="value">${(r.taxInclGM*100).toFixed(2)}%</div>
+            <div class="note">账面直接减出来的</div>
+          </div>
+        </div>
+      </div>`;
+    });
+    mcHTML += `</div></div>`;
+  });
+
+  mcHTML += `<div class="insight-box">
+    <div class="title">💡 为什么两个毛利率不一样？</div>
+    <div><strong>不含税毛利率</strong>才是真实的经营毛利——不含税收入减不含税成本。</div>
+    <div><strong>含税口径毛利率</strong>是账上直接用含税收入减含税成本算出来的，被税率差异扭曲：</div>
+    <div style="margin-left:16px;margin-top:4px;">
+      • <strong>有专票的</strong>：进销项税率一致，含税/不含税口径基本一致<br>
+      • <strong>有普票的</strong>：成本全额含税进，不含税收入被除以(1+1%)接近原价，毛利被压低<br>
+      • <strong>无票采购的</strong>：成本不含税(原价)，但收入含13%税，不含税收入被大幅压低，毛利率反而更低
+    </div>
+    <div style="margin-top:8px;"><strong>结论：看毛利率只看不含税口径。含税口径是账面未做税分离时的近似值，不能用来判断定价能力。</strong></div>
+  </div></div>`;
+  document.getElementById('marginCompareSection').innerHTML = mcHTML;
+
+  // ====== 详细计算卡片 ======
   let detailHTML = '';
   products.forEach(p => {
     const results = allResults[p.name];
@@ -387,7 +475,7 @@ function calculate() {
       if (r.netProfit < results[worstIdx].netProfit) worstIdx = i;
     });
 
-    detailHTML += `<h3 style="font-size:18px;font-weight:600;margin:20px 0 12px;color:var(--text);">${p.name} <span style="font-size:13px;color:var(--text-muted);font-weight:400;">不含税单价 ${p.cost} · 含税售价 ${p.price}</span></h3>`;
+    detailHTML += `<h3 style="font-size:18px;font-weight:600;margin:20px 0 12px;color:var(--text);">${p.name} <span style="font-size:13px;color:var(--text-muted);font-weight:400;">不含税进价${p.cost} · 无票价${p.noInvCost} · 含税售价${p.price}</span></h3>`;
     detailHTML += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">';
     
     results.forEach((r, i) => {
@@ -402,11 +490,19 @@ function calculate() {
           ${isBest ? '<span class="badge-best">✓ 最优</span>' : ''}
           ${isWorst ? '<span class="badge-worst">✗ 最差</span>' : ''}
         </div>
-        <div style="font-size:28px;font-weight:700;color:${r.netProfit>=0?'var(--success)':'var(--danger)'};margin-bottom:4px;">
-          ${r.netProfit>=0?'+':''}${fmt(r.netProfit)} <span style="font-size:14px;font-weight:400;">/单位</span>
-        </div>
-        <div style="font-size:14px;color:${margin>=0?'var(--success)':'var(--danger)'};margin-bottom:12px;">
-          净利率 ${margin.toFixed(2)}%
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;">
+          <div style="text-align:center;padding:8px;background:rgba(99,102,241,0.1);border-radius:8px;">
+            <div style="font-size:10px;color:var(--text-muted);">不含税毛利率</div>
+            <div style="font-size:18px;font-weight:700;color:var(--info);">${(r.grossMargin*100).toFixed(2)}%</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:rgba(16,185,129,0.1);border-radius:8px;">
+            <div style="font-size:10px;color:var(--text-muted);">净利率</div>
+            <div style="font-size:18px;font-weight:700;color:${margin>=0?'var(--success)':'var(--danger)'}">${margin.toFixed(2)}%</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:rgba(245,158,11,0.1);border-radius:8px;">
+            <div style="font-size:10px;color:var(--text-muted);">含税口径毛利率</div>
+            <div style="font-size:18px;font-weight:700;color:var(--warning);">${(r.taxInclGM*100).toFixed(2)}%</div>
+          </div>
         </div>
         <div style="border-top:1px solid var(--border);padding-top:10px;">
           ${r.steps.map((s, si) => `<div class="calc-step">${si+1}. ${s}</div>`).join('')}
@@ -417,22 +513,22 @@ function calculate() {
   });
   document.getElementById('detailCards').innerHTML = detailHTML;
 
-  // 金额测算
+  // ====== 金额测算 ======
   if (products.some(p => p.qty > 0)) {
     let amtHTML = `<h2 style="font-size:16px;font-weight:600;color:var(--primary-light);margin-bottom:16px;">💰 金额测算（按数量）</h2>`;
-    amtHTML += `<table class="data-table"><thead><tr><th>品种</th><th>方案</th><th>数量</th><th>毛利合计</th><th>净利润合计</th></tr></thead><tbody>`;
+    amtHTML += `<table class="data-table"><thead><tr><th>品种</th><th>方案</th><th>数量</th><th>不含税毛利合计</th><th>净利润合计</th></tr></thead><tbody>`;
     
     products.forEach(p => {
       if (p.qty <= 0) return;
       const results = allResults[p.name];
       results.forEach(r => {
-        const totalProfit = r.profit * p.qty;
+        const totalGross = r.grossProfit * p.qty;
         const totalNet = r.netProfit * p.qty;
         amtHTML += `<tr>
           <td style="font-weight:600;">${p.name}</td>
           <td>${r.labelShort}</td>
           <td>${p.qty}</td>
-          <td style="color:${totalProfit>=0?'var(--success)':'var(--danger)'}">${totalProfit>=0?'+':''}${fmtMoney(totalProfit)}元</td>
+          <td style="color:${totalGross>=0?'var(--success)':'var(--danger)'}">${totalGross>=0?'+':''}${fmtMoney(totalGross)}元</td>
           <td style="font-weight:700;color:${totalNet>=0?'var(--success)':'var(--danger)'}">${totalNet>=0?'+':''}${fmtMoney(totalNet)}元</td>
         </tr>`;
       });
@@ -440,8 +536,7 @@ function calculate() {
     });
     amtHTML += '</tbody></table>';
 
-    // 各方案总净利润对比
-    const schemeNames = ['① 一般纳税人+专票','② 小规模+普票','③A 一般纳税人+不要票','③B 小规模+不要票'];
+    const schemeNames = ['①一般+专票','②小规模+普票','③A无票+一般卖出','③B无票+小规模卖出'];
     amtHTML += `<div style="margin-top:16px;" class="glass-sm"><div style="padding:14px;">`;
     amtHTML += `<div style="font-size:13px;color:var(--primary-light);font-weight:600;margin-bottom:10px;">各方案总净利润对比</div>`;
     amtHTML += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">`;
@@ -470,7 +565,6 @@ function calculate() {
       </div>`;
     });
     amtHTML += `</div></div></div>`;
-    
     document.getElementById('amountSection').innerHTML = amtHTML;
   } else {
     document.getElementById('amountSection').innerHTML = '';
@@ -479,7 +573,6 @@ function calculate() {
   document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
 }
 
-// 默认空一行
 addProduct();
 </script>
 </body>
