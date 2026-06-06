@@ -45,13 +45,13 @@ input[type="number"], input[type="text"], select {
 }
 input[type="number"]:focus, input[type="text"]:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,0.15); }
 input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
+select option { background: #1e293b; color: var(--text); }
 
 .btn { padding: 10px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; font-size: 14px; }
 .btn-primary { background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; }
 .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(14,165,233,0.4); }
 .btn-secondary { background: rgba(56,189,248,0.1); color: var(--primary-light); border: 1px solid var(--border); }
 .btn-secondary:hover { background: rgba(56,189,248,0.2); }
-.btn-danger { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
 
 label { font-size: 13px; color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 4px; }
 
@@ -93,6 +93,23 @@ label { font-size: 13px; color: var(--text-muted); font-weight: 500; display: bl
 }
 .insight-box .title { color: var(--info); font-weight: 600; margin-bottom: 6px; }
 
+.warning-box {
+  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 12px 16px; margin: 10px 0;
+  font-size: 13px; color: #fca5a5; line-height: 1.6;
+}
+.warning-box .title { color: var(--danger); font-weight: 600; margin-bottom: 4px; }
+
+.cit-info-box {
+  background: rgba(14,165,233,0.06); border: 1px solid rgba(14,165,233,0.2); border-radius: 10px; padding: 14px 16px; margin: 12px 0;
+  font-size: 12px; color: var(--text-muted); line-height: 1.8;
+}
+.cit-info-box .title { color: var(--primary-light); font-weight: 600; margin-bottom: 6px; font-size: 13px; }
+.cit-tier { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: 600; margin-right: 4px; }
+.cit-tier-5 { background: rgba(16,185,129,0.15); color: #34d399; }
+.cit-tier-9 { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+.cit-tier-15 { background: rgba(245,158,11,0.15); color: #fbbf24; }
+.cit-tier-25 { background: rgba(239,68,68,0.15); color: #f87171; }
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.2); border-radius: 3px; }
@@ -120,7 +137,7 @@ label { font-size: 13px; color: var(--text-muted); font-weight: 500; display: bl
     
     <div class="glass-sm" style="padding:14px;margin-bottom:16px;">
       <div style="font-size:13px;color:var(--primary-light);font-weight:600;margin-bottom:10px;">税率参数（全局）</div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr) 1.5fr;gap:12px;">
         <div>
           <label>专票加价(%)</label>
           <input type="number" id="vatMarkup" value="12" step="1" min="0" max="50">
@@ -138,9 +155,48 @@ label { font-size: 13px; color: var(--text-muted); font-weight: 500; display: bl
           <input type="number" id="vatRateSmall" value="1" step="0.5">
         </div>
         <div>
-          <label>企业所得税率(%)</label>
-          <input type="number" id="citRate" value="5" step="1">
+          <label>企业所得税类型</label>
+          <select id="citType" onchange="onCitTypeChange()">
+            <option value="5">小微企业(5%)</option>
+            <option value="9">西藏鼓励类+地方减免(9%)</option>
+            <option value="15">西部鼓励类/高新技术(15%)</option>
+            <option value="25">一般企业(25%)</option>
+            <option value="custom">自定义</option>
+          </select>
         </div>
+      </div>
+      <div id="customCitRow" style="display:none;margin-top:10px;">
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;">
+          <div>
+            <label>自定义所得税率(%)</label>
+            <input type="number" id="citRateCustom" value="5" step="1">
+          </div>
+          <div></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-top:10px;">
+        <div>
+          <label>预计年销售额(万元) <span style="font-size:10px;color:var(--warning);">← 小规模升级预警</span></label>
+          <input type="number" id="annualSales" value="" placeholder="如 480" step="10">
+        </div>
+        <div></div>
+      </div>
+    </div>
+
+    <!-- 企业所得税税率说明 -->
+    <div class="cit-info-box">
+      <div class="title">📋 企业所得税税率说明（2026年现行）</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;">
+        <div><span class="cit-tier cit-tier-5">5%</span> 小微企业：年利润≤300万 + 人数≤300 + 资产≤5000万（至2027年底）</div>
+        <div><span class="cit-tier cit-tier-9">9%</span> 西藏鼓励类+地方减免：15%×(1-40%)，需实质性运营（至2027年底）</div>
+        <div><span class="cit-tier cit-tier-15">15%</span> 西部鼓励类产业 / 高新技术企业（至2030年底）</div>
+        <div><span class="cit-tier cit-tier-25">25%</span> 一般企业：利润超300万全额25%，不是超额累进！</div>
+      </div>
+      <div style="margin-top:6px;color:var(--danger);font-size:11px;">
+        ⚠️ 小规模纳税人年应税销售额超过500万元 → 强制升级为一般纳税人，不可逆！
+      </div>
+      <div style="margin-top:4px;color:var(--warning);font-size:11px;">
+        💡 西藏9%条件：鼓励类产业 + 主营收入占比≥60% + 人员在藏缴社保≥6个月 + 实质性运营（2026年5月新规）
       </div>
     </div>
 
@@ -161,6 +217,7 @@ label { font-size: 13px; color: var(--text-muted); font-weight: 500; display: bl
   </div>
 
   <div id="results" style="display:none;">
+    <div id="warningBanner"></div>
     <div class="glass" style="padding:20px;margin-bottom:20px;">
       <h2 style="font-size:16px;font-weight:600;color:var(--primary-light);margin-bottom:16px;">📋 方案对比汇总</h2>
       <div id="summaryTable" style="overflow-x:auto;"></div>
@@ -175,6 +232,11 @@ label { font-size: 13px; color: var(--text-muted); font-weight: 500; display: bl
 
 <script>
 let productCount = 0;
+
+function onCitTypeChange() {
+  const v = document.getElementById('citType').value;
+  document.getElementById('customCitRow').style.display = v === 'custom' ? 'block' : 'none';
+}
 
 function addProduct(name='', cost='', noInvCost='', price='', qty='') {
   productCount++;
@@ -208,32 +270,55 @@ function getProducts() {
     const name = inputs[0].value.trim() || '未命名';
     const cost = parseFloat(inputs[1].value);
     const noInvRaw = parseFloat(inputs[2].value);
-    const noInvCost = isNaN(noInvRaw) ? cost : noInvRaw; // 留空则默认同不含税单价
+    // 留空则默认同不含税单价
     const price = parseFloat(inputs[3].value);
     const qty = parseFloat(inputs[4].value) || 0;
     if (!isNaN(cost) && !isNaN(price) && cost > 0 && price > 0) {
-      products.push({ name, cost, noInvCost, price, qty });
+      products.push({ name, cost, noInvCost: isNaN(noInvRaw) ? cost : noInvRaw, price, qty });
     }
   });
   return products;
 }
 
 function getParams() {
+  const citTypeVal = document.getElementById('citType').value;
+  let citRate;
+  if (citTypeVal === 'custom') {
+    citRate = parseFloat(document.getElementById('citRateCustom').value) / 100;
+  } else {
+    citRate = parseFloat(citTypeVal) / 100;
+  }
+  const annualSales = parseFloat(document.getElementById('annualSales').value) || 0;
   return {
     vatMarkup: parseFloat(document.getElementById('vatMarkup').value) / 100,
     normalMarkup: parseFloat(document.getElementById('normalMarkup').value) / 100,
     vatRateGeneral: parseFloat(document.getElementById('vatRateGeneral').value) / 100,
     vatRateSmall: parseFloat(document.getElementById('vatRateSmall').value) / 100,
-    citRate: parseFloat(document.getElementById('citRate').value) / 100,
+    citRate,
+    citType: citTypeVal,
+    annualSales,
+    isSmallScaleAtRisk: annualSales > 500,
   };
+}
+
+function getCitLabel(type) {
+  const map = {
+    '5': '小微企业5%',
+    '9': '西藏鼓励类9%',
+    '15': '西部鼓励类/高新技术15%',
+    '25': '一般企业25%',
+    'custom': '自定义'
+  };
+  return map[type] || '自定义';
 }
 
 function fmt(n) { return n.toFixed(4); }
 function fmtMoney(n) { return n.toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 
 function calcProduct(p, params) {
-  const { vatMarkup, normalMarkup, vatRateGeneral, vatRateSmall, citRate } = params;
+  const { vatMarkup, normalMarkup, vatRateGeneral, vatRateSmall, citRate, citType, isSmallScaleAtRisk } = params;
   const results = [];
+  const citPct = (citRate * 100).toFixed(citRate * 100 % 1 === 0 ? 0 : 1);
 
   // ======== 方案①：一般纳税人 + 专票(加价X%) ========
   {
@@ -257,6 +342,7 @@ function calcProduct(p, params) {
       grossProfit, grossMargin, cit, netProfit,
       taxInclGP, taxInclGM,
       hasInvoice: true, invType: '专票',
+      isSmallScale: false,
       steps: [
         `含税采购价 = ${fmt(p.cost)} × (1+${(vatMarkup*100).toFixed(0)}%) = <span class="val">${fmt(purchase)}</span>`,
         `不含税成本 = ${fmt(purchase)} ÷ ${(1+vatRateGeneral).toFixed(2)} = <span class="val">${fmt(costExVat)}</span>`,
@@ -266,7 +352,7 @@ function calcProduct(p, params) {
         `<span class="info">◆ 不含税毛利 = ${fmt(sellExVat)} - ${fmt(costExVat)} = <span class="${grossProfit>=0?'pos':'neg'}">${fmt(grossProfit)}</span>（毛利率 ${(grossMargin*100).toFixed(2)}%）</span>`,
         `<span class="warn">◆ 含税口径毛利 = ${fmt(p.price)} - ${fmt(purchase)} = ${fmt(taxInclGP)}（毛利率 ${(taxInclGM*100).toFixed(2)}%）</span>`,
         grossProfit >= 0
-          ? `所得税(${(citRate*100).toFixed(0)}%) = <span class="neg">${fmt(cit)}</span>`
+          ? `所得税(${citPct}%) = <span class="neg">${fmt(cit)}</span>`
           : `所得税 = 0（亏损）`,
         `净利润 = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
       ]
@@ -285,6 +371,10 @@ function calcProduct(p, params) {
     const taxInclGP = p.price - purchase;
     const taxInclGM = p.price > 0 ? taxInclGP / p.price : 0;
 
+    const upgradeWarning = isSmallScaleAtRisk
+      ? `\n<span class="warn">⚠️ 注意：年销售额超500万将强制升级为一般纳税人！升级后适用13%增值税率且不可逆转！</span>`
+      : '';
+
     results.push({
       label: '② 小规模+普票',
       labelShort: '②小规模+普票',
@@ -292,6 +382,7 @@ function calcProduct(p, params) {
       grossProfit, grossMargin, cit, netProfit,
       taxInclGP, taxInclGM,
       hasInvoice: true, invType: '普票',
+      isSmallScale: true,
       steps: [
         `含税采购价 = ${fmt(p.cost)} × (1+${(normalMarkup*100).toFixed(0)}%) = <span class="val">${fmt(purchase)}</span>（全额进成本）`,
         `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateSmall).toFixed(4)} = <span class="val">${fmt(sellExVat)}</span>`,
@@ -299,10 +390,11 @@ function calcProduct(p, params) {
         `<span class="info">◆ 不含税毛利 = ${fmt(sellExVat)} - ${fmt(purchase)} = <span class="${grossProfit>=0?'pos':'neg'}">${fmt(grossProfit)}</span>（毛利率 ${(grossMargin*100).toFixed(2)}%）</span>`,
         `<span class="warn">◆ 含税口径毛利 = ${fmt(p.price)} - ${fmt(purchase)} = ${fmt(taxInclGP)}（毛利率 ${(taxInclGM*100).toFixed(2)}%）</span>`,
         grossProfit >= 0
-          ? `所得税(${(citRate*100).toFixed(0)}%) = <span class="neg">${fmt(cit)}</span>`
+          ? `所得税(${citPct}%) = <span class="neg">${fmt(cit)}</span>`
           : `所得税 = 0（亏损）`,
         `净利润 = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
-      ]
+        upgradeWarning,
+      ].filter(s => s !== '')
     });
   }
 
@@ -326,6 +418,7 @@ function calcProduct(p, params) {
       grossProfit, grossMargin, cit, netProfit,
       taxInclGP, taxInclGM,
       hasInvoice: false, invType: '无票',
+      isSmallScale: false,
       steps: [
         `无票采购价 = <span class="val">${fmt(costNo)}</span>（无加价，不含税原价进成本）`,
         `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateGeneral).toFixed(2)} = <span class="val">${fmt(sellExVat)}</span>`,
@@ -334,7 +427,7 @@ function calcProduct(p, params) {
         `<span class="warn">◆ 含税口径毛利 = ${fmt(p.price)} - ${fmt(costNo)} = ${fmt(taxInclGP)}（毛利率 ${(taxInclGM*100).toFixed(2)}%）</span>`,
         `<span class="warn">⚠️ 无发票→成本不能税前扣除→纳税调增${fmt(costNo)}</span>`,
         `应纳税所得额 = <span class="warn">${fmt(taxableIncome)}</span>（=全部不含税收入！）`,
-        `所得税(${(citRate*100).toFixed(0)}%) = <span class="neg">${fmt(cit)}</span>`,
+        `所得税(${citPct}%) = <span class="neg">${fmt(cit)}</span>`,
         `净利润 = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
       ]
     });
@@ -353,6 +446,10 @@ function calcProduct(p, params) {
     const taxInclGP = p.price - costNo;
     const taxInclGM = p.price > 0 ? taxInclGP / p.price : 0;
 
+    const upgradeWarning = isSmallScaleAtRisk
+      ? `\n<span class="warn">⚠️ 注意：年销售额超500万将强制升级为一般纳税人！升级后适用13%增值税率且不可逆转！</span>`
+      : '';
+
     results.push({
       label: '③B 无票采购+小规模卖出',
       labelShort: '③B无票+小规模卖出',
@@ -360,6 +457,7 @@ function calcProduct(p, params) {
       grossProfit, grossMargin, cit, netProfit,
       taxInclGP, taxInclGM,
       hasInvoice: false, invType: '无票',
+      isSmallScale: true,
       steps: [
         `无票采购价 = <span class="val">${fmt(costNo)}</span>（无加价，不含税原价进成本）`,
         `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateSmall).toFixed(4)} = <span class="val">${fmt(sellExVat)}</span>`,
@@ -368,9 +466,10 @@ function calcProduct(p, params) {
         `<span class="warn">◆ 含税口径毛利 = ${fmt(p.price)} - ${fmt(costNo)} = ${fmt(taxInclGP)}（毛利率 ${(taxInclGM*100).toFixed(2)}%）</span>`,
         `<span class="warn">⚠️ 无发票→成本不能税前扣除→纳税调增${fmt(costNo)}</span>`,
         `应纳税所得额 = <span class="warn">${fmt(taxableIncome)}</span>（=全部不含税收入！）`,
-        `所得税(${(citRate*100).toFixed(0)}%) = <span class="neg">${fmt(cit)}</span>`,
+        `所得税(${citPct}%) = <span class="neg">${fmt(cit)}</span>`,
         `净利润 = <span class="${netProfit>=0?'pos':'neg'}" style="font-size:15px;font-weight:700">${fmt(netProfit)}</span>`,
-      ]
+        upgradeWarning,
+      ].filter(s => s !== '')
     });
   }
 
@@ -385,6 +484,19 @@ function calculate() {
   }
   const params = getParams();
   document.getElementById('results').style.display = 'block';
+
+  // ====== 小规模升级预警 ======
+  let warningHTML = '';
+  if (params.isSmallScaleAtRisk) {
+    warningHTML = `<div class="warning-box">
+      <div class="title">⚠️ 小规模纳税人升级预警</div>
+      <div>预计年销售额 <strong>${params.annualSales}万元</strong> 已超过500万元红线！</div>
+      <div style="margin-top:4px;">根据2026年新规，连续12个月应税销售额超500万元，<strong>当月1日直接认定为一般纳税人</strong>，不可逆转。</div>
+      <div style="margin-top:4px;">升级影响：增值税从${(params.vatRateSmall*100).toFixed(1)}%征收率 → ${(params.vatRateGeneral*100).toFixed(0)}%税率，可抵扣进项但税率大幅提高。</div>
+      <div style="margin-top:4px;color:var(--warning);">方案②小规模+普票 和 方案③B无票+小规模卖出 仅适用于年销售额＜500万的情况，请谨慎参考！</div>
+    </div>`;
+  }
+  document.getElementById('warningBanner').innerHTML = warningHTML;
 
   // ====== 汇总表 ======
   let summaryHTML = `<table class="data-table">
@@ -406,9 +518,10 @@ function calculate() {
       const cls = i === bestIdx ? 'best-row' : (i === worstIdx ? 'worst-row' : '');
       const badge = i === bestIdx ? ' <span class="badge-best">最优</span>' : (i === worstIdx && results[worstIdx].netProfit < 0 ? ' <span class="badge-worst">最差</span>' : '');
       const margin = r.sellExVat > 0 ? (r.netProfit / r.sellExVat * 100) : 0;
+      const upgradeTag = r.isSmallScale && params.isSmallScaleAtRisk ? ' <span style="color:var(--danger);font-size:11px;">⚠升级风险</span>' : '';
       summaryHTML += `<tr class="${cls}">
         <td style="font-weight:600;">${p.name}</td>
-        <td>${r.labelShort}${badge}</td>
+        <td>${r.labelShort}${badge}${upgradeTag}</td>
         <td>${fmt(r.costExVat)}</td>
         <td style="font-weight:700;color:${r.grossMargin>=0?'var(--info)':'var(--danger)'}">${(r.grossMargin*100).toFixed(2)}%</td>
         <td style="font-weight:600;color:${r.taxInclGM>=0?'var(--warning)':'var(--danger)'}">${(r.taxInclGM*100).toFixed(2)}%</td>
@@ -433,6 +546,9 @@ function calculate() {
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;">`;
 
     results.forEach(r => {
+      const upgradeNote = r.isSmallScale && params.isSmallScaleAtRisk
+        ? '<div style="margin-top:6px;font-size:10px;color:var(--danger);">⚠ 年销售超500万将升级一般纳税人</div>'
+        : '';
       mcHTML += `<div class="glass-sm" style="padding:12px;">
         <div style="font-size:12px;color:var(--primary-light);font-weight:600;margin-bottom:8px;">${r.labelShort}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -447,6 +563,7 @@ function calculate() {
             <div class="note">账面直接减出来的</div>
           </div>
         </div>
+        ${upgradeNote}
       </div>`;
     });
     mcHTML += `</div></div>`;
@@ -462,7 +579,7 @@ function calculate() {
       • <strong>无票采购的</strong>：成本不含税(原价)，但收入含13%税，不含税收入被大幅压低，毛利率反而更低
     </div>
     <div style="margin-top:8px;"><strong>结论：看毛利率只看不含税口径。含税口径是账面未做税分离时的近似值，不能用来判断定价能力。</strong></div>
-  </div></div>`;
+  </div>`;
   document.getElementById('marginCompareSection').innerHTML = mcHTML;
 
   // ====== 详细计算卡片 ======
@@ -483,6 +600,9 @@ function calculate() {
       const isWorst = i === worstIdx && r.netProfit < 0;
       const cardCls = isBest ? 'best' : (isWorst ? 'worst' : '');
       const margin = r.sellExVat > 0 ? (r.netProfit / r.sellExVat * 100) : 0;
+      const upgradeBanner = r.isSmallScale && params.isSmallScaleAtRisk
+        ? '<div style="margin-top:10px;padding:8px 10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;font-size:11px;color:#fca5a5;">⚠️ 此方案年销售额超500万将被强制升级为一般纳税人，届时增值税率从1%升至13%，且不可逆转！请参考方案①重新评估。</div>'
+        : '';
       
       detailHTML += `<div class="glass result-card ${cardCls}" style="padding:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -507,6 +627,7 @@ function calculate() {
         <div style="border-top:1px solid var(--border);padding-top:10px;">
           ${r.steps.map((s, si) => `<div class="calc-step">${si+1}. ${s}</div>`).join('')}
         </div>
+        ${upgradeBanner}
       </div>`;
     });
     detailHTML += '</div>';
@@ -524,9 +645,10 @@ function calculate() {
       results.forEach(r => {
         const totalGross = r.grossProfit * p.qty;
         const totalNet = r.netProfit * p.qty;
+        const upgradeTag = r.isSmallScale && params.isSmallScaleAtRisk ? ' ⚠' : '';
         amtHTML += `<tr>
           <td style="font-weight:600;">${p.name}</td>
-          <td>${r.labelShort}</td>
+          <td>${r.labelShort}${upgradeTag}</td>
           <td>${p.qty}</td>
           <td style="color:${totalGross>=0?'var(--success)':'var(--danger)'}">${totalGross>=0?'+':''}${fmtMoney(totalGross)}元</td>
           <td style="font-weight:700;color:${totalNet>=0?'var(--success)':'var(--danger)'}">${totalNet>=0?'+':''}${fmtMoney(totalNet)}元</td>
@@ -543,6 +665,7 @@ function calculate() {
     
     let bestSchemeIdx = 0, bestTotal = -Infinity;
     const schemeTotals = [];
+    const schemeIsSmallScale = [false, true, false, true];
     schemeNames.forEach((sn, si) => {
       let total = 0;
       products.forEach(p => {
@@ -557,8 +680,9 @@ function calculate() {
     schemeNames.forEach((sn, si) => {
       const total = schemeTotals[si];
       const isBest = si === bestSchemeIdx;
-      amtHTML += `<div class="glass-sm" style="padding:12px;${isBest?'border-color:rgba(16,185,129,0.5);':''}">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">${sn}${isBest?' ✓':''}</div>
+      const isSmallRisk = schemeIsSmallScale[si] && params.isSmallScaleAtRisk;
+      amtHTML += `<div class="glass-sm" style="padding:12px;${isBest?'border-color:rgba(16,185,129,0.5);':''}${isSmallRisk?'border-color:rgba(239,68,68,0.4);':''}">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">${sn}${isBest?' ✓':''}${isSmallRisk?' ⚠升级风险':''}</div>
         <div style="font-size:22px;font-weight:700;color:${total>=0?'var(--success)':'var(--danger)'}">
           ${total>=0?'+':''}${fmtMoney(total)}元
         </div>
