@@ -498,22 +498,35 @@
 
         // 解析经营决算表
         function parseDecisionTable(workbook) {
-            const sheetName = '数据表';
-            const ws = workbook.Sheets[sheetName];
+            // Try multiple sheet names for compatibility
+            let ws = null;
+            const possibleNames = ['数据表', 'Sheet1', 'Sheet0', workbook.SheetNames[0]];
+            for (const name of possibleNames) {
+                if (workbook.Sheets[name]) {
+                    ws = workbook.Sheets[name];
+                    break;
+                }
+            }
             if (!ws) {
-                alert('未找到"数据表"工作表');
+                console.error('可用Sheet:', workbook.SheetNames);
                 return null;
             }
-            const data = XLSX.utils.sheet_to_json(ws, {header: 1});
+            const data = XLSX.utils.sheet_to_json(ws, {header: 1, raw: true, defval: 0});
             return data;
         }
 
         // 解析现金流量表
         function parseCashflowTable(workbook) {
-            let ws = workbook.Sheets['现金流量表'];
-            if (!ws) ws = workbook.Sheets['Sheet1'];
+            let ws = null;
+            const possibleNames = ['现金流量表', 'Sheet1', 'Sheet0', workbook.SheetNames[0]];
+            for (const name of possibleNames) {
+                if (workbook.Sheets[name]) {
+                    ws = workbook.Sheets[name];
+                    break;
+                }
+            }
             if (!ws) return null;
-            const data = XLSX.utils.sheet_to_json(ws, {header: 1});
+            const data = XLSX.utils.sheet_to_json(ws, {header: 1, raw: true, defval: 0});
             return data;
         }
 
@@ -1205,7 +1218,7 @@
                 reader.onload = function(e) {
                     try {
                         const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                        const workbook = XLSX.read(data, { type: 'array' });
 
                         const fileName = file.name.toLowerCase();
                         const item = document.createElement('div');
