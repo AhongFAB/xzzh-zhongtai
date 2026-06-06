@@ -373,6 +373,7 @@ document.getElementById('sStrat').innerHTML=h;
 
 /* 全局分配结果 */
 let allocData = null; // { results: [], entityStatus: [], params: {} }
+let confirmedMap = {}; // { productIndex: true } 记录已确认的选择
 
 /* 初始化A区entity行 */
 function initEntityRows(){
@@ -609,6 +610,7 @@ function calcSmartAlloc(){
   }
 
   allocData = { results, entities, params: { avgGM, specMk, normMk, citType, deemedRate } };
+  confirmedMap = {}; // 每次重新计算重置确认状态
   renderAllocResult(results, entities, { avgGM, specMk, normMk, citType, deemedRate });
   renderDistribution(entities, results);
   document.getElementById('allocResult').style.display = 'block';
@@ -717,7 +719,6 @@ function calcItemProfit(product, entity, specMk, normMk, avgGM, citType, deemedR
   return R;
 }
 
-/* 渲染E区分配结果 */
 function renderAllocResult(results, entities, params){
   const typeColor = {general:'#38bdf8', small:'#34d399', individual:'#a78bfa'};
 
@@ -727,6 +728,21 @@ function renderAllocResult(results, entities, params){
   h += `<div style="font-size:12px;color:var(--t2)">毛利率 ${fP(params.avgGM)} | 专票+${(params.specMk*100).toFixed(0)}% | 普票+${(params.normMk*100).toFixed(0)}%</div>`;
   h += `<button class="btn bs" onclick="exportAllData()" style="font-size:11px;padding:5px 12px;">📤 导出全部数据</button>`;
   h += `</div></div>`;
+
+  // 确认状态汇总
+  const confirmedCount = Object.keys(confirmedMap).length;
+  const totalCount = results.length;
+  const allConfirmed = confirmedCount === totalCount;
+  h += `<div style="background:${allConfirmed?'linear-gradient(135deg,rgba(16,185,129,.1),rgba(16,185,129,.03))':'linear-gradient(135deg,rgba(245,158,11,.1),rgba(245,158,11,.03))'};border:1px solid ${allConfirmed?'rgba(16,185,129,.3)':'rgba(245,158,11,.3)'};border-radius:10px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">`;
+  h += `<div style="font-size:13px;">`;
+  h += allConfirmed
+    ? `<span style="color:var(--ok);font-weight:700">✅ 全部${totalCount}个品种已确认方案</span>`
+    : `<span style="color:var(--wn);font-weight:700">⏳ 已确认 ${confirmedCount}/${totalCount} 个品种</span><span style="color:var(--t2);font-size:12px"> — 请逐个确认最终方案，系统推荐仅供参考</span>`;
+  h += `</div>`;
+  if(!allConfirmed && confirmedCount > 0){
+    h += `<button class="btn bp" onclick="confirmAll()" style="font-size:11px;padding:5px 14px;">✅ 一键全部确认</button>`;
+  }
+  h += `</div>`;
 
   // 分配总览表
   h += `<div style="overflow-x:auto;margin-bottom:20px"><table class="tb" style="min-width:800px"><thead><tr><th style="text-align:left">主体</th><th>类型</th><th>已用(万)</th><th>新分配(万)</th><th>分配后(万)</th><th>限额(万)</th><th>占用率</th><th>状态</th></tr></thead><tbody>`;
@@ -740,14 +756,15 @@ function renderAllocResult(results, entities, params){
   });
   h += `</tbody></table></div>`;
 
-  // 每个品种：五主体完整对比 + 最优推荐
-  h += `<h4 style="font-size:14px;font-weight:600;color:var(--c2);margin-bottom:10px">📋 品种分配明细（五主体完整对比 + 最优推荐）</h4>`;
+  // 每个品种：五主体完整对比 + 最优推荐 + 确认按钮
+  h += `<h4 style="font-size:14px;font-weight:600;color:var(--c2);margin-bottom:10px">📋 品种分配明细（五主体完整对比 + 确认方案）</h4>`;
 
   results.forEach((r, i) => {
     const p = r.product;
     const e = r.entity;
     const profit = r.profit;
     const invLabel = p.invType === 'special' ? '有专票' : p.invType === 'normal' ? '有普票' : '无票';
+    const isConfirmed = !!confirmedMap[i];
 
     // 计算所有5个主体的盈利
     const allProfits = EN.map((en, ei) => {
@@ -755,8 +772,6 @@ function renderAllocResult(results, entities, params){
       pf.entityIdx = ei;
       return pf;
     });
-
-    // 按净利润排序
     const ranked = [...allProfits].sort((a,b) => b.np - a.np);
     ranked.forEach((rp, ri) => { rp.rank = ri + 1; });
     ranked.forEach(rp => { allProfits[rp.entityIdx].rank = rp.rank; });
@@ -765,17 +780,25 @@ function renderAllocResult(results, entities, params){
     const bestEntity = EN[bestProfit.entityIdx];
     const isAutoBest = e.n === bestEntity.n;
 
-    const cardClass = profit.nm >= 0.05 ? 'best' : profit.nm >= 0 ? 'ok' : profit.nm >= -0.05 ? 'warn' : 'bad';
+    // 确认状态决定卡片边框
+    let cardClass;
+    if(isConfirmed){
+      cardClass = 'best'; // 已确认：绿色边框
+    } else {
+      cardClass = 'warn'; // 待确认：黄色边框
+    }
 
-    h += `<div class="rec-card ${cardClass}" style="margin-bottom:14px">`;
+    h += `<div class="rec-card ${cardClass}" style="margin-bottom:14px;${isConfirmed?'border-width:2px;':''}">`;
 
-    // 头部：品种 + 下拉调整
+    // 头部：品种 + 分配选择 + 确认按钮
     h += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">`;
+    // 左侧品种信息
     h += `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">`;
     h += `<span style="font-weight:700;font-size:14px;color:var(--c2)">${p.name}</span>`;
     h += `<span style="background:rgba(139,92,246,.15);color:var(--pu);padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600">${invLabel}</span>`;
     h += `<span style="font-size:11px;color:var(--t2)">进${p.baseCost} × 售${p.sellPrice} × ${p.qty} = ${fW(p.sellPrice*p.qty)}元</span>`;
     h += `</div>`;
+    // 右侧：下拉 + 确认
     h += `<div style="display:flex;align-items:center;gap:8px">`;
     h += `<span style="font-size:12px;color:var(--t2)">分配到：</span>`;
     h += `<select onchange="manualAdjust(${i}, this.value)" style="font-size:12px;padding:4px 8px;width:auto;min-width:110px;background:rgba(14,165,233,.1);border-color:rgba(14,165,233,.3);color:var(--c2);font-weight:600">`;
@@ -783,17 +806,32 @@ function renderAllocResult(results, entities, params){
       const sel = en.n === e.n ? 'selected' : '';
       h += `<option value="${ei}" ${sel}>${en.n}</option>`;
     });
-    h += `</select></div></div>`;
+    h += `</select>`;
+    // 确认按钮
+    if(isConfirmed){
+      h += `<button onclick="unconfirmChoice(${i})" style="font-size:11px;padding:4px 12px;border-radius:8px;border:1px solid rgba(16,185,129,.4);background:rgba(16,185,129,.12);color:var(--ok);font-weight:700;cursor:pointer;">✅ 已确认</button>`;
+    } else {
+      h += `<button onclick="confirmChoice(${i})" style="font-size:11px;padding:4px 12px;border-radius:8px;border:1px solid rgba(245,158,11,.4);background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(245,158,11,.05));color:var(--wn);font-weight:700;cursor:pointer;">⏳ 确认选择</button>`;
+    }
+    h += `</div></div>`;
 
-    // 最优推荐条
+    // 推荐条
     if(!isAutoBest){
       h += `<div style="background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(16,185,129,.04));border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;line-height:1.6">`;
-      h += `<span style="color:var(--ok);font-weight:700">🏆 最优：${bestEntity.n}</span>`;
-      h += `<span style="color:var(--t2)"> — 净利率${fP(bestProfit.nm)}，比当前高<span style="color:var(--ok);font-weight:600"> ${fP(bestProfit.nm - profit.nm)}</span></span>`;
+      h += `<span style="color:var(--ok);font-weight:700">🏆 系统推荐：${bestEntity.n}</span>`;
+      h += `<span style="color:var(--t2)">（净利率${fP(bestProfit.nm)}，比当前高${fP(bestProfit.nm - profit.nm)}）— 仅供参考，以您确认的选择为准</span>`;
       h += `</div>`;
     } else {
       h += `<div style="background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(16,185,129,.02));border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px">`;
-      h += `<span style="color:var(--ok);font-weight:700">🏆 当前已是最优分配</span>`;
+      h += `<span style="color:var(--ok);font-weight:700">🏆 当前选择即系统推荐</span>`;
+      h += `</div>`;
+    }
+
+    // 确认后的最终方案标记
+    if(isConfirmed){
+      h += `<div style="background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(16,185,129,.02));border:1px solid rgba(16,185,129,.25);border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:12px">`;
+      h += `<span style="color:var(--ok);font-weight:700">📌 最终方案：${e.n}</span>`;
+      h += `<span style="color:var(--t2)"> — 净利率 <strong style="color:${profit.nm>=0?'var(--ok)':'var(--ng)'}">${fP(profit.nm)}</strong>，净利润 ${fW(profit.np)}元</span>`;
       h += `</div>`;
     }
 
@@ -815,7 +853,7 @@ function renderAllocResult(results, entities, params){
 
       h += `<tr style="${rowStyle}">`;
       h += `<td style="text-align:center"><span class="rank-badge ${rankBadge}">${pf.rank}</span></td>`;
-      h += `<td style="text-align:left;font-weight:600;color:${typeColor[en.t]};white-space:nowrap">${en.n}${isCurrent ? ' ✅' : ''}</td>`;
+      h += `<td style="text-align:left;font-weight:600;color:${typeColor[en.t]};white-space:nowrap">${en.n}${isCurrent ? (isConfirmed?' 🔒':' ✅') : ''}</td>`;
       h += `<td style="font-size:12px">${pf.invLabel}</td>`;
       h += `<td style="color:${pf.gm>=0?'var(--ok)':'var(--ng)'};font-weight:600">${fP(pf.gm)}</td>`;
       h += `<td style="font-size:12px">${fW(pf.vat||0)}</td>`;
@@ -836,6 +874,60 @@ function renderAllocResult(results, entities, params){
   });
 
   document.getElementById('allocResult').innerHTML = h;
+}
+
+/* 确认选择 */
+function confirmChoice(idx){
+  confirmedMap[idx] = true;
+  if(allocData) renderAllocResult(allocData.results, allocData.entities, allocData.params);
+}
+
+/* 取消确认 */
+function unconfirmChoice(idx){
+  delete confirmedMap[idx];
+  if(allocData) renderAllocResult(allocData.results, allocData.entities, allocData.params);
+}
+
+/* 一键全部确认 */
+function confirmAll(){
+  if(!allocData) return;
+  allocData.results.forEach((r, i) => { confirmedMap[i] = true; });
+  renderAllocResult(allocData.results, allocData.entities, allocData.params);
+}
+
+/* 手动调整分配 */
+function manualAdjust(resultIdx, newEntityIdx){
+  if(!allocData) return;
+  const r = allocData.results[resultIdx];
+  const newEntity = EN[newEntityIdx];
+  const params = allocData.params;
+
+  // 从旧实体移除
+  const oldEntity = allocData.entities[r.entity.idx];
+  const salesWan = r.product.sellPrice * r.product.qty / 10000;
+  oldEntity.remain += salesWan;
+  oldEntity.newAlloc -= salesWan;
+  oldEntity.items = oldEntity.items.filter(it => it.product !== r.product);
+
+  // 计算新品种盈利
+  const profit = calcItemProfit(r.product, newEntity, params.specMk, params.normMk, params.avgGM, params.citType, params.deemedRate);
+
+  // 更新结果
+  r.entity = { ...newEntity, idx: newEntityIdx };
+  r.profit = profit;
+  r.reason = '手动调整→' + newEntity.n;
+
+  // 添加到新实体
+  const targetEntity = allocData.entities[newEntityIdx];
+  targetEntity.remain -= salesWan;
+  targetEntity.newAlloc += salesWan;
+  targetEntity.items.push({ product: r.product, salesWan, invType: r.product.invType });
+
+  // 手动调整后自动确认
+  confirmedMap[resultIdx] = true;
+
+  // 重新渲染
+  renderAllocResult(allocData.results, allocData.entities, allocData.params);
 }
 
 /* 导出全部数据为CSV（下次可直接导入） */
@@ -878,14 +970,15 @@ function exportAllData(){
     if(name) csv += `${name},${baseCost},${sellPrice},${qty},${invType}\n`;
   });
 
-  // E区分配结果（如果有）
+  // E区分配结果（如果有）— 包含确认状态
   if(allocData && allocData.results.length > 0){
     csv += '\n## E区-分配结果\n';
-    csv += '品种名称,分配主体,发票类型,毛利率(%),净利润(元),净利率(%),分配原因\n';
-    allocData.results.forEach(r => {
+    csv += '品种名称,分配主体,发票类型,毛利率(%),净利润(元),净利率(%),已确认,分配原因\n';
+    allocData.results.forEach((r, idx) => {
       const p = r.product;
       const pf = r.profit;
-      csv += `${p.name},${r.entity.n},${pf.invLabel},${(pf.gm*100).toFixed(2)},${pf.np.toFixed(2)},${(pf.nm*100).toFixed(2)},"${r.reason}"\n`;
+      const confirmed = confirmedMap[idx] ? '是' : '否';
+      csv += `${p.name},${r.entity.n},${pf.invLabel},${(pf.gm*100).toFixed(2)},${pf.np.toFixed(2)},${(pf.nm*100).toFixed(2)},${confirmed},"${r.reason}"\n`;
     });
   }
 
@@ -958,13 +1051,11 @@ function importAllData(event){
       productRows.forEach(pr => addProduct(pr.name, pr.baseCost, pr.sellPrice, pr.qty, pr.invType));
     }
 
-    alert('数据导入成功！');
+    alert('数据导入成功！请点击"智能分配"按钮重新计算。');
   };
   reader.readAsText(file);
   event.target.value = '';
 }
-
-  h += `<div style="display:grid;gap:12px;margin-bottom:24px">`;
 
   entities.forEach(e => {
     const totalUsed = e.estSales + e.newAlloc;
