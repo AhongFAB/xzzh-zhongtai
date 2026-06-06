@@ -3,852 +3,331 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>采购成本计算器 | 财务工具箱</title>
+<title>采购成本计算器 V4 | 五主体年度规划</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--primary:#0ea5e9;--primary-light:#38bdf8;--bg-dark:#0f172a;--bg-card:rgba(30,41,59,0.7);--border:rgba(56,189,248,0.15);--text:#e2e8f0;--text-muted:#94a3b8;--success:#10b981;--danger:#ef4444;--warning:#f59e0b;--info:#6366f1}
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0f172a 100%);color:var(--text);min-height:100vh;overflow-x:hidden}
-.orb{position:fixed;border-radius:50%;filter:blur(80px);opacity:.15;pointer-events:none;z-index:0}
-.orb-1{width:500px;height:500px;background:#0ea5e9;top:-100px;right:-100px;animation:d1 20s ease-in-out infinite}
-.orb-2{width:400px;height:400px;background:#8b5cf6;bottom:-50px;left:-50px;animation:d2 25s ease-in-out infinite}
-.orb-3{width:300px;height:300px;background:#0ea5e9;top:50%;left:50%;animation:d3 18s ease-in-out infinite}
-@keyframes d1{0%,100%{transform:translate(0,0)}50%{transform:translate(-60px,80px)}}
-@keyframes d2{0%,100%{transform:translate(0,0)}50%{transform:translate(80px,-60px)}}
-@keyframes d3{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(-30%,-70%)}}
-.glass{background:var(--bg-card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:16px}
-.glass-sm{background:rgba(30,41,59,0.5);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:10px}
-input[type="number"],input[type="text"],select{background:rgba(15,23,42,.8);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:14px;width:100%;outline:none;transition:all .2s}
-input[type="number"]:focus,input[type="text"]:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(14,165,233,.15)}
-input[type="number"]::-webkit-inner-spin-button{opacity:1}
-select option{background:#1e293b;color:var(--text)}
+:root{--c1:#0ea5e9;--c2:#38bdf8;--bg:rgba(30,41,59,0.7);--bd:rgba(56,189,248,0.15);--t1:#e2e8f0;--t2:#94a3b8;--ok:#10b981;--ng:#ef4444;--wn:#f59e0b;--inf:#6366f1;--pu:#a78bfa}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0f172a 100%);color:var(--t1);min-height:100vh;overflow-x:hidden}
+.orb{position:fixed;border-radius:50%;filter:blur(80px);opacity:.12;pointer-events:none;z-index:0}
+.o1{width:500px;height:500px;background:#0ea5e9;top:-100px;right:-100px;animation:a1 20s ease-in-out infinite}
+.o2{width:400px;height:400px;background:#8b5cf6;bottom:-50px;left:-50px;animation:a2 25s ease-in-out infinite}
+@keyframes a1{0%,100%{transform:translate(0,0)}50%{transform:translate(-60px,80px)}}
+@keyframes a2{0%,100%{transform:translate(0,0)}50%{transform:translate(80px,-60px)}}
+.gl{background:var(--bg);backdrop-filter:blur(20px);border:1px solid var(--bd);border-radius:16px;padding:20px;margin-bottom:20px}
+.gs{background:rgba(30,41,59,0.5);backdrop-filter:blur(12px);border:1px solid var(--bd);border-radius:10px;padding:14px}
+input[type="number"],input[type="text"],select{background:rgba(15,23,42,.8);border:1px solid var(--bd);border-radius:8px;color:var(--t1);padding:8px 12px;font-size:14px;width:100%;outline:none;transition:all .2s}
+input:focus,select:focus{border-color:var(--c1);box-shadow:0 0 0 3px rgba(14,165,233,.15)}
+select option{background:#1e293b;color:var(--t1)}
 .btn{padding:10px 24px;border-radius:10px;font-weight:600;cursor:pointer;transition:all .2s;border:none;font-size:14px}
-.btn-primary{background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff}
-.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(14,165,233,.4)}
-.btn-secondary{background:rgba(56,189,248,.1);color:var(--primary-light);border:1px solid var(--border)}
-.btn-secondary:hover{background:rgba(56,189,248,.2)}
-label{font-size:13px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px}
-.result-card{transition:all .3s}.result-card.best{border-color:rgba(16,185,129,.5);box-shadow:0 0 30px rgba(16,185,129,.1)}.result-card.worst{border-color:rgba(239,68,68,.3)}
-.badge-best{background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600}
-.badge-worst{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600}
-.badge-temp{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600}
-.badge-unsustainable{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
-.calc-step{font-size:13px;line-height:1.8;color:var(--text-muted)}
-.calc-step .val{color:var(--primary-light);font-weight:600}
-.calc-step .neg{color:var(--danger);font-weight:600}
-.calc-step .pos{color:var(--success);font-weight:600}
-.calc-step .warn{color:var(--warning);font-weight:600}
-.calc-step .info{color:var(--info);font-weight:600}
-.data-table{width:100%;border-collapse:collapse;font-size:13px}
-.data-table th{background:rgba(14,165,233,.1);color:var(--primary-light);padding:10px 12px;text-align:center;font-weight:600;border-bottom:1px solid var(--border)}
-.data-table td{padding:8px 12px;text-align:center;border-bottom:1px solid rgba(56,189,248,.05)}
-.data-table tr:hover td{background:rgba(14,165,233,.03)}
-.data-table .best-row td{background:rgba(16,185,129,.08)}
-.data-table .worst-row td{background:rgba(239,68,68,.05)}
-.data-table .warn-row td{background:rgba(245,158,11,.06)}
-.product-row{animation:fadeIn .3s ease}
-@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
-.margin-box{padding:14px;border-radius:10px;text-align:center}
-.margin-box .label{font-size:11px;color:var(--text-muted);margin-bottom:4px}
-.margin-box .value{font-size:24px;font-weight:700}
-.margin-box.tax-incl{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3)}.margin-box.tax-incl .value{color:var(--warning)}
-.margin-box.tax-excl{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3)}.margin-box.tax-excl .value{color:var(--success)}
-.margin-box .note{font-size:10px;color:var(--text-muted);margin-top:4px}
-.insight-box{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-radius:10px;padding:14px 16px;margin:12px 0;font-size:13px;color:var(--text);line-height:1.7}
-.insight-box .title{color:var(--info);font-weight:600;margin-bottom:6px}
-.warning-box{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:12px 16px;margin:10px 0;font-size:13px;color:#fca5a5;line-height:1.6}
-.warning-box .title{color:var(--danger);font-weight:600;margin-bottom:4px}
-.cit-info-box{background:rgba(14,165,233,.06);border:1px solid rgba(14,165,233,.2);border-radius:10px;padding:14px 16px;margin:12px 0;font-size:12px;color:var(--text-muted);line-height:1.8}
-.cit-info-box .title{color:var(--primary-light);font-weight:600;margin-bottom:6px;font-size:13px}
-.cit-tier{display:inline-block;padding:2px 8px;border-radius:4px;font-weight:600;margin-right:4px}
-.cit-tier-5{background:rgba(16,185,129,.15);color:#34d399}.cit-tier-9{background:rgba(99,102,241,.15);color:#a5b4fc}.cit-tier-15{background:rgba(245,158,11,.15);color:#fbbf24}.cit-tier-25{background:rgba(239,68,68,.15);color:#f87171}
-.risk-card{background:rgba(30,41,59,.6);backdrop-filter:blur(12px);border-radius:12px;padding:16px;margin-bottom:12px}
-.risk-card.danger{border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.06)}
-.risk-card.warning{border:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.06)}
-.risk-card.info{border:1px solid rgba(14,165,233,.3);background:rgba(14,165,233,.04)}
-.risk-card.success{border:1px solid rgba(16,185,129,.3);background:rgba(16,185,129,.04)}
-.upgrade-compare{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin:8px 0;padding:12px;border-radius:10px;background:rgba(15,23,42,.5)}
-.upgrade-compare .arrow{font-size:24px;color:var(--danger);text-align:center}
-.upgrade-compare .after.danger-val{border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:8px;background:rgba(239,68,68,.05)}
-.strategy-box{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:16px;margin-top:16px}
-.strategy-box .title{color:var(--success);font-weight:700;font-size:15px;margin-bottom:10px}
-.strategy-box .item{margin-bottom:8px;padding-left:16px;position:relative}
-.strategy-box .item::before{content:'\2192';position:absolute;left:0;color:var(--success);font-weight:700}
-.pnl-row{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:0;border-bottom:1px solid rgba(56,189,248,.06);font-size:13px}
-.pnl-row:last-child{border-bottom:none;font-weight:700}
-.pnl-row > div{padding:6px 10px}
-.pnl-row > div:first-child{color:var(--text-muted)}
-.pnl-row > div:nth-child(2),.pnl-row > div:nth-child(3){text-align:right;font-variant-numeric:tabular-nums}
-.pnl-row.header{border-bottom:1px solid var(--border);font-weight:600}
-.pnl-row.header > div{color:var(--primary-light)}
-.pnl-row.total{border-top:2px solid var(--border);font-size:14px}
-.pnl-row.total > div:first-child{color:var(--text);font-weight:700}
-::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(56,189,248,.2);border-radius:3px}
-.footer{text-align:center;padding:20px;color:var(--text-muted);font-size:12px}
+.bp{background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff}
+.bp:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(14,165,233,.4)}
+label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom:3px}
+.ec{background:rgba(30,41,59,0.6);border:1px solid var(--bd);border-radius:12px;padding:14px;transition:all .2s}
+.ec:hover{border-color:rgba(56,189,248,.3)}
+.tb{width:100%;border-collapse:collapse;font-size:13px}
+.tb th{background:rgba(14,165,233,.1);color:var(--c2);padding:10px 8px;text-align:center;font-weight:600;border-bottom:1px solid var(--bd);white-space:nowrap}
+.tb td{padding:8px;text-align:right;border-bottom:1px solid rgba(56,189,248,.05);font-variant-numeric:tabular-nums}
+.tb td:first-child{text-align:left;color:var(--t2);font-size:12px}
+.tb tr.tt td{border-top:2px solid var(--bd);font-weight:700;color:var(--t1)}
+.tb tr.tt td:first-child{color:var(--c2)}
+.rc{background:rgba(30,41,59,.6);backdrop-filter:blur(12px);border-radius:12px;padding:16px;margin-bottom:12px}
+.rc.dg{border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.06)}
+.rc.wn{border:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.06)}
+.sb{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:16px;margin-top:16px}
+.sb .tl{color:var(--ok);font-weight:700;font-size:15px;margin-bottom:10px}
+.sb .it{margin-bottom:8px;padding-left:16px;position:relative;font-size:13px;line-height:1.7}
+.sb .it::before{content:'\2192';position:absolute;left:0;color:var(--ok);font-weight:700}
+.ib{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-radius:10px;padding:14px 16px;margin:12px 0;font-size:13px;color:var(--t1);line-height:1.7}
+.ib .tl{color:var(--inf);font-weight:600;margin-bottom:6px}
+.sh{background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.3);border-radius:10px;padding:14px 16px;margin:12px 0;font-size:13px;line-height:1.7}
+.sh .tl{color:var(--pu);font-weight:600;margin-bottom:6px}
+.tab-b{padding:10px 24px;border:none;border-radius:10px 10px 0 0;cursor:pointer;font-weight:600;font-size:14px;transition:all .2s}
+.tab-b.on{background:var(--bg);color:var(--c2);border:1px solid var(--bd);border-bottom:none}
+.tab-b:not(.on){background:transparent;color:var(--t2)}
+.tab-c{display:none}.tab-c.on{display:block}
+.ft{text-align:center;padding:20px;color:var(--t2);font-size:12px}
+.neg{color:var(--ng)}.pos{color:var(--ok)}
 </style>
 </head>
 <body>
-<div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>
-<div style="position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:20px;">
-  <div style="text-align:center;margin-bottom:24px;">
-    <h1 style="font-size:28px;font-weight:700;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">采购成本计算器</h1>
-    <p style="color:var(--text-muted);font-size:14px;margin-top:4px;">一般纳税人 vs 小规模纳税人 · 含增值税+企业所得税+期间费用+动态风险分析</p>
-  </div>
-
-  <div class="glass" style="padding:20px;margin-bottom:20px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <h2 style="font-size:16px;font-weight:600;color:var(--primary-light);">📊 参数设置</h2>
-      <button class="btn btn-secondary" onclick="addProduct()" style="font-size:13px;padding:6px 16px;">+ 添加品种</button>
-    </div>
-    
-    <div class="glass-sm" style="padding:14px;margin-bottom:16px;">
-      <div style="font-size:13px;color:var(--primary-light);font-weight:600;margin-bottom:10px;">税率参数（全局）</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr) 1.5fr;gap:12px;">
-        <div><label>专票加价(%)</label><input type="number" id="vatMarkup" value="12" step="1" min="0" max="50"></div>
-        <div><label>普票加价(%)</label><input type="number" id="normalMarkup" value="3" step="1" min="0" max="50"></div>
-        <div><label>一般纳税人增值税率(%)</label><input type="number" id="vatRateGeneral" value="13" step="1"></div>
-        <div><label>小规模征收率(%)</label><input type="number" id="vatRateSmall" value="1" step="0.5"></div>
-        <div><label>企业所得税类型</label><select id="citType" onchange="onCitTypeChange()">
-          <option value="5">小微企业(5%)</option><option value="9">西藏鼓励类+地方减免(9%)</option><option value="15">西部鼓励类/高新技术(15%)</option><option value="25">一般企业(25%)</option><option value="custom">自定义</option>
-        </select></div>
-      </div>
-      <div id="customCitRow" style="display:none;margin-top:10px;">
-        <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;"><div><label>自定义所得税率(%)</label><input type="number" id="citRateCustom" value="5" step="1"></div><div></div></div>
-      </div>
-    </div>
-
-    <!-- 年度预测参数 -->
-    <div class="glass-sm" style="padding:14px;margin-bottom:16px;border-color:rgba(245,158,11,.2);">
-      <div style="font-size:13px;color:var(--warning);font-weight:600;margin-bottom:10px;">🏢 年度预测（用于风险分析和完整P&L）</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;">
-        <div><label>预计年销售额(万元) <span style="font-size:10px;color:var(--danger);">← 升级预警</span></label><input type="number" id="annualSales" value="" placeholder="如 4000" step="100"></div>
-        <div><label>预计年期间费用(万元) <span style="font-size:10px;color:var(--warning);">← 管理费+销售费+财务费</span></label><input type="number" id="annualOpex" value="" placeholder="如 500" step="50"></div>
-        <div><label>预计年成本率(%) <span style="font-size:10px;color:var(--text-muted);">← 成本占含税收入比</span></label><input type="number" id="annualCostRatio" value="" placeholder="如 80" step="1"></div>
-        <div><label>其中无票采购占比(%) <span style="font-size:10px;color:var(--danger);">← 影响税前扣除</span></label><input type="number" id="noInvRatio" value="" placeholder="如 30" step="5"></div>
-      </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.6;">
-        💡 期间费用包含：管理费用（工资/社保/房租/折旧/办公/差旅等）+ 销售费用（运费/业务费等）+ 财务费用（利息/手续费等）<br>
-        💡 年成本率：主营业务成本 ÷ 含税收入 × 100%（不含期间费用）<br>
-        💡 无票采购占比：无发票的采购成本 ÷ 总采购成本 × 100%
-      </div>
-    </div>
-
-    <div class="cit-info-box">
-      <div class="title">📋 企业所得税税率说明（2026年现行）</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;">
-        <div><span class="cit-tier cit-tier-5">5%</span> 小微企业：年利润≤300万+人数≤300+资产≤5000万（至2027年底）</div>
-        <div><span class="cit-tier cit-tier-9">9%</span> 西藏鼓励类+地方减免：15%×(1-40%)，需实质性运营（至2027年底）</div>
-        <div><span class="cit-tier cit-tier-15">15%</span> 西部鼓励类产业/高新技术企业（至2030年底）</div>
-        <div><span class="cit-tier cit-tier-25">25%</span> 一般企业：利润超300万全额25%，不是超额累进！</div>
-      </div>
-      <div style="margin-top:6px;color:var(--danger);font-size:11px;">⚠️ 小规模纳税人年应税销售额超过500万元 → 强制升级为一般纳税人，不可逆！</div>
-      <div style="margin-top:4px;color:var(--warning);font-size:11px;">💡 西藏9%条件：鼓励类产业+主营收入占比≥60%+人员在藏缴社保≥6个月+实质性运营（2026年5月新规）</div>
-    </div>
-
-    <div id="productList">
-      <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 40px;gap:10px;padding:0 4px 8px;font-size:12px;color:var(--text-muted);font-weight:600;">
-        <span>品种名称</span><span>不含税单价<br><span style="font-size:10px;font-weight:400;">(有票采购基价)</span></span><span>无票采购价<br><span style="font-size:10px;font-weight:400;">(无票实际进货价)</span></span><span>含税售价</span><span>数量</span><span></span>
-      </div>
-    </div>
-  </div>
-
-  <div style="text-align:center;margin-bottom:24px;">
-    <button class="btn btn-primary" onclick="calculate()" style="font-size:16px;padding:12px 48px;">计 算</button>
-  </div>
-
-  <div id="results" style="display:none;">
-    <div id="riskAnalysisSection"></div>
-    <div id="annualPnlSection"></div>
-    <div class="glass" style="padding:20px;margin-bottom:20px;">
-      <h2 style="font-size:16px;font-weight:600;color:var(--primary-light);margin-bottom:16px;">📋 单品方案对比汇总</h2>
-      <div id="summaryTable" style="overflow-x:auto;"></div>
-    </div>
-    <div id="marginCompareSection"></div>
-    <div id="detailCards"></div>
-  </div>
+<div class="orb o1"></div><div class="orb o2"></div>
+<div style="position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:20px;">
+<div style="text-align:center;margin-bottom:20px;">
+<h1 style="font-size:26px;font-weight:700;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">采购成本计算器 V4</h1>
+<p style="color:var(--t2);font-size:13px;margin-top:4px;">五主体年度规划 · 核定征收无票避风港 · 增值税+所得税+期间费用+动态风险</p>
 </div>
-<div class="footer">开发者：张洪杰 | 西藏中合五金供应链科技有限公司 财务部</div>
+<div style="display:flex;gap:0;margin-bottom:0;">
+<button class="tab-b on" onclick="stab('plan',this)">🏢 五主体年度规划</button>
+<button class="tab-b" onclick="stab('product',this)">📦 单品方案对比</button>
+</div>
+
+<div id="tab-plan" class="tab-c on gl" style="border-radius:0 16px 16px 16px;">
+<h2 style="font-size:16px;font-weight:600;color:var(--c2);margin-bottom:14px;">📊 五家主体配置</h2>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;" id="eCards"></div>
+<div class="gs" style="border-color:rgba(245,158,11,.2);margin-bottom:16px;">
+<div style="font-size:13px;color:var(--wn);font-weight:600;margin-bottom:10px;">🎯 年度经营参数</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr) 1.5fr;gap:12px;">
+<div><label>年度销售目标(万元)</label><input type="number" id="tSales" value="7000" step="100"></div>
+<div><label>成本率(%) <span style="font-size:10px;color:var(--t2)">成本/含税收入</span></label><input type="number" id="cRate" value="80" step="1"></div>
+<div><label>无票采购占比(%) <span style="font-size:10px;color:var(--ng)">仅影响公司类</span></label><input type="number" id="niR" value="50" step="5"></div>
+<div><label>企业所得税类型(公司类)</label><select id="citT"><option value="5">小微企业 5%</option><option value="9">西藏鼓励类 9%</option><option value="15">西部鼓励类 15%</option><option value="25">一般企业 25%</option></select></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">
+<div><label>期间费用率(%) <span style="font-size:10px;color:var(--t2)">管理+销售+财务</span></label><input type="number" id="eRate" value="15" step="1"></div>
+<div><label>个体户核定应税所得率(%) <span style="font-size:10px;color:var(--t2)">核定征收用</span></label><input type="number" id="dRate" value="10" step="1"></div>
+</div>
+<div style="font-size:11px;color:var(--t2);margin-top:8px;line-height:1.6;">
+💡 个体户核定征收：<strong style="color:var(--pu)">不需要成本票</strong>，税=收入×应税所得率×累进税率，无票采购完全不是问题<br>
+💡 无票占比仅影响一般纳税人和小规模：无票成本不能税前扣除→纳税调增→推高应纳税所得额
+</div>
+</div>
+<div style="text-align:center;margin-bottom:20px;">
+<button class="btn bp" onclick="calcPlan()" style="font-size:16px;padding:12px 48px;">🧮 开始规划</button>
+</div>
+<div id="pRes" style="display:none;">
+<div id="sAlloc"></div><div id="sPnL"></div><div id="sHarbor"></div><div id="sImpact"></div><div id="sRisk"></div><div id="sStrat"></div>
+</div>
+</div>
+
+<div id="tab-product" class="tab-c gl" style="border-radius:0 16px 16px 16px;">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+<h2 style="font-size:16px;font-weight:600;color:var(--c2);">📦 单品方案对比</h2>
+<button class="btn bp" onclick="addP()" style="font-size:13px;padding:6px 16px;">+ 添加品种</button>
+</div>
+<div class="gs" style="padding:14px;margin-bottom:16px;">
+<div style="font-size:13px;color:var(--c2);font-weight:600;margin-bottom:10px;">税率参数</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr) 1.5fr;gap:12px;">
+<div><label>专票加价(%)</label><input type="number" id="vm" value="12" step="1"></div>
+<div><label>普票加价(%)</label><input type="number" id="nm" value="3" step="1"></div>
+<div><label>一般纳税人增值税率(%)</label><input type="number" id="vrg" value="13" step="1"></div>
+<div><label>小规模征收率(%)</label><input type="number" id="vrs" value="1" step="0.5"></div>
+<div><label>企业所得税类型</label><select id="cit2"><option value="5">小微企业(5%)</option><option value="9">西藏(9%)</option><option value="15">西部(15%)</option><option value="25">一般(25%)</option></select></div>
+</div>
+</div>
+<div style="font-size:13px;color:var(--ok);font-weight:600;margin-bottom:8px;">📦 品种价格（填这里 ↓）</div>
+<div id="pList"><div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 40px;gap:10px;padding:0 4px 8px;font-size:12px;color:var(--t2);font-weight:600;"><span>品种名称</span><span>不含税单价<br><span style="font-size:10px">(有票基价)</span></span><span>无票采购价<br><span style="font-size:10px">(实际进货价)</span></span><span>含税售价</span><span>数量</span><span></span></div></div>
+<div style="text-align:center;margin:20px 0;"><button class="btn bp" onclick="calcProd()" style="font-size:16px;padding:12px 48px;">计 算</button></div>
+<div id="pRes2" style="display:none;"></div>
+</div>
+</div>
+<div class="ft">开发者：张洪杰 | 西藏中合五金供应链科技有限公司 财务部</div>
 
 <script>
-let productCount=0;
-function onCitTypeChange(){document.getElementById('customCitRow').style.display=document.getElementById('citType').value==='custom'?'block':'none'}
+const EN=[
+{n:'中合五金',t:'general',lb:'一般纳税人',vr:.13,sl:0,ml:0},
+{n:'小规模公司',t:'small',lb:'小规模纳税人',vr:.01,sl:500,ml:0},
+{n:'个体户1',t:'individual',lb:'个体户(核定)',vr:0,sl:90,ml:7.5},
+{n:'个体户2',t:'individual',lb:'个体户(核定)',vr:0,sl:72,ml:6},
+{n:'个体户3',t:'individual',lb:'个体户(核定)',vr:0,sl:72,ml:6}
+];
+const PIT=[{l:3e4,r:.05,d:0},{l:9e4,r:.1,d:1500},{l:3e5,r:.2,d:10500},{l:5e5,r:.3,d:40500},{l:Infinity,r:.35,d:65500}];
+function pitP(y){for(let t of PIT)if(y<=t.l)return Math.max(0,y*t.r-t.d);return 0}
+function gCR(c,w){if(c==='5')return w<=300?.05:.25;if(c==='9')return.09;if(c==='15')return.15;return.25}
+function gCL(c,w){if(c==='5')return w<=300?'5%':'25%悬崖!';if(c==='9')return '9%';if(c==='15')return '15%';return '25%'}
+function fW(n){return n==null||isNaN(n)?'-':n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fP(n){return(n*100).toFixed(2)+'%'}
 
-function addProduct(name='',cost='',noInvCost='',price='',qty=''){
-  productCount++;const id=productCount;const list=document.getElementById('productList');
-  const row=document.createElement('div');row.className='product-row';row.id=`product-${id}`;
-  row.style.cssText='display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 40px;gap:10px;margin-bottom:8px;align-items:center;';
-  row.innerHTML=`<input type="text" value="${name}" placeholder="品种名称" style="background:rgba(15,23,42,.8);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:14px;outline:none;"><input type="number" class="cost-input" value="${cost}" placeholder="不含税单价" step="0.01"><input type="number" class="noinv-input" value="${noInvCost}" placeholder="同左则留空" step="0.01" style="border-color:rgba(245,158,11,.3);"><input type="number" class="price-input" value="${price}" placeholder="含税售价" step="0.01"><input type="number" class="qty-input" value="${qty}" placeholder="数量" step="1"><button onclick="removeProduct(${id})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:18px;padding:4px;">\u00d7</button>`;
-  list.appendChild(row);
+function stab(id,b){document.querySelectorAll('.tab-c').forEach(c=>c.classList.remove('on'));document.querySelectorAll('.tab-b').forEach(x=>x.classList.remove('on'));document.getElementById('tab-'+id).classList.add('on');b.classList.add('on')}
+
+function rCards(){
+const tc={general:'background:rgba(14,165,233,.15);color:#38bdf8',small:'background:rgba(16,185,129,.15);color:#34d399',individual:'background:rgba(139,92,246,.15);color:#a78bfa'};
+document.getElementById('eCards').innerHTML=EN.map(e=>{
+const lim=e.sl>0?e.sl+'万/年':'无上限';const ml=e.ml>0?`(${e.ml}万/月)`:'';
+const vt=e.t==='general'?'增值税13%':e.t==='small'?'征收率1%':'月≤10万免征';
+const tx=e.t==='individual'?'个税(核定征收)':'企业所得税';
+const sp=e.t==='individual'?'✅ 不需要成本票':'⚠️ 无票不能扣除';
+const sc=e.t==='individual'?'var(--pu)':'var(--wn)';
+const up=e.t==='small'?'<div style="color:var(--ng)">⚠️ 超500万强制升级</div>':'';
+return`<div class="ec"><div style="${tc[e.t]};display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:6px">${e.lb}</div><div style="font-weight:600;font-size:14px;margin-bottom:6px">${e.n}</div><div style="font-size:11px;color:var(--t2);line-height:1.7"><div>📊 ${vt}</div><div>📈 ${lim}${ml}</div><div>💰 ${tx}</div><div style="color:${sc}">${sp}</div>${up}</div></div>`
+}).join('')}
+
+function gP(){return{ts:parseFloat(document.getElementById('tSales').value)||0,cr:(parseFloat(document.getElementById('cRate').value)||0)/100,nr:(parseFloat(document.getElementById('niR').value)||0)/100,er:(parseFloat(document.getElementById('eRate').value)||0)/100,dr:(parseFloat(document.getElementById('dRate').value)||10)/100,ct:document.getElementById('citT').value}}
+
+function alloc(p){const a=[0,0,0,0,0];let r=p.ts;for(let i=4;i>=2;i--){if(r<=0)break;a[i]=Math.min(EN[i].sl,r);r-=a[i]}if(r>0){a[1]=Math.min(EN[1].sl,r);r-=a[1]}if(r>0)a[0]=r;return a}
+
+function cE(idx,sw,p){
+const e=EN[idx],cr=p.cr,nr=p.nr,er=p.er;
+const R={sw,type:e.t,name:e.n,wl:true};
+if(e.t==='general'){
+const ri=sw,re=sw/1.13,ov=re*.13,tc=sw*cr,ic=tc*(1-nr),ni=tc*nr,ice=ic/1.13,iv=ice*.13,vd=ov-iv;
+const cogs=ice+ni,gp=re-cogs,opex=sw*er,opl=gp-opex,ta=ni,ti=opl+ta,crate=gCR(p.ct,ti),cit=Math.max(0,ti*crate),np=opl-cit;
+Object.assign(R,{ri,re,ov,tc,ic,ice,ni,iv,vd,cogs,gp,gm:re?gp/re:0,opex,opl,ta,ti,crate,cit,np,nm:re?np/re:0,tl:'企业所得税'});
+}else if(e.t==='small'){
+const ri=sw,re=sw/1.01,vat=re*.01,tc=sw*cr,ic=tc*(1-nr),ni=tc*nr,cogs=tc,gp=re-cogs,opex=sw*er,opl=gp-opex;
+const ta=ni,ti=opl+ta,crate=gCR(p.ct,ti),cit=Math.max(0,ti*crate),np=opl-cit;
+R.wl=sw<=e.sl;
+Object.assign(R,{ri,re,vat,tc,ic,ni,cogs,gp,gm:re?gp/re:0,opex,opl,ta,ti,crate,cit,np,nm:re?np/re:0,tl:'企业所得税',ur:sw>0&&sw>=e.sl*.8});
+}else{
+const ri=sw,ms=sw/12,ve=ms<=10,vat=ve?0:(sw/1.01*.01),re=ve?sw:(sw/1.01);
+const tc=sw*cr,opex=sw*er,ap=re-tc-opex;
+R.wl=sw<=e.sl;
+let ti,pit;
+if(R.wl){ti=ri*p.dr;pit=pitP(ti*1e4)/1e4;if(ti<=200)pit*=.5}
+else{ti=Math.max(0,ap);pit=pitP(ti*1e4)/1e4;if(ti<=200)pit*=.5}
+const np=ap-pit;
+Object.assign(R,{ri,re,vat,ve,tc,opex,ap,ti,pit,np,nm:re?np/re:0,tl:'个人所得税(核定)',dc:R.wl,niI:'无需票',ni:0,ta:0});
 }
-function removeProduct(id){const el=document.getElementById(`product-${id}`);if(el)el.remove()}
-
-function getProducts(){
-  const rows=document.querySelectorAll('.product-row');const products=[];
-  rows.forEach(row=>{const inputs=row.querySelectorAll('input');const name=inputs[0].value.trim()||'未命名';
-    const cost=parseFloat(inputs[1].value);const noInvRaw=parseFloat(inputs[2].value);const price=parseFloat(inputs[3].value);const qty=parseFloat(inputs[4].value)||0;
-    if(!isNaN(cost)&&!isNaN(price)&&cost>0&&price>0)products.push({name,cost,noInvCost:isNaN(noInvRaw)?cost:noInvRaw,price,qty})});
-  return products;
-}
-
-function getParams(){
-  const citTypeVal=document.getElementById('citType').value;
-  let citRate=citTypeVal==='custom'?parseFloat(document.getElementById('citRateCustom').value)/100:parseFloat(citTypeVal)/100;
-  return{
-    vatMarkup:parseFloat(document.getElementById('vatMarkup').value)/100,
-    normalMarkup:parseFloat(document.getElementById('normalMarkup').value)/100,
-    vatRateGeneral:parseFloat(document.getElementById('vatRateGeneral').value)/100,
-    vatRateSmall:parseFloat(document.getElementById('vatRateSmall').value)/100,
-    citRate,citType:citTypeVal,
-    annualSales:parseFloat(document.getElementById('annualSales').value)||0,
-    annualOpex:parseFloat(document.getElementById('annualOpex').value)||0,
-    annualCostRatio:parseFloat(document.getElementById('annualCostRatio').value)||0,
-    noInvRatio:parseFloat(document.getElementById('noInvRatio').value)||0,
-    isSmallScaleAtRisk:parseFloat(document.getElementById('annualSales').value)>500,
-  }
-}
-
-function getCitRateForProfit(citRate,citType,profitWan){
-  // 根据利润自动判断CIT税率
-  if(citType==='5'){
-    return profitWan<=300?0.05:0.25; // 小微企业悬崖
-  }
-  return citRate;
-}
-
-function fmt(n){return n.toFixed(4)}
-function fmtM(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2})}
-function fmtW(n){return (n/10000).toFixed(2)}
-
-function calcProduct(p,params){
-  const{vatMarkup,normalMarkup,vatRateGeneral,vatRateSmall,citRate,citType}=params;
-  const results=[];const citPct=(citRate*100).toFixed(citRate*100%1===0?0:1);
-
-  // 方案① 一般纳税人+专票
-  {
-    const purchase=p.cost*(1+vatMarkup);const costExVat=purchase/(1+vatRateGeneral);
-    const inputVat=purchase/(1+vatRateGeneral)*vatRateGeneral;
-    const sellExVat=p.price/(1+vatRateGeneral);const outputVat=sellExVat*vatRateGeneral;
-    const vatDue=outputVat-inputVat;const grossProfit=sellExVat-costExVat;
-    const grossMargin=sellExVat>0?grossProfit/sellExVat:0;
-    const taxInclGP=p.price-purchase;const taxInclGM=p.price>0?taxInclGP/p.price:0;
-    results.push({
-      label:'① 一般纳税人+专票',labelShort:'①一般+专票',
-      costExVat,purchase,sellExVat,inputVat,outputVat,vatDue,
-      grossProfit,grossMargin,citRate,
-      taxInclGP,taxInclGM,
-      hasInvoice:true,invType:'专票',isSmallScale:false,
-      steps:[
-        `含税采购价 = ${fmt(p.cost)} × (1+${(vatMarkup*100).toFixed(0)}%) = <span class="val">${fmt(purchase)}</span>`,
-        `不含税成本 = ${fmt(purchase)} ÷ ${(1+vatRateGeneral).toFixed(2)} = <span class="val">${fmt(costExVat)}</span>`,
-        `可抵扣进项税 = <span class="val">${fmt(inputVat)}</span>`,
-        `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateGeneral).toFixed(2)} = <span class="val">${fmt(sellExVat)}</span>`,
-        `应缴增值税 = <span class="${vatDue>=0?'val':'pos'}">${fmt(vatDue)}</span>`,
-        `<span class="info">◆ 不含税毛利 = ${fmt(sellExVat)} - ${fmt(costExVat)} = <span class="${grossProfit>=0?'pos':'neg'}">${fmt(grossProfit)}</span>（毛利率 ${(grossMargin*100).toFixed(2)}%）</span>`,
-        `<span class="warn">◆ 含税口径毛利 = ${fmt(p.price)} - ${fmt(purchase)} = ${fmt(taxInclGP)}（毛利率 ${(taxInclGM*100).toFixed(2)}%）</span>`,
-      ]
-    });
-  }
-
-  // 方案② 小规模+普票
-  {
-    const purchase=p.cost*(1+normalMarkup);
-    const sellExVat=p.price/(1+vatRateSmall);const outputVat=sellExVat*vatRateSmall;
-    const grossProfit=sellExVat-purchase;const grossMargin=sellExVat>0?grossProfit/sellExVat:0;
-    const taxInclGP=p.price-purchase;const taxInclGM=p.price>0?taxInclGP/p.price:0;
-    
-    // 升级后情景
-    const upSellExVat=p.price/(1+vatRateGeneral);const upOutputVat=upSellExVat*vatRateGeneral;
-    const upGrossProfit=upSellExVat-purchase;const upGrossMargin=upSellExVat>0?upGrossProfit/upSellExVat:0;
-    
-    results.push({
-      label:'② 小规模+普票',labelShort:'②小规模+普票',
-      costExVat:purchase,purchase,sellExVat,inputVat:0,outputVat,vatDue:outputVat,
-      grossProfit,grossMargin,citRate,
-      taxInclGP,taxInclGM,
-      hasInvoice:true,invType:'普票',isSmallScale:true,
-      upgradeResult:{
-        label:'升级后：一般纳税人+普票',
-        grossProfit:upGrossProfit,grossMargin:upGrossMargin,
-        sellExVat:upSellExVat,netProfit:upGrossProfit, // 粗略，具体要看CIT
-        purchase,costExVat:purchase,
-        steps:[
-          `普票全额进成本，不可抵进项`,
-          `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateGeneral).toFixed(2)} = <span class="val">${fmt(upSellExVat)}</span>`,
-          `应缴增值税 = <span class="neg">${fmt(upOutputVat)}</span>（普票无进项，全额缴${(vatRateGeneral*100).toFixed(0)}%）`,
-          `不含税毛利 = ${fmt(upSellExVat)} - ${fmt(purchase)} = <span class="${upGrossProfit>=0?'pos':'neg'}">${fmt(upGrossProfit)}</span>`,
-          `<span class="pos">✓ 普票成本可税前扣除</span>（和方案③A的关键区别）`,
-        ]
-      },
-      steps:[
-        `含税采购价 = ${fmt(p.cost)} × (1+${(normalMarkup*100).toFixed(0)}%) = <span class="val">${fmt(purchase)}</span>（全额进成本）`,
-        `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateSmall).toFixed(4)} = <span class="val">${fmt(sellExVat)}</span>`,
-        `应缴增值税 = <span class="val">${fmt(outputVat)}</span>（${(vatRateSmall*100).toFixed(1)}%征收率）`,
-        `<span class="info">◆ 不含税毛利 = ${fmt(sellExVat)} - ${fmt(purchase)} = <span class="${grossProfit>=0?'pos':'neg'}">${fmt(grossProfit)}</span>（毛利率 ${(grossMargin*100).toFixed(2)}%）</span>`,
-        `<span class="warn">◆ 含税口径毛利 = ${fmt(p.price)} - ${fmt(purchase)} = ${fmt(taxInclGP)}（毛利率 ${(taxInclGM*100).toFixed(2)}%）</span>`,
-      ]
-    });
-  }
-
-  // 方案③A 无票+一般纳税人卖出
-  {
-    const costNo=p.noInvCost;
-    const sellExVat=p.price/(1+vatRateGeneral);const outputVat=sellExVat*vatRateGeneral;
-    const grossProfit=sellExVat-costNo;const grossMargin=sellExVat>0?grossProfit/sellExVat:0;
-    const taxInclGP=p.price-costNo;const taxInclGM=p.price>0?taxInclGP/p.price:0;
-    results.push({
-      label:'③A 无票采购+一般纳税人卖出',labelShort:'③A无票+一般卖出',
-      costExVat:costNo,purchase:costNo,sellExVat,inputVat:0,outputVat,vatDue:outputVat,
-      grossProfit,grossMargin,citRate,
-      taxInclGP,taxInclGM,
-      hasInvoice:false,invType:'无票',isSmallScale:false,
-      steps:[
-        `无票采购价 = <span class="val">${fmt(costNo)}</span>（无加价，不含税原价进成本）`,
-        `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateGeneral).toFixed(2)} = <span class="val">${fmt(sellExVat)}</span>`,
-        `应缴增值税 = <span class="neg">${fmt(outputVat)}</span>（无进项，全额缴${(vatRateGeneral*100).toFixed(0)}%）`,
-        `<span class="info">◆ 不含税毛利 = ${fmt(sellExVat)} - ${fmt(costNo)} = <span class="${grossProfit>=0?'pos':'neg'}">${fmt(grossProfit)}</span>（毛利率 ${(grossMargin*100).toFixed(2)}%）</span>`,
-        `<span class="warn">⚠️ 无发票→成本不能税前扣除→纳税调增</span>`,
-      ]
-    });
-  }
-
-  // 方案③B 无票+小规模卖出
-  {
-    const costNo=p.noInvCost;
-    const sellExVat=p.price/(1+vatRateSmall);const outputVat=sellExVat*vatRateSmall;
-    const grossProfit=sellExVat-costNo;const grossMargin=sellExVat>0?grossProfit/sellExVat:0;
-    const taxInclGP=p.price-costNo;const taxInclGM=p.price>0?taxInclGP/p.price:0;
-    
-    // 升级后=方案③A
-    const upSellExVat=p.price/(1+vatRateGeneral);const upOutputVat=upSellExVat*vatRateGeneral;
-    const upGrossProfit=upSellExVat-costNo;
-    
-    results.push({
-      label:'③B 无票采购+小规模卖出',labelShort:'③B无票+小规模卖出',
-      costExVat:costNo,purchase:costNo,sellExVat,inputVat:0,outputVat,vatDue:outputVat,
-      grossProfit,grossMargin,citRate,
-      taxInclGP,taxInclGM,
-      hasInvoice:false,invType:'无票',isSmallScale:true,
-      upgradeResult:{
-        label:'升级后：一般纳税人+无票（灾难）',
-        grossProfit:upGrossProfit,grossMargin:upSellExVat>0?upGrossProfit/upSellExVat:0,
-        sellExVat:upSellExVat,netProfit:upGrossProfit,
-        purchase:costNo,costExVat:costNo,
-        steps:[
-          `无票采购价 = <span class="val">${fmt(costNo)}</span>（原价进成本）`,
-          `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateGeneral).toFixed(2)} = <span class="val">${fmt(upSellExVat)}</span>`,
-          `应缴增值税 = <span class="neg">${fmt(upOutputVat)}</span>（无进项，全额缴${(vatRateGeneral*100).toFixed(0)}%）`,
-          `<span class="neg">✗ 无票→成本不能税前扣除→纳税调增</span>`,
-        ]
-      },
-      steps:[
-        `无票采购价 = <span class="val">${fmt(costNo)}</span>（无加价，不含税原价进成本）`,
-        `不含税售价 = ${fmt(p.price)} ÷ ${(1+vatRateSmall).toFixed(4)} = <span class="val">${fmt(sellExVat)}</span>`,
-        `应缴增值税 = <span class="val">${fmt(outputVat)}</span>（${(vatRateSmall*100).toFixed(1)}%征收率）`,
-        `<span class="info">◆ 不含税毛利 = ${fmt(sellExVat)} - ${fmt(costNo)} = <span class="${grossProfit>=0?'pos':'neg'}">${fmt(grossProfit)}</span>（毛利率 ${(grossMargin*100).toFixed(2)}%）</span>`,
-        `<span class="warn">⚠️ 无发票→成本不能税前扣除→纳税调增</span>`,
-      ]
-    });
-  }
-
-  return results;
+return R;
 }
 
-/**
- * 构建年度完整P&L（含期间费用、CIT悬崖）
- */
-function buildAnnualPnL(params){
-  const salesWan=params.annualSales;const opexWan=params.annualOpex;
-  const costRatio=params.annualCostRatio/100;const noInvRatio=params.noInvRatio/100;
-  if(!salesWan||!costRatio) return null;
+function cons(pnls){const c={ri:0,vat:0,cogs:0,gp:0,opex:0,opl:0,ta:0,ti:0,tax:0,np:0};pnls.forEach(p=>{c.ri+=p.ri||0;c.vat+=p.vd||p.vat||0;c.cogs+=p.cogs||p.tc||0;c.gp+=p.gp||0;c.opex+=p.opex||0;c.opl+=p.opl||p.ap||0;c.ta+=p.ta||0;c.ti+=p.ti||0;c.tax+=p.cit||p.pit||0;c.np+=p.np||0});c.gmm=c.ri?c.gp/(c.ri/1.13):0;c.nmm=c.ri?c.np/(c.ri/1.13):0;return c}
 
-  const schemes=[
-    {label:'①一般+专票',isSmall:false,hasInv:true,invType:'special'},
-    {label:'②小规模+普票',isSmall:true,hasInv:true,invType:'normal'},
-    {label:'③A无票+一般',isSmall:false,hasInv:false,invType:'none'},
-    {label:'③B无票+小规模',isSmall:true,hasInv:false,invType:'none'},
-  ];
-
-  const vatGeneral=params.vatRateGeneral;const vatSmall=params.vatRateSmall;
-  const vatMarkup=params.vatMarkup;const normalMarkup=params.normalMarkup;
-
-  return schemes.map(s=>{
-    let revenueExVat, totalCostExVat, vatDue, costDeductible;
-
-    if(s.isSmall){
-      // 小规模：收入/(1+1%)
-      revenueExVat=salesWan/(1+vatSmall)*10000;
-      vatDue=revenueExVat*vatSmall;
-      if(s.hasInv){
-        // 普票：成本=含税收入×成本率×(1+3%加价)，全额进成本
-        const purchaseTotal=salesWan*costRatio*(1+normalMarkup)*10000;
-        totalCostExVat=purchaseTotal; // 普票全额进成本
-        costDeductible=totalCostExVat; // 普票成本可税前扣除
-      }else{
-        // 无票：成本=含税收入×成本率×10000，不含税原价
-        totalCostExVat=salesWan*costRatio*10000;
-        costDeductible=0; // 无票成本不能税前扣除！
-      }
-    }else{
-      // 一般纳税人：收入/(1+13%)
-      revenueExVat=salesWan/(1+vatGeneral)*10000;
-      if(s.hasInv&&s.invType==='special'){
-        // 专票：成本加价12%，可抵进项
-        const purchaseTotal=salesWan*costRatio*(1+vatMarkup)*10000;
-        totalCostExVat=purchaseTotal/(1+vatGeneral);
-        const inputVat=purchaseTotal/(1+vatGeneral)*vatGeneral;
-        const outputVat=revenueExVat*vatGeneral;
-        vatDue=outputVat-inputVat;
-        costDeductible=totalCostExVat;
-      }else{
-        // 普票(升级后)或无票
-        const outputVat=revenueExVat*vatGeneral;
-        vatDue=outputVat; // 无进项
-        if(s.hasInv){
-          // 普票：全额进成本，可税前扣除
-          totalCostExVat=salesWan*costRatio*(1+normalMarkup)*10000;
-          costDeductible=totalCostExVat;
-        }else{
-          // 无票：全额进成本，不能税前扣除
-          totalCostExVat=salesWan*costRatio*10000;
-          costDeductible=0;
-        }
-      }
-    }
-
-    const grossProfit=revenueExVat-totalCostExVat;
-    const opex=opexWan*10000;
-    const profitBeforeTax=grossProfit-opex; // 利润=毛利-期间费用
-    
-    // 计算应纳税所得额（无票成本不能扣除）
-    const taxableIncome=profitBeforeTax+(totalCostExVat-costDeductible); // 纳税调增无票部分
-    const profitWan=taxableIncome/10000;
-    
-    // 自动判断CIT税率
-    let effectiveCitRate;
-    if(params.citType==='5'){
-      effectiveCitRate=profitWan<=300?0.05:0.25;
-    }else{
-      effectiveCitRate=params.citRate;
-    }
-    
-    const cit=Math.max(taxableIncome,0)*effectiveCitRate;
-    const netProfit=profitBeforeTax-cit;
-    const netMargin=revenueExVat>0?netProfit/revenueExVat:0;
-    
-    // 升级后情景
-    let upgrade=null;
-    if(s.isSmall&&params.isSmallScaleAtRisk){
-      // 升级后
-      let upRevenueExVat=salesWan/(1+vatGeneral)*10000;
-      let upTotalCostExVat,upVatDue,upCostDeductible;
-      
-      if(s.hasInv){
-        // 小规模+普票 → 一般+普票
-        upTotalCostExVat=salesWan*costRatio*(1+normalMarkup)*10000;
-        upVatDue=upRevenueExVat*vatGeneral; // 普票无进项
-        upCostDeductible=upTotalCostExVat;
-      }else{
-        // 小规模+无票 → 一般+无票 = ③A
-        upTotalCostExVat=salesWan*costRatio*10000;
-        upVatDue=upRevenueExVat*vatGeneral;
-        upCostDeductible=0;
-      }
-      
-      const upGrossProfit=upRevenueExVat-upTotalCostExVat;
-      const upProfitBeforeTax=upGrossProfit-opex;
-      const upTaxableIncome=upProfitBeforeTax+(upTotalCostExVat-upCostDeductible);
-      const upProfitWan=upTaxableIncome/10000;
-      let upCitRate=params.citType==='5'?(upProfitWan<=300?0.05:0.25):params.citRate;
-      const upCit=Math.max(upTaxableIncome,0)*upCitRate;
-      const upNetProfit=upProfitBeforeTax-upCit;
-      
-      upgrade={
-        label:`${s.label} 升级后`,
-        revenueExVat:upRevenueExVat,totalCostExVat:upTotalCostExVat,
-        grossProfit:upGrossProfit,opex,
-        profitBeforeTax:upProfitBeforeTax,taxableIncome:upTaxableIncome,
-        cit:upCit,netProfit:upNetProfit,citRate:upCitRate,
-        vatDue:upVatDue,profitWan:upProfitWan,
-      };
-    }
-
-    return{
-      label:s.label,isSmall:s.isSmall,hasInv:s.hasInv,invType:s.invType,
-      revenueExVat,totalCostExVat,grossProfit,opex,
-      profitBeforeTax,taxableIncome,cit,netProfit,netMargin,
-      citRate:effectiveCitRate,vatDue,
-      profitWan:profitWan,
-      upgrade,
-    };
-  });
+function calcPlan(){
+const p=gP(),a=alloc(p),pnls=a.map((s,i)=>cE(i,s,p)),c=cons(pnls);
+document.getElementById('pRes').style.display='block';
+rAlloc(a,p,pnls,c);rPnL(pnls,c,p);rHarbor(pnls,p);rImpact(p);rRisk(pnls,a,p);rStrat(pnls,c,p);
+document.getElementById('pRes').scrollIntoView({behavior:'smooth'});
 }
 
-function buildRiskAnalysis(params,products,allResults){
-  const hasAnnualData=params.annualSales>0&&params.annualCostRatio>0;
-  if(!hasAnnualData&&!params.isSmallScaleAtRisk){
-    return '<div class="insight-box"><div class="title">💡 提示</div><div>填写「年度预测」参数后，将显示完整的年度P&L和动态风险分析。</div></div>';
-  }
-
-  let html='<div class="glass" style="padding:20px;margin-bottom:20px;">';
-  html+='<h2 style="font-size:16px;font-weight:600;color:var(--danger);margin-bottom:16px;">🚨 动态风险分析与战略建议</h2>';
-
-  // 1. 小规模升级风险
-  if(params.isSmallScaleAtRisk){
-    html+='<div style="font-size:14px;font-weight:600;color:var(--warning);margin-bottom:10px;">一、小规模纳税人升级风险</div>';
-    html+=`<div class="risk-card danger">
-      <div style="font-size:14px;font-weight:700;color:var(--danger);margin-bottom:8px;">⚠️ 年销售额${params.annualSales}万 远超500万红线 — 小规模路线不可持续！</div>
-      <div style="font-size:13px;line-height:1.8;">
-        <div>连续12个月应税销售额超500万，<strong>当月1日直接认定</strong>为一般纳税人，不可逆转。</div>
-        <div style="margin-top:6px;">所有小规模方案（②和③B）都只是<strong style="color:var(--danger)">临时状态</strong>，升级后方案彻底变样。</div>
-      </div>
-    </div>`;
-    html+='</div>';
-  } else if(params.annualSales>300){
-    html+=`<div class="risk-card warning"><div style="font-size:13px;color:var(--warning);">⚡ 年销售额${params.annualSales}万，距500万红线还有${(500-params.annualSales).toFixed(0)}万，需关注增长速度。</div></div>`;
-  }
-
-  // 2. 企业所得税悬崖
-  if(hasAnnualData){
-    const annualPnl=buildAnnualPnL(params);
-    if(annualPnl){
-      html+='<div style="font-size:14px;font-weight:600;color:var(--warning);margin-bottom:10px;margin-top:16px;">二、企业所得税悬崖分析</div>';
-      
-      // 找出各方案的利润
-      annualPnl.forEach(s=>{
-        const profitWan=s.profitWan;
-        if(params.citType==='5'){
-          if(profitWan>300){
-            html+=`<div class="risk-card danger">
-              <div style="font-size:13px;"><strong style="color:var(--danger)">${s.label}</strong>：应纳税所得额 <strong style="color:var(--danger)">${profitWan.toFixed(1)}万</strong> > 300万 → 全额按25%缴税！</div>
-              <div style="font-size:12px;margin-top:4px;color:var(--text-muted);">所得税 = ${profitWan.toFixed(1)}万 × 25% = <strong style="color:var(--danger)">${(profitWan*0.25).toFixed(1)}万</strong>；若利润≤300万则只需 ${Math.min(profitWan,300).toFixed(1)}万 × 5% = ${(Math.min(profitWan,300)*0.05).toFixed(1)}万</div>
-            </div>`;
-          }else if(profitWan>200){
-            html+=`<div class="risk-card warning">
-              <div style="font-size:13px;"><strong style="color:var(--warning)">${s.label}</strong>：应纳税所得额 ${profitWan.toFixed(1)}万，距300万悬崖还有${(300-profitWan).toFixed(0)}万</div>
-              <div style="font-size:12px;margin-top:4px;color:var(--text-muted);">利润300万→税后285万 | 利润301万→税后225.75万 | 多赚1万税后少59.25万！</div>
-            </div>`;
-          }else{
-            html+=`<div class="risk-card info"><div style="font-size:13px;">${s.label}：应纳税所得额${profitWan.toFixed(1)}万，5%税率安全（距300万还有${(300-profitWan).toFixed(0)}万）</div></div>`;
-          }
-        }
-      });
-
-      // 悬崖可视化
-      if(params.citType==='5'){
-        html+=`<div style="margin:12px 0;padding:12px;background:rgba(15,23,42,.5);border-radius:10px;">
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">税后收入 vs 应纳税所得额（5%→25%悬崖）</div>
-          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;">`;
-        const points=[250,280,295,300,301,320,380];
-        points.forEach(pt=>{
-          const tax=pt<=300?pt*0.05:pt*0.25;const afterTax=pt-tax;
-          const barH=Math.max(afterTax/4,10);
-          const isCliff=pt===301||pt===320;
-          html+=`<div style="display:flex;flex-direction:column;align-items:center;">
-            <div style="font-size:10px;color:${isCliff?'var(--danger)':'var(--text-muted)'}">${afterTax.toFixed(0)}万</div>
-            <div style="width:100%;height:${barH}px;border-radius:3px;background:${isCliff?'var(--danger)':pt<=300?'rgba(16,185,129,.4)':'rgba(239,68,68,.3)'};margin:4px 0;"></div>
-            <div style="font-size:10px;color:${pt>300?'var(--danger)':'var(--text-muted)'}">${pt}万</div>
-          </div>`;
-        });
-        html+='</div><div style="font-size:10px;color:var(--text-muted);margin-top:4px;">绿色=5%税率 | 红色=25%税率（300万是断崖分界线）</div></div>';
-      }
-
-      // 期间费用对CIT悬崖的影响
-      if(params.annualOpex>0&&params.citType==='5'){
-        const profitBeforeOpex=params.annualSales*(1-params.annualCostRatio/100); // 粗估毛利(万)
-        html+=`<div class="insight-box">
-          <div class="title">💡 期间费用对所得税悬崖的影响</div>
-          <div>期间费用${params.annualOpex}万 <strong>可以税前扣除</strong>，直接压低应纳税所得额。</div>
-          <div style="margin-top:4px;">没有期间费用时：应纳税所得额可能远超300万 → 全额25%</div>
-          <div>扣除期间费用后：应纳税所得额可能回到300万以内 → 5%</div>
-          <div style="margin-top:6px;color:var(--success);"><strong>这意味着：期间费用不是坏事</strong>——它合法地把利润压到300万以内，帮你卡住5%税率。关键是费用要<strong>真实、合规、有发票</strong>。</div>
-          <div style="margin-top:4px;color:var(--warning);">但如果无票采购占比${params.noInvRatio}%的那部分成本不能税前扣除，应纳税所得额会被<strong>推高</strong>，更容易掉下悬崖。</div>
-        </div>`;
-      }
-      html+='</div>';
-    }
-  }
-
-  // 3. 综合战略建议
-  html+='<div style="font-size:14px;font-weight:600;color:var(--success);margin-bottom:10px;margin-top:16px;">三、综合战略建议</div>';
-  html+='<div class="strategy-box"><div class="title">🎯 推荐策略</div>';
-  
-  if(params.isSmallScaleAtRisk){
-    html+='<div class="item"><strong>当前年销售额超500万，小规模路线不可持续。</strong>不应以小规模方案的毛利做决策。</div>';
-    html+='<div class="item"><strong>长期最优：方案① 一般纳税人+专票</strong>——唯一可持续的合规路线。专票加价虽然抬高成本，但进项可抵扣、成本可税前扣除。</div>';
-    html+='<div class="item" style="color:var(--danger);"><strong>绝对不要走无票路线！</strong>升级后无票=双重损失（无进项+成本不能税前扣除），直接变亏损。</div>';
-    if(params.noInvRatio>0){
-      html+=`<div class="item" style="color:var(--warning);">当前无票采购占比${params.noInvRatio}%，这部分成本不能税前扣除，推高了应纳税所得额。建议逐步要求供应商开票（哪怕加3%拿普票），成本可税前扣除后整体更划算。</div>`;
-    }
-  }else if(params.annualSales>300){
-    html+=`<div class="item">年销售额${params.annualSales}万，距500万还有${(500-params.annualSales).toFixed(0)}万空间，小规模方案短期可用。</div>';
-    html+='<div class="item">但必须提前和供应商谈好：一旦升级需提供专票或至少普票。</div>';
-    html+='<div class="item" style="color:var(--danger);">无票采购始终是高风险选项，升级后就是陷阱。</div>';
-  }else if(params.annualSales>0){
-    html+=`<div class="item">年销售额${params.annualSales}万，小规模路线当前可持续。</div>`;
-    html+='<div class="item">方案②小规模+普票在年销售<500万时通常是较优选择。</div>';
-  }
-
-  if(params.annualOpex>0&&params.citType==='5'){
-    html+='<div class="item">期间费用是你的<strong>合法避税工具</strong>——它把利润压到300万以内卡5%税率。所以该花的钱（工资、社保、折旧、房租）大胆花，只要真实合规有票。</div>';
-    html+='<div class="item" style="color:var(--warning);">但要注意：利润压到300万以内的前提是<strong>成本有票</strong>。无票成本不能税前扣除，反而把应纳税所得额推高。</div>';
-  }
-
-  html+='</div>';
-
-  // 4. 非量化风险
-  html+=`<div class="risk-card warning" style="margin-top:12px;">
-    <div style="font-size:14px;font-weight:600;color:var(--warning);margin-bottom:8px;">⚠️ 非量化风险提醒</div>
-    <div style="font-size:12px;line-height:1.8;">
-      <div><strong>1. 税务稽查风险</strong>：无票采购=成本无法证明真实性，金税四期大数据比对易发现异常</div>
-      <div><strong>2. 供应链风险</strong>：长期无票采购，供应商配合意愿下降（他们也有合规压力）</div>
-      <div><strong>3. 融资信用风险</strong>：银行贷款看重税务记录，成本无票影响信用评估</div>
-      <div><strong>4. 审计风险</strong>：成本无发票，审计时无法确认真实性，可能出具保留意见</div>
-      <div><strong>5. 追溯风险</strong>：升级为一般纳税人后，之前年度的无票采购可能被追溯调整</div>
-    </div>
-  </div>`;
-
-  html+='</div>';
-  return html;
+function rAlloc(a,p,pnls,c){
+const sc={general:'#38bdf8',small:'#34d399',individual:'#a78bfa'};
+const sl=(s,i)=>{const e=EN[i];if(!s)return'<span style="color:var(--t2)">未分配</span>';if(e.t==='individual')return s<=e.sl?'<span style="color:var(--pu)">✅ 核定(无需票)</span>':'<span style="color:var(--ng)">⚠️ 超限→查账</span>';if(e.t==='small')return s>=e.sl?'<span style="color:var(--ng)">⚠️ 触发升级</span>':s>=e.sl*.8?'<span style="color:var(--wn)">⚡ 接近升级线</span>':'<span style="color:var(--ok)">✅ 安全</span>';return'<span style="color:var(--c2)">📌 承担剩余</span>'};
+let h=`<h3 style="font-size:15px;font-weight:600;color:var(--c2);margin-bottom:12px">📋 智能分配方案（个体户优先→小规模→一般纳税人）</h3>`;
+h+=`<div style="overflow-x:auto"><table class="tb" style="min-width:750px"><thead><tr><th style="text-align:left;width:120px">主体</th><th>类型</th><th>分配(万)</th><th>占比</th><th>限额(万/年)</th><th>无票影响</th><th>状态</th></tr></thead><tbody>`;
+a.forEach((s,i)=>{const e=EN[i];const pct=p.ts>0?(s/p.ts*100).toFixed(1)+'%':'-';const lim=e.sl>0?e.sl:'无上限';
+const ni=e.t==='individual'?'<span style="color:var(--pu);font-weight:600">无需票</span>':'<span style="color:var(--ng)">有影响</span>';
+h+=`<tr><td style="text-align:left;font-weight:600;color:${sc[e.t]}">${e.n}</td><td>${e.lb}</td><td style="font-weight:600">${fW(s)}</td><td>${pct}</td><td>${lim}</td><td>${ni}</td><td>${sl(s,i)}</td></tr>`});
+h+=`<tr class="tt"><td style="text-align:left">合计</td><td></td><td>${fW(p.ts)}</td><td>100%</td><td></td><td></td><td></td></tr></tbody></table></div>`;
+h+=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px">
+<div style="text-align:center;padding:14px;background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);border-radius:10px"><div style="font-size:11px;color:var(--t2)">总销售收入</div><div style="font-size:22px;font-weight:700;color:var(--c2)">${fW(c.ri)}万</div></div>
+<div style="text-align:center;padding:14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px"><div style="font-size:11px;color:var(--t2)">总税负</div><div style="font-size:22px;font-weight:700;color:var(--ng)">${fW(c.vat+c.tax)}万</div></div>
+<div style="text-align:center;padding:14px;background:${c.np>=0?'rgba(16,185,129,.08)':'rgba(239,68,68,.08)'};border:1px solid ${c.np>=0?'rgba(16,185,129,.2)':'rgba(239,68,68,.2)'};border-radius:10px"><div style="font-size:11px;color:var(--t2)">总净利润</div><div style="font-size:22px;font-weight:700;color:${c.np>=0?'var(--ok)':'var(--ng)'}">${fW(c.np)}万</div></div>
+<div style="text-align:center;padding:14px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:10px"><div style="font-size:11px;color:var(--t2)">综合净利率</div><div style="font-size:22px;font-weight:700;color:var(--inf)">${fP(c.nmm)}</div></div></div>`;
+document.getElementById('sAlloc').innerHTML=h;
 }
 
-/**
- * 年度完整P&L展示
- */
-function buildAnnualPnLSection(params){
-  if(!params.annualSales||!params.annualCostRatio) return '';
-  const annualPnl=buildAnnualPnL(params);
-  if(!annualPnl) return '';
-
-  let html='<div class="glass" style="padding:20px;margin-bottom:20px;">';
-  html+='<h2 style="font-size:16px;font-weight:600;color:var(--primary-light);margin-bottom:16px;">📊 年度完整利润表（含期间费用）</h2>';
-  html+=`<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">基于：年销售额${params.annualSales}万 · 成本率${params.annualCostRatio}% · 期间费用${params.annualOpex||0}万 · 无票占比${params.noInvRatio||0}%</div>`;
-
-  // 用表格展示
-  html+='<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>项目</th>';
-  annualPnl.forEach(s=>html+=`<th>${s.label}${s.isSmall&&params.isSmallScaleAtRisk?' ⚠':''}</th>`);
-  html+='</tr></thead><tbody>';
-
-  const rows=[
-    {label:'含税销售额',key:'revTax',fmt:v=>fmtM(v)+'元'},
-    {label:'减：增值税',key:'vat',fmt:v=>fmtM(v)+'元'},
-    {label:'不含税收入',key:'revEx',fmt:v=>fmtM(v)+'元'},
-    {label:'减：不含税成本',key:'costEx',fmt:v=>fmtM(v)+'元'},
-    {label:'毛利',key:'gross',fmt:v=>fmtM(v)+'元',bold:true},
-    {label:'毛利率',key:'gm',fmt:v=>v.toFixed(2)+'%',pct:true},
-    {label:'减：期间费用',key:'opex',fmt:v=>fmtM(v)+'元'},
-    {label:'营业利润',key:'ebit',fmt:v=>fmtM(v)+'元',bold:true},
-    {label:'纳税调增（无票成本）',key:'adj',fmt:v=>fmtM(v)+'元',warn:true},
-    {label:'应纳税所得额',key:'taxable',fmt:v=>fmtM(v)+'元（'+(v/10000).toFixed(1)+'万）',bold:true},
-    {label:'所得税',key:'cit',fmt:v=>fmtM(v)+'元',rateKey:'citRate'},
-    {label:'净利润',key:'net',fmt:v=>fmtM(v)+'元',bold:true,final:true},
-    {label:'净利率',key:'nm',fmt:v=>v.toFixed(2)+'%',pct:true},
-  ];
-
-  rows.forEach(row=>{
-    const isBold=row.bold;const isFinal=row.final;const isWarn=row.warn;
-    html+=`<tr${isFinal?' style="border-top:2px solid var(--border);"':''}>`;
-    html+=`<td style="text-align:left;font-weight:${isBold?700:400};color:${isWarn?'var(--warning)':isBold?'var(--text)':'var(--text-muted)'}">${row.label}</td>`;
-    annualPnl.forEach(s=>{
-      let val;
-      switch(row.key){
-        case 'revTax':val=params.annualSales*10000;break;
-        case 'vat':val=s.vatDue;break;
-        case 'revEx':val=s.revenueExVat;break;
-        case 'costEx':val=s.totalCostExVat;break;
-        case 'gross':val=s.grossProfit;break;
-        case 'gm':val=s.revenueExVat>0?s.grossProfit/s.revenueExVat*100:0;break;
-        case 'opex':val=s.opex;break;
-        case 'ebit':val=s.profitBeforeTax;break;
-        case 'adj':val=s.totalCostExVat-s.taxableIncome+s.profitBeforeTax;break; // 无票调增额
-        case 'taxable':val=s.taxableIncome;break;
-        case 'cit':val=s.cit;break;
-        case 'net':val=s.netProfit;break;
-        case 'nm':val=s.netMargin*100;break;
-      }
-      const colorClass=val<0?'var(--danger)':isWarn?'var(--warning)':isBold?'var(--text)':'var(--text-muted)';
-      let display=row.fmt(val);
-      if(row.rateKey)display+=` (${(s[row.rateKey]*100).toFixed(0)}%)`;
-      html+=`<td style="font-weight:${isBold?700:400};color:${colorClass}">${display}</td>`;
-    });
-    html+='</tr>';
-  });
-
-  // 升级后情景
-  if(params.isSmallScaleAtRisk){
-    html+='<tr><td colspan="5" style="border:none;height:16px;"></td></tr>';
-    html+='<tr><td style="text-align:left;font-weight:700;color:var(--danger);font-size:14px;" colspan="5">🔄 升级后情景（必然发生）</td></tr>';
-    
-    const upgradeRows=[
-      {label:'不含税收入',key:'revEx'},
-      {label:'减：不含税成本',key:'costEx'},
-      {label:'毛利',key:'gross'},
-      {label:'减：期间费用',key:'opex'},
-      {label:'营业利润',key:'ebit'},
-      {label:'应纳税所得额',key:'taxable'},
-      {label:'所得税',key:'cit'},
-      {label:'净利润',key:'net'},
-    ];
-
-    upgradeRows.forEach(row=>{
-      const isBold=row.key==='net'||row.key==='gross'||row.key==='ebit';
-      html+=`<tr><td style="text-align:left;font-weight:${isBold?700:400};color:var(--text-muted)">${row.label}</td>`;
-      annualPnl.forEach(s=>{
-        if(s.upgrade){
-          let val;
-          switch(row.key){
-            case 'revEx':val=s.upgrade.revenueExVat;break;
-            case 'costEx':val=s.upgrade.totalCostExVat;break;
-            case 'gross':val=s.upgrade.grossProfit;break;
-            case 'opex':val=s.upgrade.opex;break;
-            case 'ebit':val=s.upgrade.profitBeforeTax;break;
-            case 'taxable':val=s.upgrade.taxableIncome;break;
-            case 'cit':val=s.upgrade.cit;break;
-            case 'net':val=s.upgrade.netProfit;break;
-          }
-          html+=`<td style="font-weight:${isBold?700:400};color:${val<0?'var(--danger)':isBold?'var(--text)':'var(--text-muted)'}">${fmtM(val)}元</td>`;
-        }else{
-          html+=`<td style="color:var(--text-muted)">—</td>`;
-        }
-      });
-      html+='</tr>';
-    });
-
-    // 升级前后净利润对比
-    html+='<tr><td style="text-align:left;font-weight:700;color:var(--danger)">利润变动</td>';
-    annualPnl.forEach(s=>{
-      if(s.upgrade){
-        const diff=s.upgrade.netProfit-s.netProfit;
-        html+=`<td style="font-weight:700;color:var(--danger)">${diff>=0?'+':''}${fmtM(diff)}元</td>`;
-      }else{
-        html+=`<td style="color:var(--text-muted)">—</td>`;
-      }
-    });
-    html+='</tr>';
-  }
-
-  html+='</tbody></table></div>';
-
-  // 关键结论
-  html+='<div class="insight-box" style="margin-top:12px;"><div class="title">🔑 关键结论</div>';
-  
-  // 找出长期最优
-  let bestLabel='';let bestNet=-Infinity;
-  annualPnl.forEach(s=>{
-    const effectiveNet=s.isSmall&&params.isSmallScaleAtRisk&&s.upgrade?s.upgrade.netProfit:s.netProfit;
-    if(effectiveNet>bestNet){bestNet=effectiveNet;bestLabel=s.label;}
-  });
-  
-  html+=`<div><strong>长期最优方案：${bestLabel}</strong>（考虑升级后情景的净利润）</div>`;
-  
-  const noInvSchemes=annualPnl.filter(s=>!s.hasInv);
-  noInvSchemes.forEach(s=>{
-    if(s.netProfit>0){
-      html+=`<div style="color:var(--warning);">${s.label}短期净利润${fmtM(s.netProfit)}元，但${s.isSmall&&params.isSmallScaleAtRisk?'升级后净利润'+fmtM(s.upgrade.netProfit)+'元':'无票成本不能税前扣除'}，长期不可持续。</div>`;
-    }
-  });
-  
-  if(params.annualOpex>0&&params.citType==='5'){
-    const anyOver300=annualPnl.some(s=>s.profitWan>300);
-    if(anyOver300){
-      html+=`<div style="color:var(--danger);">部分方案应纳税所得额超300万，触发5%→25%悬崖！期间费用${params.annualOpex}万已扣除但还不够。</div>`;
-    }else{
-      html+=`<div style="color:var(--success);">所有方案应纳税所得额均在300万以内，5%税率安全。期间费用${params.annualOpex}万的税前扣除功不可没。</div>`;
-    }
-  }
-  
-  html+='</div></div>';
-  return html;
+function rPnL(pnls,c,p){
+const types=EN.map(e=>e.t);
+const tbg={general:'rgba(14,165,233,.08)',small:'rgba(16,185,129,.08)',individual:'rgba(139,92,246,.08)'};
+const rows=[
+{l:'含税收入',k:'ri',a:1},{l:'增值税',k:'_vat',a:1,c:x=>x.vd||x.vat||0},
+{l:'不含税收入',k:'_re',a:1,c:x=>x.re||0},
+{l:'主营成本(有票)',k:'_ic',a:1,c:x=>x.ice||x.ic||0},
+{l:'主营成本(无票)',k:'ni',t:['general','small'],fb:'无需票✅',c:x=>x.ni||0},
+{l:'成本合计',k:'cogs',t:['general','small']},
+{l:'实际成本(全部)',k:'tc',t:['individual'],fb:'-',c:x=>x.tc||0},
+{l:'毛利',k:'gp',a:1},
+{l:'毛利率(不含税)',k:'_gm',a:1,c:x=>x.gm||(x.ap!==undefined&&x.re?(x.re-x.tc)/x.re:0),f:'pct'},
+{l:'期间费用',k:'opex',a:1},
+{l:'营业利润',k:'_op',a:1,c:x=>x.opl||x.ap||0},
+{l:'纳税调增(无票成本)',k:'ta',t:['general','small'],fb:'不适用✅'},
+{l:'应纳税所得额',k:'ti',a:1},
+{l:'适用税率',k:'_tr',a:1,c:x=>{if(x.crate!==undefined)return gCL(p.ct,x.ti);return x.dc?'核定'+fP(p.dr)+'×累进':'累进5-35%'},f:'txt'},
+{l:'所得税',k:'_tax',a:1,c:x=>x.cit||x.pit||0},
+{l:'净利润',k:'np',a:1,b:1},
+{l:'净利率',k:'_nm',a:1,c:x=>x.nm||(x.np&&x.re?x.np/x.re:0),f:'pct'},
+];
+let h=`<h3 style="font-size:15px;font-weight:600;color:var(--c2);margin:24px 0 12px">📊 五主体P&L对比（单位：万元）</h3>`;
+h+=`<div style="overflow-x:auto"><table class="tb" style="min-width:950px"><thead><tr><th style="text-align:left;width:150px">项目</th>`;
+EN.forEach((e,i)=>{h+=`<th style="background:${tbg[e.t]}">${e.n}<br><span style="font-size:10px;font-weight:400">${e.lb}</span></th>`});
+h+=`<th style="background:rgba(245,158,11,.1)">合计</th></tr></thead><tbody>`;
+rows.forEach(row=>{
+const ap=i=>row.a||row.t&&row.t.includes(types[i]);
+h+=`<tr${row.b?' class="tt"':''}><td>${row.l}</td>`;
+let cv=0,cvv=true;
+pnls.forEach((x,i)=>{
+if(!ap(i)){h+=`<td style="color:var(--pu);font-weight:600">${row.fb||'-'}</td>`;return}
+let v=row.c?row.c(x):x[row.k];
+if(row.f==='pct'){h+=`<td>${fP(v)}</td>`;cvv=false;return}
+if(row.f==='txt'){h+=`<td style="font-size:12px;color:var(--wn)">${v}</td>`;cvv=false;return}
+if(typeof v==='number'){cv+=v;h+=`<td class="${v<0?'neg':v>0?'pos':''}">${fW(v)}</td>`}
+else h+=`<td>${v}</td>`});
+if(row.f==='pct')h+=`<td>${fP(c.nmm||0)}</td>`;
+else if(row.f!=='txt'&&cvv)h+=`<td class="${cv<0?'neg':cv>0?'pos':''}" style="font-weight:600">${fW(cv)}</td>`;
+else h+=`<td>-</td>`;
+h+=`</tr>`});
+h+=`</tbody></table></div>`;
+document.getElementById('sPnL').innerHTML=h;
 }
 
-function calculate(){
-  const products=getProducts();
-  if(products.length===0){alert('请至少添加一个品种并填写不含税单价和含税售价');return}
-  const params=getParams();
-  document.getElementById('results').style.display='block';
-
-  const allResults={};
-  products.forEach(p=>{allResults[p.name]=calcProduct(p,params)});
-
-  // 风险分析（置顶）
-  document.getElementById('riskAnalysisSection').innerHTML=buildRiskAnalysis(params,products,allResults);
-
-  // 年度完整P&L
-  document.getElementById('annualPnlSection').innerHTML=buildAnnualPnLSection(params);
-
-  // 汇总表
-  let summaryHTML=`<table class="data-table"><thead><tr><th>品种</th><th>方案</th><th>不含税成本</th><th>不含税毛利率</th><th>含税口径毛利率</th><th>当前净利润/单位</th><th>升级后净利润/单位</th></tr></thead><tbody>`;
-  products.forEach(p=>{
-    const results=allResults[p.name];
-    results.forEach((r,i)=>{
-      const isSmallRisk=r.isSmallScale&&params.isSmallScaleAtRisk;
-      const isBest=!isSmallRisk&&i===0; // 粗略
-      const rowCls=isSmallRisk?'warn-row':(isBest?'best-row':'');
-      const upgradeNet=r.upgradeResult?r.upgradeResult.netProfit:null;
-      const upgradeDisplay=upgradeNet!==null?`<span style="color:${upgradeNet>=0?'var(--warning)':'var(--danger)'}">${fmt(upgradeNet)}</span>`:'<span style="color:var(--text-muted)">—</span>';
-      const badge=isSmallRisk?' <span class="badge-unsustainable">不可持续</span>':(r.hasInvoice&&r.invType==='专票'?' <span class="badge-best">可持续</span>':'');
-      summaryHTML+=`<tr class="${rowCls}"><td style="font-weight:600">${p.name}</td><td>${r.labelShort}${badge}</td><td>${fmt(r.costExVat)}</td><td style="font-weight:700;color:${r.grossMargin>=0?'var(--info)':'var(--danger)'}">${(r.grossMargin*100).toFixed(2)}%</td><td style="font-weight:600;color:${r.taxInclGM>=0?'var(--warning)':'var(--danger)'}">${(r.taxInclGM*100).toFixed(2)}%</td><td style="font-weight:700;color:${r.grossProfit>=0?'var(--success)':'var(--danger)'}">${fmt(r.grossProfit)}</td><td>${upgradeDisplay}</td></tr>`;
-    });
-    summaryHTML+='<tr><td colspan="7" style="border:none;height:8px"></td></tr>';
-  });
-  summaryHTML+='</tbody></table>';
-  if(params.isSmallScaleAtRisk)summaryHTML+=`<div style="font-size:11px;color:var(--danger);margin-top:8px">⚠️ 「升级后净利润」列：小规模方案被强制升级后的单位净利润。当前看着最优，升级后可能变最差。</div>`;
-  document.getElementById('summaryTable').innerHTML=summaryHTML;
-
-  // 毛利率对比
-  let mcHTML=`<div class="glass" style="padding:20px;margin-bottom:20px;"><h2 style="font-size:16px;font-weight:600;color:var(--primary-light);margin-bottom:16px;">🔍 毛利率口径对比</h2>`;
-  products.forEach(p=>{
-    const results=allResults[p.name];
-    mcHTML+=`<div style="margin-bottom:16px"><div style="font-size:14px;font-weight:600;margin-bottom:10px">${p.name}</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px">`;
-    results.forEach(r=>{
-      const isSmallRisk=r.isSmallScale&&params.isSmallScaleAtRisk;
-      mcHTML+=`<div class="glass-sm" style="padding:12px;${isSmallRisk?'border-color:rgba(239,68,68,.3)':''}"><div style="font-size:12px;color:var(--primary-light);font-weight:600;margin-bottom:8px">${r.labelShort}${isSmallRisk?' ⚠':''}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="margin-box tax-excl"><div class="label">不含税毛利率</div><div class="value">${(r.grossMargin*100).toFixed(2)}%</div><div class="note">真实经营毛利</div></div><div class="margin-box tax-incl"><div class="label">含税口径毛利率</div><div class="value">${(r.taxInclGM*100).toFixed(2)}%</div><div class="note">账面近似值</div></div></div>${isSmallRisk?'<div style="margin-top:6px;font-size:10px;color:var(--danger)">⚠ 升级后毛利率将大幅下降</div>':''}</div>`;
-    });
-    mcHTML+='</div></div>';
-  });
-  mcHTML+=`<div class="insight-box"><div class="title">💡 毛利率口径说明</div><div><strong>不含税毛利率</strong>=真实经营毛利；<strong>含税口径毛利率</strong>=账面直接减出来的，被税率扭曲。看毛利率只看不含税口径。</div></div>`;
-  document.getElementById('marginCompareSection').innerHTML=mcHTML;
-
-  // 详细卡片
-  let detailHTML='';
-  products.forEach(p=>{
-    const results=allResults[p.name];
-    detailHTML+=`<h3 style="font-size:18px;font-weight:600;margin:20px 0 12px">${p.name}</h3>`;
-    detailHTML+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">';
-    results.forEach(r=>{
-      const isSmallRisk=r.isSmallScale&&params.isSmallScaleAtRisk;
-      let cardCls=isSmallRisk?'worst':(r.hasInvoice&&r.invType==='专票'?'best':'');
-      let badgeHTML=r.hasInvoice&&r.invType==='专票'?'<span class="badge-best">✓ 可持续</span>':'';
-      if(isSmallRisk)badgeHTML+=' <span class="badge-unsustainable">不可持续</span>';
-      if(!r.hasInvoice)badgeHTML+=' <span class="badge-worst">✗ 无票</span>';
-
-      let upgradeHTML='';
-      if(r.upgradeResult&&isSmallRisk){
-        upgradeHTML=`<div style="margin-top:12px;padding:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px">
-          <div style="font-size:12px;color:var(--danger);font-weight:700;margin-bottom:6px">🔄 升级后情景</div>
-          <div style="font-size:11px;line-height:1.6;color:var(--text-muted)">${r.upgradeResult.steps.map((s,si)=>`<div>${si+1}. ${s}</div>`).join('')}</div>
-        </div>`;
-      }
-
-      detailHTML+=`<div class="glass result-card ${cardCls}" style="padding:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <span style="font-weight:600;font-size:14px;color:var(--primary-light)">${r.label}</span>${badgeHTML}
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
-          <div style="text-align:center;padding:8px;background:rgba(99,102,241,.1);border-radius:8px"><div style="font-size:10px;color:var(--text-muted)">不含税毛利率</div><div style="font-size:18px;font-weight:700;color:var(--info)">${(r.grossMargin*100).toFixed(2)}%</div></div>
-          <div style="text-align:center;padding:8px;background:rgba(245,158,11,.1);border-radius:8px"><div style="font-size:10px;color:var(--text-muted)">含税口径毛利率</div><div style="font-size:18px;font-weight:700;color:var(--warning)">${(r.taxInclGM*100).toFixed(2)}%</div></div>
-        </div>
-        <div style="border-top:1px solid var(--border);padding-top:10px">${r.steps.map((s,si)=>`<div class="calc-step">${si+1}. ${s}</div>`).join('')}</div>
-        ${upgradeHTML}
-      </div>`;
-    });
-    detailHTML+='</div>';
-  });
-  document.getElementById('detailCards').innerHTML=detailHTML;
-  document.getElementById('results').scrollIntoView({behavior:'smooth'});
+function rHarbor(pnls,p){
+const ip=pnls.filter(x=>x.type==='individual'),is=ip.reduce((s,x)=>s+x.sw,0);
+const tc=p.ts*p.cr,nc=tc*p.nr,us=Math.max(0,nc-is*p.cr);
+let h=`<div class="sh"><div class="tl">🏦 个体户：无票避风港（核定征收，不需要成本票）</div>`;
+h+=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:10px">`;
+h+=`<div style="background:rgba(139,92,246,.1);border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;color:var(--t2)">个体户总容量</div><div style="font-size:24px;font-weight:700;color:var(--pu)">${fW(is)}万</div><div style="font-size:11px;color:var(--t2)">年销售额</div></div>`;
+h+=`<div style="background:rgba(245,158,11,.1);border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;color:var(--t2)">全部无票成本</div><div style="font-size:24px;font-weight:700;color:var(--wn)">${fW(nc)}万</div><div style="font-size:11px;color:var(--t2)">需要避风港</div></div>`;
+h+=`<div style="background:rgba(239,68,68,.1);border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;color:var(--t2)">兜不住的</div><div style="font-size:24px;font-weight:700;color:var(--ng)">${fW(us)}万</div><div style="font-size:11px;color:var(--t2)">走公司=纳税调增</div></div></div>`;
+h+=`<div style="margin-top:12px;font-size:13px;line-height:1.8">`;
+h+=`<div>✅ 个体户核定征收：<strong>不需要成本票</strong>，税=收入×${fP(p.dr)}×累进税率，实际税负仅0.3-0.4%</div>`;
+h+=`<div>✅ 无票采购在个体户里<strong>完全不是问题</strong>——省了票面加价又不用纳税调增</div>`;
+if(us>0)h+=`<div style="color:var(--ng);font-weight:600;margin-top:6px">🔴 但个体户总容量${fW(is)}万，只能兜住约${fW(is*p.cr)}万无票成本，剩下${fW(us)}万无票成本必须走公司类→纳税调增→税负暴增</div>`;
+h+=`</div></div>`;
+document.getElementById('sHarbor').innerHTML=h;
 }
 
-addProduct();
+function rImpact(p){
+const ratios=[0,5,10,15,20,30,40,50,60,70],a=alloc(p);
+const results=ratios.map(r=>{const pp={...p,nr:r/100};const pnls=a.map((s,i)=>cE(i,s,pp));const c=cons(pnls);return{r,np:c.np,tax:c.vat+c.tax}});
+const mx=Math.max(...results.map(r=>r.np)),mn=Math.min(...results.map(r=>r.np)),rng=mx-mn||1;
+let h=`<h3 style="font-size:15px;font-weight:600;color:var(--c2);margin:24px 0 12px">📉 无票占比对净利润的影响（仅影响公司类，个体户不受影响）</h3>`;
+h+=`<div style="display:grid;grid-template-columns:80px 1fr 100px 100px;gap:4px 12px;align-items:center;font-size:12px;margin-bottom:8px;padding:0 4px"><span style="color:var(--t2);font-weight:600">无票占比</span><span style="color:var(--t2);font-weight:600">利润柱</span><span style="color:var(--t2);font-weight:600;text-align:right">净利润(万)</span><span style="color:var(--t2);font-weight:600;text-align:right">总税负(万)</span></div>`;
+results.forEach(r=>{
+const pct=((r.np-mn)/rng)*100,cur=Math.abs(r.r-p.nr*100)<1;
+const bc=r.np>=0?'var(--ok)':'var(--ng)',bw=Math.max(2,Math.abs(pct));
+h+=`<div style="display:grid;grid-template-columns:80px 1fr 100px 100px;gap:4px 12px;align-items:center;font-size:13px;padding:4px;${cur?'background:rgba(14,165,233,.08);border-radius:6px;':''}"><span style="font-weight:${cur?'700':'400'};color:${cur?'var(--c2)':'var(--t2)'}">${r.r}%${cur?' ←当前':''}</span><div style="background:rgba(30,41,59,.5);border-radius:6px;height:24px;overflow:hidden"><div style="height:24px;border-radius:6px;width:${bw}%;background:${bc};opacity:.7;transition:width .5s"></div></div><span style="text-align:right;font-weight:600;color:${r.np>=0?'var(--ok)':'var(--ng)'}">${fW(r.np)}</span><span style="text-align:right;color:var(--wn)">${fW(r.tax)}</span></div>`});
+const ac=results.find(r=>Math.abs(r.r-p.nr*100)<1),a0=results.find(r=>r.r===0),df=a0.np-ac.np;
+h+=`<div class="ib" style="margin-top:16px"><div class="tl">💡 关键洞察</div><div>当前无票占比 <strong>${fP(p.nr)}</strong>，净利润 <strong style="color:${ac.np>=0?'var(--ok)':'var(--ng)'}">${fW(ac.np)}万</strong></div><div>如果无票降到 <strong>0%</strong>，净利润可提升至 <strong style="color:var(--ok)">${fW(a0.np)}万</strong></div><div style="color:var(--ng);font-weight:600;margin-top:6px">无票采购每年吃掉利润 <strong>${fW(Math.abs(df))}万</strong>！个体户核定征收可兜住部分，但容量有限。</div></div>`;
+document.getElementById('sImpact').innerHTML=h;
+}
+
+function rRisk(pnls,a,p){
+let h=`<h3 style="font-size:15px;font-weight:600;color:var(--c2);margin:24px 0 12px">⚠️ 风险分析</h3>`;
+const g=pnls[0],s=pnls[1];
+if(g.ti>300&&p.ct==='5'){
+h+=`<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:14px 16px;margin:12px 0;font-size:13px;line-height:1.7"><div style="color:var(--ng);font-weight:600;margin-bottom:6px">🔴 CIT悬崖：一般纳税人已掉入25%档！</div><div>应纳税所得额 <strong>${fW(g.ti)}万</strong>，远超300万门槛</div><div>按5%应交 <strong>${fW(g.ti*.05)}万</strong>，实际按25%交 <strong>${fW(g.cit)}万</strong></div><div style="color:var(--ng);font-weight:600;margin-top:4px">多交 <strong>${fW(g.cit-g.ti*.05)}万</strong>！根因：无票成本${fW(g.ni)}万纳税调增</div></div>`}
+if(s.sw>0&&s.sw>=400){
+h+=`<div class="rc wn"><div style="font-size:14px;font-weight:600;color:var(--wn);margin-bottom:6px">⚡ 小规模升级风险</div><div style="font-size:13px;line-height:1.7">当前分配${fW(s.sw)}万，限额500万。年销7000万→月均583万，小规模单月就可能超标。<br>一旦连续12个月超500万→<strong style="color:var(--ng)">强制升级一般纳税人，不可逆</strong></div></div>`}
+h+=`<div class="rc dg"><div style="font-size:14px;font-weight:600;color:var(--ng);margin-bottom:6px">🔴 无票采购恶性循环（公司类主体）</div><div style="font-size:13px;line-height:1.8"><div>① 无票采购→成本不能税前扣除→应纳税所得额虚高</div><div>② 所得额虚高→触发CIT悬崖(5%→25%)→税负暴增</div><div>③ 税负暴增→净利润暴跌→资金紧张</div><div>④ 资金紧张→更依赖无票采购(便宜3%)→恶性循环</div><div style="margin-top:8px;color:var(--wn);font-weight:600">看似省3%票面加价，实际损失远超30%综合税负差异！</div></div></div>`;
+pnls.slice(2).forEach((p2,i)=>{if(!p2.wl)h+=`<div class="rc wn"><div style="font-size:14px;font-weight:600;color:var(--wn)">⚠️ ${EN[i+2].n} 超出核定限额</div><div style="font-size:13px;line-height:1.7">分配${fW(p2.sw)}万 > 限额${EN[i+2].sl}万→可能转查账征收，核定优势丧失<br>且月均${(p2.sw/12).toFixed(1)}万>10万→增值税不再免征</div></div>`});
+h+=`<div class="rc wn"><div style="font-size:14px;font-weight:600;color:var(--wn);margin-bottom:6px">⚠️ 主体混用风险</div><div style="font-size:13px;line-height:1.7">当前五家主体混用，存在重大合规风险：<br>① 资金混同→法人财产不分→可能刺破公司面纱<br>② 成本归集不准→利润失真→税务稽查高风险<br>③ 关联交易无定价→转让定价调整风险<br>④ 金税四期大数据比对→跨主体异常自动预警</div></div>`;
+document.getElementById('sRisk').innerHTML=h;
+}
+
+function rStrat(pnls,c,p){
+const indCap=EN.slice(2).reduce((s,e)=>s+e.sl,0);
+let h=`<h3 style="font-size:15px;font-weight:600;color:var(--c2);margin:24px 0 12px">🎯 战略建议</h3>`;
+h+=`<div class="sb"><div class="tl">第一优先级：用足个体户核定征收（无票避风港）</div><div class="it">个体户核定征收<strong>不需要成本票</strong>，无票采购在个体户里完全合规</div><div class="it">优先把<strong>无票品种</strong>分配给个体户，有票品种留给公司类</div><div class="it">3家个体户总容量${fW(indCap)}万，7000万目标下只能消化约${fP(indCap/p.ts)}的销售额</div><div class="it" style="color:var(--ng);font-weight:600">个体户容量有限，大部分业务还是走公司→必须降无票占比</div></div>`;
+h+=`<div class="sb"><div class="tl">第二优先级：降低无票采购占比</div><div class="it">当前${fP(p.nr)}，无票成本每年吃掉大量利润</div><div class="it">和供应商谈开票：哪怕加3%拿普票，成本可税前扣除后整体更划算</div><div class="it">新增供应商<strong>必须能开票</strong>作为准入条件</div><div class="it">目标：6个月从50%降到20%，12个月降到10%以下</div></div>`;
+h+=`<div class="sb"><div class="tl">第三优先级：争取西藏9%企业所得税率</div><div class="it">9%税率<strong>无300万悬崖</strong>，利润再高也是9%</div><div class="it">条件：鼓励类产业+主营收入占比≥60%+人员在藏缴社保≥6个月</div><div class="it">五金供应链属商贸类，需确认是否在鼓励目录（2026年5月新规）</div><div class="it">拿到9%，即使无票占比30%也能盈利</div></div>`;
+h+=`<div class="sb"><div class="tl">第四优先级：主体分离经营</div><div class="it">五家主体必须独立核算、独立经营、资金不混用</div><div class="it">个体户→承接无票品种（核定征收兜底）</div><div class="it">小规模→承接有票中小品种（严格控制在500万以内）</div><div class="it">一般纳税人→承接大额业务（必须有专票支撑进项抵扣）</div><div class="it">关联交易按公允价格执行，备好转让定价文档</div></div>`;
+h+=`<div class="sb"><div class="tl">第五优先级：期间费用管理</div><div class="it">期间费用率15%是合法避税工具——把利润压到300万以内卡5%</div><div class="it">但前提是<strong>成本有票</strong>，否则纳税调增反而推高应纳税所得额</div><div class="it">工资/社保/折旧/房租等真实合规支出大胆入账</div></div>`;
+h+=`<div style="background:rgba(30,41,59,.6);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-top:16px"><div style="font-size:14px;font-weight:600;color:var(--c2);margin-bottom:10px">📋 立即行动清单</div><div style="font-size:13px;line-height:2"><div>☐ 1. 本周起：个体户优先承接无票品种，公司类只做有票</div><div>☐ 2. 本周起：所有新采购必须要求发票，无票不批</div><div>☐ 3. 本月内：和现有供应商逐一谈开票（普票+3%即可）</div><div>☐ 4. 本月内：确认五金供应链是否属西藏鼓励类产业</div><div>☐ 5. 下月起：五家主体独立银行账户，资金不混用</div><div>☐ 6. 季度末：无票占比从50%降到30%以下</div><div>☐ 7. 半年末：无票占比降到20%以下</div></div></div>`;
+document.getElementById('sStrat').innerHTML=h;
+}
+
+let pc=0;
+function addP(n,c,ni,p,q){pc++;const id=pc,l=document.getElementById('pList'),r=document.createElement('div');r.className='product-row';r.id='product-'+id;r.style.cssText='display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 40px;gap:10px;margin-bottom:8px;align-items:center;';r.innerHTML=`<input type="text" value="${n||''}" placeholder="品种名称"><input type="number" class="ci" value="${c||''}" placeholder="不含税单价" step="0.01"><input type="number" class="ni" value="${ni||''}" placeholder="同左留空" step="0.01" style="border-color:rgba(245,158,11,.3)"><input type="number" class="pi" value="${p||''}" placeholder="含税售价" step="0.01"><input type="number" class="qi" value="${q||''}" placeholder="数量" step="1"><button onclick="document.getElementById('product-'+${id}).remove()" style="background:none;border:none;color:var(--ng);cursor:pointer;font-size:18px;padding:4px">×</button>`;l.appendChild(r)}
+
+function calcProd(){
+const rows=document.querySelectorAll('.product-row'),products=[];
+rows.forEach(row=>{const inp=row.querySelectorAll('input');const name=inp[0].value.trim()||'未命名';const cost=parseFloat(inp[1].value);const nir=parseFloat(inp[2].value);const price=parseFloat(inp[3].value);const qty=parseFloat(inp[4].value)||0;if(!isNaN(cost)&&!isNaN(price)&&cost>0&&price>0)products.push({name,cost,ni:isNaN(nir)?cost:nir,price,qty})});
+if(!products.length){alert('请至少填写一个品种');return}
+const vm=parseFloat(document.getElementById('vm').value)/100,nm=parseFloat(document.getElementById('nm').value)/100,vg=parseFloat(document.getElementById('vrg').value)/100,vs=parseFloat(document.getElementById('vrs').value)/100;
+let h=`<h3 style="font-size:15px;font-weight:600;color:var(--c2);margin-bottom:12px">📋 单品方案对比</h3>`;
+products.forEach(p=>{
+const sc=[];
+const pu1=p.cost*(1+vm),c1=pu1/(1+vg),iv1=c1*vg,s1=p.price/(1+vg),ov1=s1*vg,vd1=ov1-iv1,gp1=s1-c1,gm1=s1?gp1/s1:0;
+sc.push({l:'①一般+专票',c:c1,s:s1,v:vd1,g:gp1,m:gm1,i:true});
+const pu2=p.cost*(1+nm),c2=pu2,s2=p.price/(1+vs),vd2=s2*vs,gp2=s2-c2,gm2=s2?gp2/s2:0;
+sc.push({l:'②小规模+普票',c:c2,s:s2,v:vd2,g:gp2,m:gm2,i:true});
+const c3a=p.ni,s3a=p.price/(1+vg),vd3a=s3a*vg,gp3a=s3a-c3a,gm3a=s3a?gp3a/s3a:0;
+sc.push({l:'③A一般+无票',c:c3a,s:s3a,v:vd3a,g:gp3a,m:gm3a,i:false});
+const c3b=p.ni,s3b=p.price/(1+vs),vd3b=s3b*vs,gp3b=s3b-c3b,gm3b=s3b?gp3b/s3b:0;
+sc.push({l:'③B小规模+无票',c:c3b,s:s3b,v:vd3b,g:gp3b,m:gm3b,i:false});
+const bi=sc.reduce((b,s,i)=>s.m>sc[b].m?i:b,0),wi=sc.reduce((w,s,i)=>s.m<sc[w].m?i:w,0);
+h+=`<div style="margin-bottom:16px"><div style="font-weight:600;font-size:14px;color:var(--c2);margin-bottom:8px">${p.name}</div>`;
+h+=`<div style="overflow-x:auto"><table class="tb" style="min-width:600px"><thead><tr><th>方案</th><th>不含税成本</th><th>不含税售价</th><th>增值税</th><th>毛利</th><th>毛利率</th><th>评价</th></tr></thead><tbody>`;
+sc.forEach((s,i)=>{
+const bg=i===bi?'<span style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">最优</span>':i===wi?'<span style="background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">最差</span>':!s.i?'<span style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">⚠️不可持续</span>':'';
+h+=`<tr style="${i===bi?'background:rgba(16,185,129,.06)':i===wi?'background:rgba(239,68,68,.04)':''}"><td style="text-align:left;font-weight:600">${s.l}</td><td>${s.c.toFixed(4)}</td><td>${s.s.toFixed(4)}</td><td>${s.v.toFixed(4)}</td><td class="${s.g>=0?'pos':'neg'}" style="font-weight:600">${s.g.toFixed(4)}</td><td style="font-weight:600;color:${s.m>=.15?'var(--ok)':s.m>=0?'var(--wn)':'var(--ng)'}">${(s.m*100).toFixed(2)}%</td><td>${bg}</td></tr>`});
+h+=`</tbody></table></div></div>`});
+document.getElementById('pRes2').style.display='block';document.getElementById('pRes2').innerHTML=h;document.getElementById('pRes2').scrollIntoView({behavior:'smooth'});
+}
+
+rCards();addP('圆钉50MM','4.25','','4.65','1000');addP('焊条J422','','','','');
 </script>
 </body>
 </html>
