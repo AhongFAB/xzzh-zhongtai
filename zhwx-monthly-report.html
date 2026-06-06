@@ -650,7 +650,7 @@
             `;
 
             // 饼图
-            if (window.revenuePieChart) window.revenuePieChart.destroy();
+            if (window.revenuePieChart && typeof window.revenuePieChart.destroy === "function") window.revenuePieChart.destroy();
             const pCtx = document.getElementById('revenuePieChart').getContext('2d');
             window.revenuePieChart = new Chart(pCtx, {
                 type: 'doughnut',
@@ -672,7 +672,7 @@
             });
 
             // 趋势图
-            if (window.revenueTrendChart) window.revenueTrendChart.destroy();
+            if (window.revenueTrendChart && typeof window.revenueTrendChart.destroy === "function") window.revenueTrendChart.destroy();
             const labels = availableMonths.map(m => m + '月');
             const values = availableMonths.map(m => getDecisionValue(2, m) / 10000);
             const tCtx = document.getElementById('revenueTrendChart').getContext('2d');
@@ -767,7 +767,7 @@
             container.innerHTML = html;
 
             // 成本结构饼图
-            if (window.costPieChart) window.costPieChart.destroy();
+            if (window.costPieChart && typeof window.costPieChart.destroy === "function") window.costPieChart.destroy();
             const pCtx = document.getElementById('costPieChart').getContext('2d');
             window.costPieChart = new Chart(pCtx, {
                 type: 'doughnut',
@@ -789,7 +789,7 @@
             });
 
             // 成本趋势图
-            if (window.costTrendChart) window.costTrendChart.destroy();
+            if (window.costTrendChart && typeof window.costTrendChart.destroy === "function") window.costTrendChart.destroy();
             const labels = availableMonths.map(m => m + '月');
             const varValues = availableMonths.map(m => getDecisionValue(6, m) / 10000);
             const fixValues = availableMonths.map(m => getDecisionValue(21, m) / 10000);
@@ -861,7 +861,7 @@
             const top10 = expenses.slice(0, 10);
 
             // TOP10柱状图
-            if (window.expenseTop10Chart) window.expenseTop10Chart.destroy();
+            if (window.expenseTop10Chart && typeof window.expenseTop10Chart.destroy === "function") window.expenseTop10Chart.destroy();
             const bCtx = document.getElementById('expenseTop10Chart').getContext('2d');
             window.expenseTop10Chart = new Chart(bCtx, {
                 type: 'bar',
@@ -904,7 +904,7 @@
             document.getElementById('expenseTable').innerHTML = tableHtml;
 
             // 费用趋势图
-            if (window.expenseTrendChart) window.expenseTrendChart.destroy();
+            if (window.expenseTrendChart && typeof window.expenseTrendChart.destroy === "function") window.expenseTrendChart.destroy();
             const labels = availableMonths.map(m => m + '月');
             const values = availableMonths.map(m => getDecisionValue(26, m) / 10000);
             const tCtx = document.getElementById('expenseTrendChart').getContext('2d');
@@ -979,7 +979,7 @@
             `;
 
             // 三类对比柱状图
-            if (window.cashflowBarChart) window.cashflowBarChart.destroy();
+            if (window.cashflowBarChart && typeof window.cashflowBarChart.destroy === "function") window.cashflowBarChart.destroy();
             const bCtx = document.getElementById('cashflowBarChart').getContext('2d');
             window.cashflowBarChart = new Chart(bCtx, {
                 type: 'bar',
@@ -1003,7 +1003,7 @@
             });
 
             // 月度趋势图
-            if (window.cashflowTrendChart) window.cashflowTrendChart.destroy();
+            if (window.cashflowTrendChart && typeof window.cashflowTrendChart.destroy === "function") window.cashflowTrendChart.destroy();
             const labels = availableMonths.map(m => m + '月');
             const opValues = availableMonths.map(m => getCashflowValue(15, m) / 10000);
             const tCtx = document.getElementById('cashflowTrendChart').getContext('2d');
@@ -1065,7 +1065,7 @@
             `;
 
             // 趋势图
-            if (window.efficiencyTrendChart) window.efficiencyTrendChart.destroy();
+            if (window.efficiencyTrendChart && typeof window.efficiencyTrendChart.destroy === "function") window.efficiencyTrendChart.destroy();
             const labels = availableMonths.map(m => m + '月');
             const tCtx = document.getElementById('efficiencyTrendChart').getContext('2d');
             window.efficiencyTrendChart = new Chart(tCtx, {
@@ -1098,7 +1098,7 @@
             const expenses = availableMonths.map(m => getDecisionValue(26, m) / 10000);
 
             // 四线图
-            if (window.monthlyTrendChart) window.monthlyTrendChart.destroy();
+            if (window.monthlyTrendChart && typeof window.monthlyTrendChart.destroy === "function") window.monthlyTrendChart.destroy();
             const ctx = document.getElementById('monthlyTrendChart').getContext('2d');
             window.monthlyTrendChart = new Chart(ctx, {
                 type: 'line',
@@ -1123,7 +1123,7 @@
             });
 
             // 利润柱状图
-            if (window.profitTrendChart) window.profitTrendChart.destroy();
+            if (window.profitTrendChart && typeof window.profitTrendChart.destroy === "function") window.profitTrendChart.destroy();
             const pCtx = document.getElementById('profitTrendChart').getContext('2d');
             window.profitTrendChart = new Chart(pCtx, {
                 type: 'bar',
@@ -1196,15 +1196,18 @@
         }
 
         // 渲染完整报表
+        function safeRender(name, fn) {
+            try { fn(); } catch(e) { console.error('渲染' + name + '出错:', e); }
+        }
         function renderReport() {
-            renderOverview();
-            renderRevenue();
-            renderCost();
-            renderExpense();
-            renderCashflow();
-            renderEfficiency();
-            renderMonthlyTrend();
-            renderRisk();
+            safeRender('经营总览', renderOverview);
+            safeRender('收入分析', renderRevenue);
+            safeRender('成本分析', renderCost);
+            safeRender('费用分析', renderExpense);
+            safeRender('现金流', renderCashflow);
+            safeRender('效率指标', renderEfficiency);
+            safeRender('月度趋势', renderMonthlyTrend);
+            safeRender('风险预警', renderRisk);
             document.getElementById('reportContainer').style.display = 'block';
         }
 
@@ -1244,48 +1247,61 @@
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    let workbook = null;
+                    // 阶段1: 文件解析（独立catch）
                     try {
-                        const workbook = safeReadWorkbook(e.target.result);
-
-                        const fileName = file.name.toLowerCase();
-                        const item = document.createElement('div');
-                        item.className = 'file-item';
-
-                        if (fileName.includes('经营决算')) {
-                            decisionData = parseDecisionTable(workbook);
-                            if (decisionData) {
-                                item.textContent = '✅ ' + file.name + ' (经营决算表)';
-                                availableMonths = detectAvailableMonths();
-                                currentMonth = availableMonths[availableMonths.length - 1];
-                                renderMonthSelector();
-                            } else {
-                                item.className = 'file-item error';
-                                item.textContent = '❌ ' + file.name + ' (解析失败-Sheet未找到)';
-                            }
-                        } else if (fileName.includes('现金流')) {
-                            cashflowData = parseCashflowTable(workbook);
-                            if (cashflowData) {
-                                item.textContent = '✅ ' + file.name + ' (现金流量表)';
-                            } else {
-                                item.className = 'file-item error';
-                                item.textContent = '❌ ' + file.name + ' (解析失败-Sheet未找到)';
-                            }
-                        } else {
-                            item.className = 'file-item error';
-                            item.textContent = '❓ ' + file.name + ' (无法识别类型)';
-                        }
-                        fileList.appendChild(item);
-
-                        // 当两个文件都上传后，自动渲染报表
-                        if (decisionData) {
-                            renderReport();
-                        }
+                        workbook = safeReadWorkbook(e.target.result);
                     } catch (err) {
-                        console.error('文件读取错误:', err);
+                        console.error('文件解析错误:', err);
                         const item = document.createElement('div');
                         item.className = 'file-item error';
-                        item.textContent = '❌ ' + file.name + ' (读取错误: ' + err.message + ')';
+                        item.textContent = '❌ ' + file.name + ' (文件解析失败: ' + err.message + ')';
                         fileList.appendChild(item);
+                        return;
+                    }
+
+                    // 阶段2: 数据提取
+                    const fileName = file.name.toLowerCase();
+                    const item = document.createElement('div');
+                    item.className = 'file-item';
+
+                    if (fileName.includes('经营决算')) {
+                        decisionData = parseDecisionTable(workbook);
+                        if (decisionData) {
+                            item.textContent = '✅ ' + file.name + ' (经营决算表)';
+                            availableMonths = detectAvailableMonths();
+                            currentMonth = availableMonths[availableMonths.length - 1];
+                            renderMonthSelector();
+                        } else {
+                            item.className = 'file-item error';
+                            item.textContent = '❌ ' + file.name + ' (解析失败-Sheet未找到)';
+                        }
+                    } else if (fileName.includes('现金流')) {
+                        cashflowData = parseCashflowTable(workbook);
+                        if (cashflowData) {
+                            item.textContent = '✅ ' + file.name + ' (现金流量表)';
+                        } else {
+                            item.className = 'file-item error';
+                            item.textContent = '❌ ' + file.name + ' (解析失败-Sheet未找到)';
+                        }
+                    } else {
+                        item.className = 'file-item error';
+                        item.textContent = '❓ ' + file.name + ' (无法识别类型)';
+                    }
+                    fileList.appendChild(item);
+
+                    // 阶段3: 报告渲染（独立catch，不影响文件状态显示）
+                    if (decisionData) {
+                        try {
+                            renderReport();
+                        } catch (err) {
+                            console.error('报告渲染错误:', err);
+                            // 渲染失败不影响文件状态，显示错误区域
+                            const errDiv = document.createElement('div');
+                            errDiv.className = 'file-item error';
+                            errDiv.textContent = '⚠️ 报告渲染出错: ' + err.message;
+                            fileList.appendChild(errDiv);
+                        }
                     }
                 };
                 reader.readAsArrayBuffer(file);
