@@ -89,6 +89,34 @@
             margin: 0 auto 30px;
             display: none;
         }
+        .reupload-bar {
+            max-width: 700px;
+            margin: 10px auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: rgba(14,165,233,0.08);
+            border: 1px solid rgba(14,165,233,0.2);
+            border-radius: 10px;
+        }
+        .reupload-info {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        .reupload-btn {
+            background: rgba(14,165,233,0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(14,165,233,0.3);
+            padding: 6px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .reupload-btn:hover {
+            background: rgba(14,165,233,0.25);
+        }
         .month-selector h4 {
             color: #38bdf8;
             margin-bottom: 15px;
@@ -348,6 +376,11 @@
         <p style="margin-top:10px;color:#38bdf8">请上传：经营决算表 + 现金流量表</p>
         <div class="file-list" id="fileList"></div>
         <input type="file" id="fileInput" multiple accept=".xls,.xlsx" style="display:none">
+    </div>
+
+    <div class="reupload-bar" id="reuploadBar" style="display:none">
+        <span class="reupload-info">📎 已加载数据 · 切换月份查看不同月报</span>
+        <button class="reupload-btn" onclick="resetUpload()">重新上传</button>
     </div>
 
     <div class="month-selector" id="monthSelector">
@@ -1241,6 +1274,9 @@
             safeRender('月度趋势', renderMonthlyTrend);
             safeRender('风险预警', renderRisk);
             document.getElementById('reportContainer').style.display = 'block';
+            // 隐藏上传区，显示重新上传按钮
+            document.getElementById('uploadZone').style.display = 'none';
+            document.getElementById('reuploadBar').style.display = 'flex';
         }
 
         // 安全读取工作簿（多策略回退）
@@ -1356,6 +1392,20 @@
             handleFiles(e.dataTransfer.files);
         });
         fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        // 重新上传
+        function resetUpload() {
+            decisionData = null;
+            cashflowData = null;
+            availableMonths = [];
+            currentMonth = 1;
+            document.getElementById('uploadZone').style.display = '';
+            document.getElementById('reuploadBar').style.display = 'none';
+            document.getElementById('monthSelector').style.display = 'none';
+            document.getElementById('reportContainer').style.display = 'none';
+            document.getElementById('fileList').innerHTML = '';
+            document.getElementById('fileInput').value = '';
+        }
     </script>
 </body>
 </html>
