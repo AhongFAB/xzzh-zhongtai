@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中合五金月报生成器 V1.0</title>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         * {
@@ -1208,6 +1208,34 @@
             document.getElementById('reportContainer').style.display = 'block';
         }
 
+        // 安全读取工作簿（多策略回退）
+        function safeReadWorkbook(arrayBuffer) {
+            // 策略1: Uint8Array + type:array
+            try {
+                const arr = new Uint8Array(arrayBuffer);
+                return XLSX.read(arr, { type: 'array', cellDates: false });
+            } catch(e) { console.warn('策略1(array)失败:', e.message); }
+
+            // 策略2: binary string
+            try {
+                const bytes = new Uint8Array(arrayBuffer);
+                let binary = '';
+                for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+                return XLSX.read(binary, { type: 'binary', cellDates: false });
+            } catch(e) { console.warn('策略2(binary)失败:', e.message); }
+
+            // 策略3: base64
+            try {
+                const bytes = new Uint8Array(arrayBuffer);
+                let binary = '';
+                for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+                const b64 = btoa(binary);
+                return XLSX.read(b64, { type: 'base64', cellDates: false });
+            } catch(e) { console.warn('策略3(base64)失败:', e.message); }
+
+            throw new Error('所有解析策略均失败');
+        }
+
         // 处理文件上传
         function handleFiles(files) {
             const fileList = document.getElementById('fileList');
@@ -1217,8 +1245,7 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
+                        const workbook = safeReadWorkbook(e.target.result);
 
                         const fileName = file.name.toLowerCase();
                         const item = document.createElement('div');
@@ -1233,7 +1260,7 @@
                                 renderMonthSelector();
                             } else {
                                 item.className = 'file-item error';
-                                item.textContent = '❌ ' + file.name + ' (解析失败)';
+                                item.textContent = '❌ ' + file.name + ' (解析失败-Sheet未找到)';
                             }
                         } else if (fileName.includes('现金流')) {
                             cashflowData = parseCashflowTable(workbook);
@@ -1241,7 +1268,7 @@
                                 item.textContent = '✅ ' + file.name + ' (现金流量表)';
                             } else {
                                 item.className = 'file-item error';
-                                item.textContent = '❌ ' + file.name + ' (解析失败)';
+                                item.textContent = '❌ ' + file.name + ' (解析失败-Sheet未找到)';
                             }
                         } else {
                             item.className = 'file-item error';
@@ -1254,10 +1281,10 @@
                             renderReport();
                         }
                     } catch (err) {
-                        console.error(err);
+                        console.error('文件读取错误:', err);
                         const item = document.createElement('div');
                         item.className = 'file-item error';
-                        item.textContent = '❌ ' + file.name + ' (读取错误)';
+                        item.textContent = '❌ ' + file.name + ' (读取错误: ' + err.message + ')';
                         fileList.appendChild(item);
                     }
                 };
