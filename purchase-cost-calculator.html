@@ -133,20 +133,22 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 <div class="zone-b gs" style="border-color:rgba(245,158,11,.2);margin-bottom:14px;">
 <div class="zone-label">⚙️ B区 — 发票加点参数</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-<div><label>专票加价% <span style="font-size:9px;color:var(--t2)">比不要票贵几个点</span></label><input type="number" id="specMarkup" value="12" step="1"></div>
+<div><label>专票加价% <span style="font-size:9px;color:var(--t2)">比不要票贵几个点</span></label><input type="number" id="specMarkup" value="10" step="1"></div>
 <div><label>普票加价% <span style="font-size:9px;color:var(--t2)">比不要票贵几个点</span></label><input type="number" id="normMarkup" value="3" step="1"></div>
 </div>
 </div>
 
-<!-- C区: 平均毛利率 -->
+<!-- C区: 核心参数 -->
 <div class="zone-c gs" style="border-color:rgba(139,92,246,.2);margin-bottom:14px;">
-<div class="zone-label">📈 C区 — 平均毛利率（截止上一月）</div>
-<div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;">
+<div class="zone-label">📈 C区 — 核心参数</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
 <div><label>平均毛利率(%) <span style="font-size:9px;color:var(--t2)">系统取数</span></label><input type="number" id="avgGM" value="15" step="1"></div>
-<div style="font-size:11px;color:var(--t2);line-height:1.6;padding-top:18px;">
-💡 用途①：反算A区预估已销 = 已收进项 ÷ (1 - 毛利率)<br>
-💡 用途②：判断有票品种走一般纳税人还是小规模更优（低毛利→小规模，高毛利→一般纳税人）
+<div><label>企业所得税类型</label><select id="citT2"><option value="5">小微企业 5%</option><option value="9">西藏鼓励类 9%</option><option value="15">西部鼓励类 15%</option><option value="25">一般企业 25%</option></select></div>
+<div><label>个体户核定应税所得率(%)</label><input type="number" id="dRate2" value="10" step="1"></div>
 </div>
+<div style="font-size:11px;color:var(--t2);margin-top:8px;line-height:1.6;">
+💡 平均毛利率用途①：反算A区预估已销 = 已收进项 ÷ (1 - 毛利率) ②：判断有票品种走一般纳税人还是小规模更优<br>
+💡 单品测算<strong style="color:var(--pu)">不含期间费用</strong>（期间费用按年度整体核算，不参与单品分配对比）
 </div>
 </div>
 
@@ -502,18 +504,17 @@ function downloadCSV(content, filename){
 function calcSmartAlloc(){
   // 读取参数
   const avgGM = (parseFloat(document.getElementById('avgGM').value) || 15) / 100;
-  const specMk = (parseFloat(document.getElementById('specMarkup').value) || 12) / 100;
+  const specMk = (parseFloat(document.getElementById('specMarkup').value) || 10) / 100;
   const normMk = (parseFloat(document.getElementById('normMarkup').value) || 3) / 100;
-  const citType = document.getElementById('citT').value;
-  const expRate = (parseFloat(document.getElementById('eRate').value) || 15) / 100;
-  const deemedRate = (parseFloat(document.getElementById('dRate').value) || 10) / 100;
+  const citType = document.getElementById('citT2').value;
+  const deemedRate = (parseFloat(document.getElementById('dRate2').value) || 10) / 100;
 
   // 读取A区实体状态
   const entities = EN.map((e, i) => {
     const inputVal = parseFloat(document.getElementById('inpInv'+i).value) || 0;
     let estSales;
-    if(e.t === 'individual') estSales = inputVal;
-    else estSales = avgGM < 1 ? inputVal / (1 - avgGM) : 0;
+    if(e.t === 'individual') estSales = inputVal; // 万元
+    else estSales = avgGM < 1 ? inputVal / (1 - avgGM) : 0; // 万元
     const remain = e.sl > 0 ? Math.max(0, e.sl - estSales) : Infinity;
     return { ...e, idx: i, inputVal, estSales, remain, newAlloc: 0, items: [] };
   });
@@ -532,29 +533,22 @@ function calcSmartAlloc(){
 
   if(!products.length){ alert('请至少填写一个品种'); return; }
 
-  // 分配结果
   const results = [];
-
-  // 排序：无票优先
   const sorted = [...products].sort((a,b) => {
     const order = {none:0, normal:1, special:2};
     return (order[a.invType]||0) - (order[b.invType]||0);
   });
 
   for(const product of sorted){
-    const salesTotal = product.sellPrice * product.qty; // 含税销售额(元)
-    const salesWan = salesTotal / 10000; // 万元
-
+    const salesTotal = product.sellPrice * product.qty;
+    const salesWan = salesTotal / 10000;
     let allocated = null;
 
     if(product.invType === 'none'){
-      // === 无票品种 → 个体户优先 ===
-      const individuals = entities.filter(e => e.t === 'individual')
-        .sort((a,b) => b.remain - a.remain);
-
+      const individuals = entities.filter(e => e.t === 'individual').sort((a,b) => b.remain - a.remain);
       for(const entity of individuals){
         if(entity.remain >= salesWan || entity.remain === Infinity){
-          const profit = calcItemProfit(product, entity, specMk, normMk, avgGM, citType, expRate, deemedRate);
+          const profit = calcItemProfit(product, entity, specMk, normMk, avgGM, citType, deemedRate);
           allocated = { product, entity, profit, reason: '无票→个体户核定(无需成本票)', autoEntity: entity.idx };
           entity.remain -= salesWan;
           entity.newAlloc += salesWan;
@@ -562,52 +556,43 @@ function calcSmartAlloc(){
           break;
         }
       }
-
       if(!allocated){
-        // 小规模兜底
         const small = entities.find(e => e.t === 'small');
         if(small && (small.remain >= salesWan || small.remain === Infinity)){
-          const profit = calcItemProfit(product, small, specMk, normMk, avgGM, citType, expRate, deemedRate);
+          const profit = calcItemProfit(product, small, specMk, normMk, avgGM, citType, deemedRate);
           allocated = { product, entity: small, profit, reason: '⚠️ 个体户容量不足→小规模(有纳税调增)', autoEntity: small.idx };
           small.remain -= salesWan;
           small.newAlloc += salesWan;
           small.items.push({ product, salesWan, invType: 'none' });
         } else {
           const general = entities.find(e => e.t === 'general');
-          const profit = calcItemProfit(product, general, specMk, normMk, avgGM, citType, expRate, deemedRate);
+          const profit = calcItemProfit(product, general, specMk, normMk, avgGM, citType, deemedRate);
           allocated = { product, entity: general, profit, reason: '🔴 个体户+小规模均满→一般纳税人(最差)', autoEntity: general.idx };
           general.newAlloc += salesWan;
           general.items.push({ product, salesWan, invType: 'none' });
         }
       }
     } else {
-      // === 有票品种 → 基于平均毛利率判断 ===
       const general = entities.find(e => e.t === 'general');
       const small = entities.find(e => e.t === 'small');
-
-      // 分别算两种方案的盈利
-      const profitGeneral = calcItemProfit(product, general, specMk, normMk, avgGM, citType, expRate, deemedRate);
-      const profitSmall = calcItemProfit(product, small, specMk, normMk, avgGM, citType, expRate, deemedRate);
-
-      // 用平均毛利率判断偏好
+      const profitGeneral = calcItemProfit(product, general, specMk, normMk, avgGM, citType, deemedRate);
+      const profitSmall = calcItemProfit(product, small, specMk, normMk, avgGM, citType, deemedRate);
       const preferSmall = avgGM < 0.15;
-      let preferred, fallback, prefProfit, fallProfit, prefReason, fallReason;
-
+      let preferred, fallback, prefProfit, prefReason, fallReason;
       if(preferSmall){
         preferred = small; prefProfit = profitSmall; prefReason = `有票+低毛利(${fP(avgGM)})→小规模更优`;
-        fallback = general; fallProfit = profitGeneral; fallReason = `有票→小规模容量不足→一般纳税人`;
+        fallback = general; fallReason = `有票→小规模容量不足→一般纳税人`;
       } else {
         preferred = general; prefProfit = profitGeneral; prefReason = `有票+高毛利(${fP(avgGM)})→一般纳税人+专票抵进项更优`;
-        fallback = small; fallProfit = profitSmall; fallReason = `有票→一般纳税人容量不足→小规模`;
+        fallback = small; fallReason = `有票→一般纳税人容量不足→小规模`;
       }
-
-      // 尝试分配到偏好主体
       if(preferred.remain >= salesWan || preferred.remain === Infinity){
         allocated = { product, entity: preferred, profit: prefProfit, reason: prefReason, autoEntity: preferred.idx };
         preferred.remain -= salesWan;
         preferred.newAlloc += salesWan;
         preferred.items.push({ product, salesWan, invType: product.invType });
       } else if(fallback.remain >= salesWan || fallback.remain === Infinity){
+        const fallProfit = fallback === general ? profitGeneral : profitSmall;
         allocated = { product, entity: fallback, profit: fallProfit, reason: fallReason, autoEntity: fallback.idx };
         fallback.remain -= salesWan;
         fallback.newAlloc += salesWan;
@@ -618,139 +603,112 @@ function calcSmartAlloc(){
         general.items.push({ product, salesWan, invType: product.invType });
       }
     }
-
     results.push(allocated);
   }
 
-  // 存储全局结果
-  allocData = { results, entities, params: { avgGM, specMk, normMk, citType, expRate, deemedRate } };
-
-  // 渲染E区结果
-  renderAllocResult(results, entities, { avgGM, specMk, normMk, citType, expRate, deemedRate });
-
-  // 渲染Tab3
+  allocData = { results, entities, params: { avgGM, specMk, normMk, citType, deemedRate } };
+  renderAllocResult(results, entities, { avgGM, specMk, normMk, citType, deemedRate });
   renderDistribution(entities, results);
-
-  // 显示结果
   document.getElementById('allocResult').style.display = 'block';
   document.getElementById('allocResult').scrollIntoView({ behavior: 'smooth' });
 }
 
-/* 计算单品在指定主体下的盈利 */
-function calcItemProfit(product, entity, specMk, normMk, avgGM, citType, expRate, deemedRate){
-  const salesTotal = product.sellPrice * product.qty;
+/* 计算单品在指定主体下的盈利（不含期间费用，仅对比税负差异） */
+function calcItemProfit(product, entity, specMk, normMk, avgGM, citType, deemedRate){
+  const salesTotal = product.sellPrice * product.qty; // 含税销售额(元)
   const salesWan = salesTotal / 10000;
   const R = { entityName: entity.n, entityType: entity.t };
 
   if(entity.t === 'general'){
-    const hasSpecial = product.invType === 'special';
-    const hasNormal = product.invType === 'normal';
-    if(hasSpecial){
-      const invCost = product.baseCost * (1 + specMk);
-      const costExVAT = invCost / 1.13;
-      const inputVAT = costExVAT * 0.13;
-      const revExVAT = salesTotal / 1.13;
-      const outputVAT = revExVAT * 0.13;
-      const vat = outputVAT - inputVAT;
-      const gp = revExVAT - costExVAT * product.qty / product.qty; // per unit already
-      // fix: costExVAT is per unit, need total
-      const totalCostExVAT = invCost * product.qty / 1.13;
-      const totalInputVAT = totalCostExVAT * 0.13;
-      const gp2 = revExVAT - totalCostExVAT;
-      const gm = revExVAT ? gp2 / revExVAT : 0;
-      const opex = salesTotal * expRate;
-      const opl = gp2 - opex;
-      const crate = gCR(citType, opl);
-      const cit = Math.max(0, opl * crate);
-      const np = opl - cit;
-      const nm = revExVAT ? np / revExVAT : 0;
-      Object.assign(R, { revExVAT, costExVAT: totalCostExVAT, inputVAT: totalInputVAT, vat, gp: gp2, gm, opex, opl, crate: gCL(citType, opl), cit, np, nm, invLabel: '专票' });
-    } else if(hasNormal){
-      const invCost = product.baseCost * (1 + normMk);
-      const totalCost = invCost * product.qty;
-      const revExVAT = salesTotal / 1.13;
-      const outputVAT = revExVAT * 0.13;
-      // 普票不能抵进项
-      const vat = outputVAT;
-      const gp = revExVAT - totalCost;
+    // ===== 一般纳税人 增值税13% =====
+    const revExVAT = salesTotal / 1.13; // 不含税收入(元)
+
+    if(product.invType === 'special'){
+      // 专票：加价后含税进价→拆不含税成本+进项税
+      const invPriceTotal = product.baseCost * (1 + specMk) * product.qty; // 含税总进价(加价后)
+      const costExVAT = invPriceTotal / 1.13; // 不含税总成本
+      const inputVAT = costExVAT * 0.13; // 进项税
+      const outputVAT = revExVAT * 0.13; // 销项税
+      const vat = outputVAT - inputVAT; // 应缴增值税
+      const gp = revExVAT - costExVAT; // 毛利
       const gm = revExVAT ? gp / revExVAT : 0;
-      const opex = salesTotal * expRate;
-      const opl = gp - opex;
-      const adj = totalCost; // 普票在一般纳税人不能抵扣？不对，普票可抵
-      // 修正：一般纳税人收普票，不能抵进项(农产品除外)，但成本可税前扣除
-      const crate = gCR(citType, opl);
-      const cit = Math.max(0, opl * crate);
-      const np = opl - cit;
+      const crate = gCR(citType, gp);
+      const cit = Math.max(0, gp * crate);
+      const np = gp - cit;
       const nm = revExVAT ? np / revExVAT : 0;
-      Object.assign(R, { revExVAT, costExVAT: totalCost, vat, gp, gm, opex, opl, crate: gCL(citType, opl), cit, np, nm, invLabel: '普票' });
+      Object.assign(R, { revExVAT, costExVAT, inputVAT, vat, gp, gm, crate: gCL(citType, gp), cit, np, nm, invLabel: '专票' });
+    } else if(product.invType === 'normal'){
+      // 普票：加价后含税进价→不能抵进项增值税，但成本可税前扣除
+      const invPriceTotal = product.baseCost * (1 + normMk) * product.qty;
+      const outputVAT = revExVAT * 0.13;
+      const vat = outputVAT; // 普票不能抵进项
+      const gp = revExVAT - invPriceTotal; // 成本=含税进价(不能抵VAT但可扣成本)
+      const gm = revExVAT ? gp / revExVAT : 0;
+      const crate = gCR(citType, gp);
+      const cit = Math.max(0, gp * crate);
+      const np = gp - cit;
+      const nm = revExVAT ? np / revExVAT : 0;
+      Object.assign(R, { revExVAT, costExVAT: invPriceTotal, vat, gp, gm, crate: gCL(citType, gp), cit, np, nm, invLabel: '普票' });
     } else {
-      // 无票
+      // 无票：不加点，成本不能税前扣除→纳税调增
       const totalCost = product.baseCost * product.qty;
-      const revExVAT = salesTotal / 1.13;
       const outputVAT = revExVAT * 0.13;
       const vat = outputVAT;
       const gp = revExVAT - totalCost;
       const gm = revExVAT ? gp / revExVAT : 0;
-      const opex = salesTotal * expRate;
-      const opl = gp - opex;
-      const adj = totalCost; // 无票不能税前扣除
-      const ti = opl + adj;
+      // 纳税调增：无票成本全额不能扣除 → 应纳税所得额 = 毛利 + 调增 = 不含税收入
+      const ti = gp + totalCost; // = revExVAT
       const crate = gCR(citType, ti);
       const cit = Math.max(0, ti * crate);
-      const np = opl - cit;
+      const np = gp - cit;
       const nm = revExVAT ? np / revExVAT : 0;
-      Object.assign(R, { revExVAT, costExVAT: totalCost, vat, gp, gm, opex, opl, adj, ti, crate: gCL(citType, ti), cit, np, nm, invLabel: '无票⚠️' });
+      Object.assign(R, { revExVAT, costExVAT: totalCost, vat, gp, gm, adj: totalCost, ti, crate: gCL(citType, ti), cit, np, nm, invLabel: '无票⚠️' });
     }
   } else if(entity.t === 'small'){
-    const hasInvoice = product.invType === 'special' || product.invType === 'normal';
-    if(hasInvoice){
+    // ===== 小规模纳税人 征收率1% =====
+    const revExVAT = salesTotal / 1.01; // 不含税收入(元)
+
+    if(product.invType === 'special' || product.invType === 'normal'){
+      // 有票：加点，成本可税前扣除（小规模不能抵进项增值税）
       const mk = product.invType === 'special' ? specMk : normMk;
-      const invCost = product.baseCost * (1 + mk);
-      const totalCost = invCost * product.qty;
-      const revExVAT = salesTotal / 1.01;
+      const totalCost = product.baseCost * (1 + mk) * product.qty;
       const vat = revExVAT * 0.01;
       const gp = revExVAT - totalCost;
       const gm = revExVAT ? gp / revExVAT : 0;
-      const opex = salesTotal * expRate;
-      const opl = gp - opex;
-      const crate = gCR(citType, opl);
-      const cit = Math.max(0, opl * crate);
-      const np = opl - cit;
+      const crate = gCR(citType, gp);
+      const cit = Math.max(0, gp * crate);
+      const np = gp - cit;
       const nm = revExVAT ? np / revExVAT : 0;
-      Object.assign(R, { revExVAT, costExVAT: totalCost, vat, gp, gm, opex, opl, crate: gCL(citType, opl), cit, np, nm, invLabel: product.invType==='special'?'专票':'普票' });
+      Object.assign(R, { revExVAT, costExVAT: totalCost, vat, gp, gm, crate: gCL(citType, gp), cit, np, nm, invLabel: product.invType==='special'?'专票':'普票' });
     } else {
+      // 无票：不加点，成本不能税前扣除→纳税调增
       const totalCost = product.baseCost * product.qty;
-      const revExVAT = salesTotal / 1.01;
       const vat = revExVAT * 0.01;
       const gp = revExVAT - totalCost;
       const gm = revExVAT ? gp / revExVAT : 0;
-      const opex = salesTotal * expRate;
-      const opl = gp - opex;
-      const adj = totalCost;
-      const ti = opl + adj;
+      const ti = gp + totalCost; // = revExVAT
       const crate = gCR(citType, ti);
       const cit = Math.max(0, ti * crate);
-      const np = opl - cit;
+      const np = gp - cit;
       const nm = revExVAT ? np / revExVAT : 0;
-      Object.assign(R, { revExVAT, costExVAT: totalCost, vat, gp, gm, opex, opl, adj, ti, crate: gCL(citType, ti), cit, np, nm, invLabel: '无票⚠️' });
+      Object.assign(R, { revExVAT, costExVAT: totalCost, vat, gp, gm, adj: totalCost, ti, crate: gCL(citType, ti), cit, np, nm, invLabel: '无票⚠️' });
     }
   } else {
-    // 个体户核定征收
-    const monthlySales = salesTotal / 12;
-    const vatExempt = monthlySales <= 10;
+    // ===== 个体户核定征收 =====
+    // 月销售额≤10万(100000元)免征增值税
+    // 三个个体户限额6-7.5万/月，均低于10万/月，通常免征
+    const vatExempt = salesTotal <= 100000;
     const rev = vatExempt ? salesTotal : salesTotal / 1.01;
     const vat = vatExempt ? 0 : rev * 0.01;
     const totalCost = product.baseCost * product.qty;
     const gp = rev - totalCost;
     const gm = rev ? gp / rev : 0;
-    const opex = salesTotal * expRate;
-    const opl = gp - opex;
-    const deemedIncome = rev * deemedRate;
-    let pit = pitP(deemedIncome * 10000) / 10000;
-    if(deemedIncome <= 200) pit *= 0.5;
-    const np = opl - pit;
+    // 核定征收：个税 = 收入 × 应税所得率 × 累进税率 - 速算扣除数
+    const deemedIncome = rev * deemedRate; // 应纳税所得额(元)
+    const pit = pitP(deemedIncome); // pitP接收元为单位
+    const np = gp - pit;
     const nm = rev ? np / rev : 0;
-    Object.assign(R, { revExVAT: rev, costExVAT: totalCost, vat, gp, gm, opex, opl, deemedIncome, pit, np, nm, invLabel: '无需票✅', vatExempt, noCostInvoice: true });
+    Object.assign(R, { revExVAT: rev, costExVAT: totalCost, vat, gp, gm, deemedIncome, pit, np, nm, invLabel: '无需票✅', vatExempt, noCostInvoice: true });
   }
 
   R.salesWan = salesWan;
@@ -849,7 +807,7 @@ function manualAdjust(resultIdx, newEntityIdx){
   oldEntity.items = oldEntity.items.filter(it => it.product !== r.product);
 
   // 计算新品种盈利
-  const profit = calcItemProfit(r.product, newEntity, params.specMk, params.normMk, params.avgGM, params.citType, params.expRate, params.deemedRate);
+  const profit = calcItemProfit(r.product, newEntity, params.specMk, params.normMk, params.avgGM, params.citType, params.deemedRate);
 
   // 更新结果
   r.entity = { ...newEntity, idx: newEntityIdx };
