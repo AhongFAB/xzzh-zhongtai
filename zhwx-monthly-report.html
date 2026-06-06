@@ -517,17 +517,21 @@
 
         // 解析现金流量表
         function parseCashflowTable(workbook) {
-            let ws = null;
-            const possibleNames = ['现金流量表', 'Sheet1', 'Sheet0', workbook.SheetNames[0]];
-            for (const name of possibleNames) {
-                if (workbook.Sheets[name]) {
-                    ws = workbook.Sheets[name];
-                    break;
+            // 返回 {sheet0: [...], sheet1: [...]}，两个Sheet都解析
+            const result = {sheet0: null, sheet1: null};
+            // Sheet0: 全年12月格式
+            const name0 = workbook.SheetNames[0];
+            if (workbook.Sheets[name0]) {
+                result.sheet0 = XLSX.utils.sheet_to_json(workbook.Sheets[name0], {header: 1, raw: true, defval: 0});
+            }
+            // Sheet1: 小企业简表（本月金额+本年累计）
+            if (workbook.SheetNames.length > 1) {
+                const name1 = workbook.SheetNames[1];
+                if (workbook.Sheets[name1]) {
+                    result.sheet1 = XLSX.utils.sheet_to_json(workbook.Sheets[name1], {header: 1, raw: true, defval: 0});
                 }
             }
-            if (!ws) return null;
-            const data = XLSX.utils.sheet_to_json(ws, {header: 1, raw: true, defval: 0});
-            return data;
+            return result;
         }
 
         // 获取可用月份
@@ -946,18 +950,46 @@
             section.style.display = 'block';
             noData.style.display = 'none';
 
-            // 从现金流量表获取数据（Sheet0格式）
-            const getCashflowValue = (row, month) => {
-                if (!cashflowData || !cashflowData[row]) return 0;
-                // Sheet0: 1月=C(2), 2月=D(3), ... 12月=M(13)
-                const col = month + 1;
-                return cashflowData[row][col] || 0;
+            // 从现金流量表获取数据
+            // cashflowData = {sheet0: 全年12月, sheet1: 小企业简表}
+            // Sheet0: Col0=项目, Col1=行次, Col2=1月...Col13=12月
+            // Sheet1: Col0=项目, Col1=行次, Col2=本月金额, Col3=本年累计
+            // 关键行映射：Sheet0→Sheet1: 15→11(经营), 28→18(投资), 38→25(筹资), 42→28(期末)
+            const sheet0 = cashflowData.sheet0;
+            const sheet1 = cashflowData.sheet1;
+            // Sheet1行号映射：按关键词动态查找
+            const sheet1RowMap = {};
+            if (sheet1) {
+                for (let i = 0; i < sheet1.length; i++) {
+                    const name = (sheet1[i][0] || '').toString().trim();
+                    if (name.includes('经营活动') && name.includes('净额')) sheet1RowMap.operate = i;
+                    if (name.includes('投资活动') && name.includes('净额')) sheet1RowMap.invest = i;
+                    if (name.includes('筹资活动') && name.includes('净额')) sheet1RowMap.finance = i;
+                    if (name.includes('期末') && name.includes('余额')) sheet1RowMap.endBalance = i;
+                    if (name.includes('期初') && name.includes('余额')) sheet1RowMap.startBalance = i;
+                }
+            }
+
+            const getCashflowValue = (s0Row, month, s1Key) => {
+                // 优先从Sheet0取当月值
+                if (sheet0 && sheet0[s0Row]) {
+                    const col = month + 1;
+                    const val = sheet0[s0Row][col];
+                    if (val && val !== 0) return val;
+                }
+                // 回退Sheet1：取"本月金额"列(col2)
+                if (sheet1 && s1Key && sheet1RowMap[s1Key] !== undefined) {
+                    const s1Row = sheet1RowMap[s1Key];
+                    const sheet1Val = sheet1[s1Row][2]; // 本月金额
+                    if (sheet1Val && sheet1Val !== 0) return sheet1Val;
+                }
+                return 0;
             };
 
-            const operate = getCashflowValue(15, currentMonth);
-            const invest = getCashflowValue(28, currentMonth);
-            const finance = getCashflowValue(38, currentMonth);
-            const endBalance = getCashflowValue(42, currentMonth);
+            const operate = getCashflowValue(15, currentMonth, 'operate');
+            const invest = getCashflowValue(28, currentMonth, 'invest');
+            const finance = getCashflowValue(38, currentMonth, 'finance');
+            const endBalance = getCashflowValue(42, currentMonth, 'endBalance');
 
             document.getElementById('cashflowCards').innerHTML = `
                 <div class="cashflow-card">
@@ -1005,7 +1037,7 @@
             // 月度趋势图
             if (window.cashflowTrendChart && typeof window.cashflowTrendChart.destroy === "function") window.cashflowTrendChart.destroy();
             const labels = availableMonths.map(m => m + '月');
-            const opValues = availableMonths.map(m => getCashflowValue(15, m) / 10000);
+            const opValues = availableMonths.map(m => getCashflowValue(15, m, 'operate') / 10000);
             const tCtx = document.getElementById('cashflowTrendChart').getContext('2d');
             window.cashflowTrendChart = new Chart(tCtx, {
                 type: 'line',
@@ -1161,8 +1193,8 @@
 
             // 现金流
             let cashflowNeg = false;
-            if (cashflowData && cashflowData[15]) {
-                cashflowNeg = cashflowData[15][currentMonth + 1] < 0;
+            if (cashflowData && cashflowData.sheet0 && cashflowData.sheet0[15]) {
+                cashflowNeg = cashflowData.sheet0[15][currentMonth + 1] < 0;
             }
 
             const risks = [];
