@@ -763,12 +763,12 @@
             </div>`;
             html += `<div id="labor-drill" class="drill-down"><div class="sub-items">`;
             const laborItems = [
-                [7, '总经办工资'], [8, '业务部工资'], [9, '财务部工资'], [10, '内勤部工资'],
-                [11, '仓储物流部工资'], [12, '采购部工资'], [13, '线上运营部工资'], [14, '奖金'], [15, '社保']
+                [8, '总经办工资'], [9, '业务部工资'], [10, '财务部工资'], [11, '内勤部工资'],
+                [12, '仓储物流部工资'], [13, '采购部工资'], [14, '线上运营部工资'], [15, '奖金'], [16, '社保']
             ];
             laborItems.forEach(([row, name]) => {
                 const val = getDecisionValue(row, currentMonth);
-                if (val > 0) html += `<div><span>${name}</span><span>${formatMoney(val)}</span></div>`;
+                html += `<div><span>${name}</span><span>${formatMoney(val)}</span></div>`;
             });
             html += '</div></div>';
 
