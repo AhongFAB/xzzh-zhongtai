@@ -451,9 +451,9 @@ function renderTaxComparison(data, avgGM){
     const monthlySales = ind.totalSales * 10000 / 12;
     const vatExempt = monthlySales <= 100000;
     const rev = vatExempt ? ind.totalSales * 10000 : ind.totalSales * 10000 / 1.01;
-    const vat = vatExempt ? 0 : rev * 0.01;
+    const vat = (vatExempt ? 0 : rev * 0.01) / 10000; // 转万
     const deemedIncome = rev * 0.10;
-    const pit = pitP(deemedIncome);
+    const pit = pitP(deemedIncome) / 10000; // 转万
     const total = vat + pit;
     indResults.push({ name: ind.n, vat, pit, total });
   }
@@ -477,11 +477,11 @@ function renderTaxComparison(data, avgGM){
 <thead>
 <tr>
 <th style="text-align:left">主体</th>
-<th style="color:#f59e0b">悲观 VAT(万)</th>
-<th style="color:#f59e0b">悲观 CIT(万)</th>
+<th style="color:#f59e0b">悲观增值税(万)</th>
+<th style="color:#f59e0b">悲观所得税(万)</th>
 <th style="color:#f59e0b">悲观合计(万)</th>
-<th style="color:#10b981">乐观 VAT(万)</th>
-<th style="color:#10b981">乐观 CIT(万)</th>
+<th style="color:#10b981">乐观增值税(万)</th>
+<th style="color:#10b981">乐观所得税(万)</th>
 <th style="color:#10b981">乐观合计(万)</th>
 <th style="color:var(--c2)">差额(万)</th>
 </tr>
