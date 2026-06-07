@@ -633,6 +633,20 @@ function renderTaxComparison(data, avgGM){
   const genDiff = genTotalOpt - genTotalPess;
   const smallDiff = smallTotalOpt - smallTotalPess;
 
+  // === 总体税负率指标 ===
+  const g = tab1GlobalData;
+  const totalSalesWan = g ? g.tSales : 0;
+  // 总毛利(乐观) = 各主体毛利之和
+  const totalGrossProfitOpt = genGPOptCalc + smallGPOptCalc + indResults.reduce((s,r)=>s+(r.salesWan - r.salesWan*(1-avgGM)),0);
+  // 税前利润(乐观) = 总毛利 - 期间费用
+  const totalProfitBeforeTaxOpt = totalGrossProfitOpt - (periodExpTotal || 0);
+  // 税负占销售比
+  const pessSalesRatio = totalSalesWan > 0 ? totalPessAll / totalSalesWan : 0;
+  const optSalesRatio = totalSalesWan > 0 ? totalOptAll / totalSalesWan : 0;
+  // 税负占利润比
+  const pessProfitRatio = totalProfitBeforeTaxOpt > 0 ? totalPessAll / totalProfitBeforeTaxOpt : 0;
+  const optProfitRatio = totalProfitBeforeTaxOpt > 0 ? totalOptAll / totalProfitBeforeTaxOpt : 0;
+
   // ====== 构建逐步计算步骤 ======
   function buildSteps(entityName, scenario, steps, totalTax, diff){
     const idx = scenario === '悲观' ? '🔴' : '🟢';
@@ -791,6 +805,30 @@ function renderTaxComparison(data, avgGM){
 <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:10px 16px;flex:1;min-width:160px;text-align:center">
 <div style="font-size:11px;color:var(--inf);margin-bottom:4px">乐观可省</div>
 <div style="font-size:22px;font-weight:700;color:${totalDiff<=0?'var(--ok)':'var(--ng)'}">${fW(Math.abs(totalDiff))}万</div>
+</div>
+</div>
+
+<!-- 税负率指标 -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">
+<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:8px;padding:10px 12px;text-align:center">
+<div style="font-size:10px;color:#f59e0b;margin-bottom:2px">悲观 · 占销售比</div>
+<div style="font-size:18px;font-weight:700;color:#f59e0b">${(pessSalesRatio*100).toFixed(2)}%</div>
+<div style="font-size:10px;color:var(--t2)">${fW(totalPessAll)} ÷ ${fW(totalSalesWan)}</div>
+</div>
+<div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);border-radius:8px;padding:10px 12px;text-align:center">
+<div style="font-size:10px;color:#10b981;margin-bottom:2px">乐观 · 占销售比</div>
+<div style="font-size:18px;font-weight:700;color:#10b981">${(optSalesRatio*100).toFixed(2)}%</div>
+<div style="font-size:10px;color:var(--t2)">${fW(totalOptAll)} ÷ ${fW(totalSalesWan)}</div>
+</div>
+<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:8px;padding:10px 12px;text-align:center">
+<div style="font-size:10px;color:#f59e0b;margin-bottom:2px">悲观 · 占利润比</div>
+<div style="font-size:18px;font-weight:700;color:${pessProfitRatio>1?'var(--ng)':'#f59e0b'}">${totalProfitBeforeTaxOpt>0?(pessProfitRatio*100).toFixed(1)+'%':'—'}</div>
+<div style="font-size:10px;color:var(--t2)">${totalProfitBeforeTaxOpt>0?fW(totalPessAll)+' ÷ '+fW(totalProfitBeforeTaxOpt):'税前利润≤0'}</div>
+</div>
+<div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);border-radius:8px;padding:10px 12px;text-align:center">
+<div style="font-size:10px;color:#10b981;margin-bottom:2px">乐观 · 占利润比</div>
+<div style="font-size:18px;font-weight:700;color:${optProfitRatio>1?'var(--ng)':'#10b981'}">${totalProfitBeforeTaxOpt>0?(optProfitRatio*100).toFixed(1)+'%':'—'}</div>
+<div style="font-size:10px;color:var(--t2)">${totalProfitBeforeTaxOpt>0?fW(totalOptAll)+' ÷ '+fW(totalProfitBeforeTaxOpt):'税前利润≤0'}</div>
 </div>
 </div>
 
