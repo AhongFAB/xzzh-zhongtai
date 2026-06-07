@@ -98,7 +98,76 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 
 <!-- 五主体卡片 -->
 <h2 style="font-size:15px;font-weight:600;color:var(--c2);margin-bottom:12px;">🏢 五主体经营实况</h2>
-<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;" id="eCards"></div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;" id="eCards">
+
+<!-- 中合五金 -->
+<div class="ec">
+<div style="background:rgba(14,165,233,.15);color:#38bdf8;display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:6px">一般纳税人</div>
+<div style="font-weight:600;font-size:14px;margin-bottom:4px">中合五金</div>
+<div style="font-size:12px;color:var(--t2);margin-bottom:4px">年限额: <span style="color:var(--t1);font-weight:600">无上限</span></div>
+<div style="font-size:12px;color:var(--t1);font-weight:600" id="card0-sales">已销额: 0.00万</div>
+<div style="font-size:11px;color:var(--t2)" id="card0-input">进项: 0.00万</div>
+<div style="font-size:11px;color:var(--t2)" id="card0-cover">覆盖率: —</div>
+<div style="margin-top:6px">
+<div class="bar-bg"><div class="bar-fill" id="card0-bar" style="width:0%;background:#10b981">—</div></div>
+<div style="font-size:11px;color:var(--t2);margin-top:3px;text-align:right" id="card0-remain">剩余: <span style="color:var(--c2);font-weight:600">∞</span></div>
+</div>
+</div>
+
+<!-- 小规模公司 -->
+<div class="ec">
+<div style="background:rgba(16,185,129,.15);color:#34d399;display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:6px">小规模纳税人</div>
+<div style="font-weight:600;font-size:14px;margin-bottom:4px">小规模公司</div>
+<div style="font-size:12px;color:var(--t2);margin-bottom:4px">年限额: <span style="color:var(--t1);font-weight:600">500万</span></div>
+<div style="font-size:12px;color:var(--t1);font-weight:600" id="card1-sales">已销额: 0.00万</div>
+<div style="font-size:11px;color:var(--t2)" id="card1-input">进项: 0.00万</div>
+<div style="font-size:11px;color:var(--t2)" id="card1-cover">覆盖率: —</div>
+<div style="margin-top:6px">
+<div class="bar-bg"><div class="bar-fill" id="card1-bar" style="width:0%;background:#10b981">0%</div></div>
+<div style="font-size:11px;color:var(--t2);margin-top:3px;text-align:right" id="card1-remain">剩余: <span style="color:var(--ok);font-weight:600">0.00万</span></div>
+</div>
+</div>
+
+<!-- 个体户1 -->
+<div class="ec">
+<div style="background:rgba(139,92,246,.15);color:#a78bfa;display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:6px">个体工商户</div>
+<div style="font-weight:600;font-size:14px;margin-bottom:4px">个体户1</div>
+<div style="margin-bottom:4px"><label>年限额(万)</label><input type="number" id="limInd0" value="90" step="1" oninput="updateTab1()" style="font-size:13px;padding:5px 8px;width:100%"></div>
+<div style="margin-bottom:4px"><label>已销额(万)</label><input type="number" id="indSales0" value="" placeholder="手填实际" step="1" oninput="updateTab1()" style="font-size:13px;padding:5px 8px;width:100%"></div>
+<div style="font-size:11px;color:var(--t2)" id="card2-cover">覆盖率: <span style="color:var(--pu)">—</span></div>
+<div style="margin-top:6px">
+<div class="bar-bg"><div class="bar-fill" id="card2-bar" style="width:0%;background:#10b981">0%</div></div>
+<div style="font-size:11px;color:var(--t2);margin-top:3px;text-align:right" id="card2-remain">剩余: <span style="color:var(--ok);font-weight:600">90.00万</span></div>
+</div>
+</div>
+
+<!-- 个体户2 -->
+<div class="ec">
+<div style="background:rgba(139,92,246,.15);color:#a78bfa;display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:6px">个体工商户</div>
+<div style="font-weight:600;font-size:14px;margin-bottom:4px">个体户2</div>
+<div style="margin-bottom:4px"><label>年限额(万)</label><input type="number" id="limInd1" value="72" step="1" oninput="updateTab1()" style="font-size:13px;padding:5px 8px;width:100%"></div>
+<div style="margin-bottom:4px"><label>已销额(万)</label><input type="number" id="indSales1" value="" placeholder="手填实际" step="1" oninput="updateTab1()" style="font-size:13px;padding:5px 8px;width:100%"></div>
+<div style="font-size:11px;color:var(--t2)" id="card3-cover">覆盖率: <span style="color:var(--pu)">—</span></div>
+<div style="margin-top:6px">
+<div class="bar-bg"><div class="bar-fill" id="card3-bar" style="width:0%;background:#10b981">0%</div></div>
+<div style="font-size:11px;color:var(--t2);margin-top:3px;text-align:right" id="card3-remain">剩余: <span style="color:var(--ok);font-weight:600">72.00万</span></div>
+</div>
+</div>
+
+<!-- 个体户3 -->
+<div class="ec">
+<div style="background:rgba(139,92,246,.15);color:#a78bfa;display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:6px">个体工商户</div>
+<div style="font-weight:600;font-size:14px;margin-bottom:4px">个体户3</div>
+<div style="margin-bottom:4px"><label>年限额(万)</label><input type="number" id="limInd2" value="72" step="1" oninput="updateTab1()" style="font-size:13px;padding:5px 8px;width:100%"></div>
+<div style="margin-bottom:4px"><label>已销额(万)</label><input type="number" id="indSales2" value="" placeholder="手填实际" step="1" oninput="updateTab1()" style="font-size:13px;padding:5px 8px;width:100%"></div>
+<div style="font-size:11px;color:var(--t2)" id="card4-cover">覆盖率: <span style="color:var(--pu)">—</span></div>
+<div style="margin-top:6px">
+<div class="bar-bg"><div class="bar-fill" id="card4-bar" style="width:0%;background:#10b981">0%</div></div>
+<div style="font-size:11px;color:var(--t2);margin-top:3px;text-align:right" id="card4-remain">剩余: <span style="color:var(--ok);font-weight:600">72.00万</span></div>
+</div>
+</div>
+
+</div>
 
 <!-- 底部汇总 -->
 <div id="tab1Summary" class="gs" style="border-color:rgba(99,102,241,.2);margin-bottom:0;"></div>
@@ -205,7 +274,7 @@ function stab(id,b){document.querySelectorAll('.tab-c').forEach(c=>c.classList.r
 
 /* ==================== TAB 1: 经营实况 ==================== */
 
-/* 全量更新Tab1（五主体卡片+汇总） */
+/* 更新Tab1（只更新计算值，不重建DOM） */
 function updateTab1(){
   const avgGM = (parseFloat(document.getElementById('avgGM1').value) || 15) / 100;
   const genInput = parseFloat(document.getElementById('genInput').value) || 0;
@@ -217,78 +286,62 @@ function updateTab1(){
   EN[3].sl = parseFloat(document.getElementById('limInd1').value) || 72;
   EN[4].sl = parseFloat(document.getElementById('limInd2').value) || 72;
 
-  // 计算各主体数据
-  const data = EN.map((e, i) => {
-    if(e.t === 'general'){
-      const estSales = avgGM < 1 && avgGM > 0 ? genInput / (1 - avgGM) : 0;
-      const remain = e.sl > 0 ? Math.max(0, e.sl - estSales) : Infinity;
-      const cover = estSales > 0 ? genInput / estSales : 0;
-      return { ...e, inputVal: genInput, estSales, remain, cover, isInputSales: false };
-    } else if(e.t === 'small'){
-      const estSales = avgGM < 1 && avgGM > 0 ? smallInput / (1 - avgGM) : 0;
-      const remain = e.sl > 0 ? Math.max(0, e.sl - estSales) : Infinity;
-      const cover = estSales > 0 ? smallInput / estSales : 0;
-      return { ...e, inputVal: smallInput, estSales, remain, cover, isInputSales: false };
-    } else {
-      const indSales = parseFloat(document.getElementById('indSales'+(i-2)).value) || 0;
-      const estSales = indSales;
-      const remain = e.sl > 0 ? Math.max(0, e.sl - estSales) : Infinity;
-      return { ...e, inputVal: indSales, estSales, remain, cover: null, isInputSales: true };
-    }
-  });
+  // 同步毛利率到Tab2
+  document.getElementById('avgGM').value = document.getElementById('avgGM1').value;
 
-  renderEntityCards(data);
+  // === Card 0: 中合五金 (general) ===
+  const genEstSales = avgGM > 0 && avgGM < 1 ? genInput / (1 - avgGM) : 0;
+  const genCover = genEstSales > 0 ? genInput / genEstSales : 0;
+  document.getElementById('card0-sales').textContent = '已销额: ' + fW(genEstSales) + '万';
+  document.getElementById('card0-input').textContent = '进项: ' + fW(genInput) + '万';
+  const genCoverColor = genCover > 0.8 ? 'var(--ok)' : genCover > 0.5 ? 'var(--wn)' : 'var(--ng)';
+  document.getElementById('card0-cover').innerHTML = '覆盖率: <span style="color:'+genCoverColor+'">'+fP(genCover)+'</span>';
+  document.getElementById('card0-bar').style.width = '0%';
+  document.getElementById('card0-bar').textContent = '—';
+  document.getElementById('card0-remain').innerHTML = '剩余: <span style="color:var(--c2);font-weight:600">∞</span>';
+
+  // === Card 1: 小规模公司 (small) ===
+  const smallEstSales = avgGM > 0 && avgGM < 1 ? smallInput / (1 - avgGM) : 0;
+  const smallRemain = Math.max(0, 500 - smallEstSales);
+  const smallCover = smallEstSales > 0 ? smallInput / smallEstSales : 0;
+  const smallPct = Math.min(100, smallEstSales / 500 * 100);
+  const smallBarColor = smallPct > 80 ? '#f59e0b' : smallPct > 50 ? '#0ea5e9' : '#10b981';
+  const smallCoverColor = smallCover > 0.8 ? 'var(--ok)' : smallCover > 0.5 ? 'var(--wn)' : 'var(--ng)';
+  document.getElementById('card1-sales').textContent = '已销额: ' + fW(smallEstSales) + '万';
+  document.getElementById('card1-input').textContent = '进项: ' + fW(smallInput) + '万';
+  document.getElementById('card1-cover').innerHTML = '覆盖率: <span style="color:'+smallCoverColor+'">'+fP(smallCover)+'</span>';
+  document.getElementById('card1-bar').style.width = smallPct.toFixed(1) + '%';
+  document.getElementById('card1-bar').style.background = smallBarColor;
+  document.getElementById('card1-bar').textContent = smallPct.toFixed(0) + '%';
+  const smallRemainColor = smallRemain < 10 ? 'var(--ng)' : smallRemain < 30 ? 'var(--wn)' : 'var(--ok)';
+  document.getElementById('card1-remain').innerHTML = '剩余: <span style="color:'+smallRemainColor+';font-weight:600">'+fW(smallRemain)+'万</span>';
+
+  // === Cards 2-4: 个体户 ===
+  for(let i = 0; i < 3; i++){
+    const cardIdx = i + 2;
+    const indSales = parseFloat(document.getElementById('indSales'+i).value) || 0;
+    const sl = EN[cardIdx].sl;
+    const pct = sl > 0 && indSales > 0 ? Math.min(100, indSales / sl * 100) : 0;
+    const remain = sl > 0 ? Math.max(0, sl - indSales) : 0;
+    const barColor = pct > 100 ? '#ef4444' : pct > 80 ? '#f59e0b' : pct > 50 ? '#0ea5e9' : '#10b981';
+    const remainColor = remain < 10 ? 'var(--ng)' : remain < 30 ? 'var(--wn)' : 'var(--ok)';
+    document.getElementById('card'+cardIdx+'-bar').style.width = pct.toFixed(1) + '%';
+    document.getElementById('card'+cardIdx+'-bar').style.background = barColor;
+    document.getElementById('card'+cardIdx+'-bar').textContent = pct.toFixed(0) + '%';
+    document.getElementById('card'+cardIdx+'-remain').innerHTML = '剩余: <span style="color:'+remainColor+';font-weight:600">'+fW(remain)+'万</span>';
+  }
+
+  // 构建data数组给汇总和A区
+  const data = [
+    { n:'中合五金', t:'general', lb:'一般纳税人', sl:0, estSales: genEstSales, inputVal: genInput, remain: Infinity, cover: genCover, isInputSales: false },
+    { n:'小规模公司', t:'small', lb:'小规模纳税人', sl:500, estSales: smallEstSales, inputVal: smallInput, remain: smallRemain, cover: smallCover, isInputSales: false },
+    { n:'个体户1', t:'individual', lb:'个体工商户', sl:EN[2].sl, estSales: parseFloat(document.getElementById('indSales0').value)||0, inputVal: 0, remain: Math.max(0, EN[2].sl - (parseFloat(document.getElementById('indSales0').value)||0)), cover: null, isInputSales: true },
+    { n:'个体户2', t:'individual', lb:'个体工商户', sl:EN[3].sl, estSales: parseFloat(document.getElementById('indSales1').value)||0, inputVal: 0, remain: Math.max(0, EN[3].sl - (parseFloat(document.getElementById('indSales1').value)||0)), cover: null, isInputSales: true },
+    { n:'个体户3', t:'individual', lb:'个体工商户', sl:EN[4].sl, estSales: parseFloat(document.getElementById('indSales2').value)||0, inputVal: 0, remain: Math.max(0, EN[4].sl - (parseFloat(document.getElementById('indSales2').value)||0)), cover: null, isInputSales: true }
+  ];
+
   renderTab1Summary(data, tSales);
   renderEntityStatusTable(data);
-}
-
-/* 渲染五主体卡片 */
-function renderEntityCards(data){
-  const tc={general:'background:rgba(14,165,233,.15);color:#38bdf8',small:'background:rgba(16,185,129,.15);color:#34d399',individual:'background:rgba(139,92,246,.15);color:#a78bfa'};
-  const bc={general:'#0ea5e9',small:'#10b981',individual:'#8b5cf6'};
-  document.getElementById('eCards').innerHTML = data.map((e, i) => {
-    const pct = e.sl > 0 ? Math.min(100, e.estSales / e.sl * 100) : 0;
-    const barColor = pct > 100 ? '#ef4444' : pct > 80 ? '#f59e0b' : pct > 50 ? '#0ea5e9' : '#10b981';
-    const limitStr = e.sl > 0 ? e.sl + '万/年' : '无上限';
-    let limitInput = '';
-    let salesInput = '';
-    let salesDisplay = '';
-    let inputDisplay = '';
-    let coverDisplay = '';
-
-    if(e.t === 'individual'){
-      // 限额可编辑
-      limitInput = `<div style="margin-bottom:4px"><label>年限额(万)</label><input type="number" id="limInd${i-2}" value="${e.sl}" step="1" oninput="updateTab1()" style="font-size:13px;padding:5px 8px;width:100%"></div>`;
-      // 已销额手填
-      salesInput = `<div><label>已销额(万)</label><input type="number" id="indSales${i-2}" value="${e.estSales||''}" placeholder="手填实际" step="1" oninput="updateTab1()" style="font-size:13px;padding:5px 8px;width:100%"></div>`;
-      coverDisplay = `<div style="font-size:11px;color:var(--t2)">覆盖率: <span style="color:var(--pu)">—</span></div>`;
-    } else {
-      // 公司类：限额只读，已销额反算只读，进项同步
-      limitInput = `<div style="font-size:12px;color:var(--t2);margin-bottom:4px"><span style="color:var(--t1);font-weight:600">${limitStr}</span></div>`;
-      salesDisplay = `<div style="font-size:12px;color:var(--t1);font-weight:600">已销额: ${fW(e.estSales)}万</div>`;
-      inputDisplay = `<div style="font-size:11px;color:var(--t2)">进项: ${fW(e.inputVal)}万</div>`;
-      const coverColor = e.cover > 0.8 ? 'var(--ok)' : e.cover > 0.5 ? 'var(--wn)' : 'var(--ng)';
-      coverDisplay = `<div style="font-size:11px;color:var(--t2)">覆盖率: <span style="color:${coverColor}">${fP(e.cover)}</span></div>`;
-    }
-
-    const remainColor = e.remain === Infinity ? 'var(--c2)' : e.remain < 10 ? 'var(--ng)' : e.remain < 30 ? 'var(--wn)' : 'var(--ok)';
-    const remainStr = e.remain === Infinity ? '∞' : fW(e.remain);
-    const remainLabel = e.t === 'individual' ? '剩余容量' : '剩余容量';
-
-    return `<div class="ec">
-<div style="${tc[e.t]};display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:6px">${e.lb}</div>
-<div style="font-weight:600;font-size:14px;margin-bottom:4px">${e.n}</div>
-<div style="margin-bottom:6px">${limitInput}</div>
-${salesInput}
-${salesDisplay}
-${inputDisplay}
-${coverDisplay}
-<div style="margin-top:6px">
-<div class="bar-bg"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:${barColor}">${pct.toFixed(0)}%</div></div>
-<div style="font-size:11px;color:var(--t2);margin-top:3px;text-align:right">${remainLabel}: <span style="color:${remainColor};font-weight:600">${remainStr}万</span></div>
-</div>
-</div>`;
-  }).join('');
 }
 
 /* 渲染Tab1底部汇总 */
@@ -297,7 +350,7 @@ function renderTab1Summary(data, tSales){
   const genData = data[0];
   const smallData = data[1];
   const totalIndSales = indData.reduce((s,d)=>s+d.estSales,0);
-  const totalRemaining = indData.reduce((s,d)=>s+(d.remain===Infinity?0:d.remain),0);
+  const totalRemaining = data.reduce((s,d)=>s+(d.remain===Infinity?0:d.remain),0);
 
   let h = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center">
 <div style="font-size:13px;line-height:1.8">
