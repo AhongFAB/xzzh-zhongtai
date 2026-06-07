@@ -107,14 +107,14 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 <div><label>小规模已收进项(万)</label><input type="number" id="smallInput" value="27" step="1" oninput="updateTab1()"></div>
 <div><label>平均毛利率(%)</label><input type="number" id="avgGM1" value="15" step="1" oninput="updateTab1()"></div>
 </div>
-<div style="margin-top:10px;max-width:250px;">
-<label>实际已发生期间费用合计(万) <span style="font-size:9px;color:var(--t2)">租金/折旧/人工/运杂/其他等</span></label>
-<input type="number" id="periodExp" value="215.3" step="1" oninput="updateTab1()">
+<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:520px;">
+<div><label>期间费用合计(万) <span style="font-size:9px;color:var(--t2)">租金/折旧/人工/运杂等</span></label><input type="number" id="periodExp" value="215.3" step="1" oninput="updateTab1()"></div>
+<div><label>其中有票费用(万) <span style="font-size:9px;color:var(--t2)">能税前扣除的</span></label><input type="number" id="periodExpInvoiced" value="104" step="1" oninput="updateTab1()"></div>
 </div>
 <div style="font-size:11px;color:var(--t2);margin-top:8px;line-height:1.6;">
 💡 有票已销额 = 已收进项 ÷ (1 - 平均毛利率)；无票总额 = 总销售额 - 有票已销合计 - 个体户合计，按有票比例分摊<br>
 💡 所得税率固定：<strong style="color:var(--c2)">一般纳税人15%</strong> / <strong style="color:var(--c2)">小规模5%</strong> / <strong style="color:var(--c2)">个体户核定10%</strong><br>
-💡 期间费用票开在中合五金名下，只从中合五金所得税前扣除
+💡 期间费用票开在中合五金名下；悲观=只扣有票费用，乐观=全扣（假设无票费用都找到票）
 </div>
 </div>
 
@@ -310,6 +310,8 @@ function updateTab1(){
 
   // 读取期间费用合计（万元）
   const periodExpTotal = parseFloat(document.getElementById('periodExp').value) || 0;
+  const periodExpInvoiced = parseFloat(document.getElementById('periodExpInvoiced').value) || 0;
+  const periodExpNoInv = Math.max(0, periodExpTotal - periodExpInvoiced); // 无票费用
 
   // 同步个体户限额到EN数组
   EN[2].sl = parseFloat(document.getElementById('limInd0').value) || 90;
@@ -403,7 +405,7 @@ function updateTab1(){
     genInvoicedSales, smallInvoicedSales, totalInvoicedSales,
     genNoInvSales, smallNoInvSales, noInvTotal,
     genTotalSales, smallTotalSales, totalIndSales,
-    periodExpTotal
+    periodExpTotal, periodExpInvoiced, periodExpNoInv
   };
 
   renderTab1Summary(data, tSales, noInvTotal, genCover, smallCover);
@@ -438,9 +440,13 @@ function renderTaxComparison(data, avgGM){
   const genData = d[0];
   const smallData = d[1];
 
-  // 期间费用全额从中合五金扣除（发票都开在中合五金名下）
+  // 期间费用：票开在中合五金名下，悲观=只扣有票部分，乐观=全扣
   const periodExpTotal = tab1GlobalData ? (tab1GlobalData.periodExpTotal || 0) : 0;
-  const genExpDeduct = periodExpTotal; // 万元（发票开在中合五金名下，全额扣除）
+  const periodExpInvoiced = tab1GlobalData ? (tab1GlobalData.periodExpInvoiced || 0) : 0;
+  const periodExpNoInv = tab1GlobalData ? (tab1GlobalData.periodExpNoInv || 0) : 0;
+  // 悲观：只扣有票费用；乐观：全扣
+  const genExpDeductPess = periodExpInvoiced; // 万元（悲观只扣有票）
+  const genExpDeductOpt = periodExpTotal; // 万元（乐观全扣）
   const smallExpDeduct = 0; // 小规模不扣除（费用发票不在小规模名下）
 
   // 中合五金
@@ -448,17 +454,17 @@ function renderTaxComparison(data, avgGM){
   const genInvCost = genData.inputVal / 1.13;
   const genNoInvCost = genData.noInvSales / 1.13;
   const genCITBasePess = (genData.invoicedSales - genInvCost) + genData.noInvSales / 1.13;
-  const genCITBasePessAfterExp = Math.max(0, genCITBasePess - genExpDeduct); // 扣除期间费用
+  const genCITBasePessAfterExp = Math.max(0, genCITBasePess - genExpDeductPess); // 悲观：只扣有票费用
   const genCITPess = Math.max(0, genCITBasePessAfterExp * 0.15);
   const genTotalPess = genVATPessimistic + genCITPess;
 
-  // 乐观：无票部分也有专票
+  // 乐观：无票销售找到进项 + 费用全扣
   const genNoInvCostOpt = genData.noInvSales * (1 - avgGM) / 1.13;
   const genTotalCostOpt = genData.inputVal / 1.13 + genNoInvCostOpt;
   const genRevOpt = genData.totalSales / 1.13;
   const genVatOpt = (genRevOpt - genTotalCostOpt) * 0.13;
   const genGPOpt = genRevOpt - genTotalCostOpt;
-  const genCITBaseOptAfterExp = Math.max(0, genGPOpt - genExpDeduct); // 扣除期间费用
+  const genCITBaseOptAfterExp = Math.max(0, genGPOpt - genExpDeductOpt); // 乐观：全扣费用
   const genCITOpt = Math.max(0, genCITBaseOptAfterExp * 0.15);
   const genTotalOpt = genVatOpt + genCITOpt;
 
@@ -498,7 +504,7 @@ function renderTaxComparison(data, avgGM){
   const indDiff = 0;
 
   // 渲染税负对比区
-  const expNote = periodExpTotal > 0 ? `<span style="color:var(--ok)">（含期间费用<span style="font-weight:600">${fW(periodExpTotal)}万</span>已从中合五金扣除）</span>` : '';
+  const expNote = periodExpTotal > 0 ? `<span style="color:var(--ok)">（悲观扣有票费用<span style="font-weight:600">${fW(periodExpInvoiced)}万</span>，乐观全扣<span style="font-weight:600">${fW(periodExpTotal)}万</span>）</span>` : '';
   const html = `
 <div id="taxComparisonZone" style="margin-top:16px;">
 <div style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(99,102,241,.03));border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:16px;margin-bottom:0;">
@@ -1289,8 +1295,8 @@ function exportAllData(){
   csv += `个体户3,${document.getElementById('indSales2').value||0},${document.getElementById('limInd2').value||72}\n`;
 
   csv += '\n## Tab1-期间费用\n';
-  csv += '期间费用合计(万),\n';
-  csv += `${document.getElementById('periodExp').value||0}\n`;
+  csv += '期间费用合计(万),有票费用(万)\n';
+  csv += `${document.getElementById('periodExp').value||0},${document.getElementById('periodExpInvoiced').value||0}\n`;
 
   // 导出无票分配数据
   if(tab1GlobalData){
@@ -1386,8 +1392,10 @@ function importAllData(event){
       if(section === 'Tab1-期间费用'){
         const parts = line.split(',');
         if(parts.length >= 1 && !parts[0].includes('期间费用合计')){
-          const val = parts[0].trim();
-          if(val && !isNaN(parseFloat(val))) document.getElementById('periodExp').value = val;
+          const val1 = parts[0].trim();
+          const val2 = (parts[1]||'').trim();
+          if(val1 && !isNaN(parseFloat(val1))) document.getElementById('periodExp').value = val1;
+          if(val2 && !isNaN(parseFloat(val2))) document.getElementById('periodExpInvoiced').value = val2;
         }
       }
       if(section === '参数'){
