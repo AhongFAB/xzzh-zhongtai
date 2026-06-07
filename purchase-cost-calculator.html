@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>采购成本计算器 V4 | 五主体智能分配</title>
+<title>税负测算 V4 | 五主体智能分配</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -63,13 +63,30 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 .entity-row .label{font-size:13px;font-weight:600}
 .product-row{display:grid;grid-template-columns:1.2fr 0.8fr 0.8fr 0.6fr 0.9fr 32px;gap:8px;margin-bottom:6px;align-items:center}
 .alloc-row{display:grid;grid-template-columns:0.6fr 1fr 0.8fr 0.7fr 1fr 0.6fr 1fr;gap:6px;margin-bottom:6px;align-items:center;font-size:13px}
+/* 逐步计算卡片样式 */
+.step-card{background:rgba(15,23,42,.6);border:1px solid rgba(56,189,248,.1);border-radius:10px;padding:14px;transition:all .2s}
+.step-card.active{border-color:rgba(14,165,233,.5);box-shadow:0 0 12px rgba(14,165,233,.15)}
+.step-card.confirmed{border-color:rgba(16,185,129,.5);box-shadow:0 0 12px rgba(16,185,129,.15)}
+.step-card.unsuitable{opacity:.5}
+.step-row{display:flex;gap:4px;font-size:12px;line-height:1.8;color:var(--t2)}
+.step-row .num{color:var(--t2);min-width:18px}
+.step-row .formula{color:var(--t2)}
+.step-row .result{color:var(--t1);font-weight:500}
+.step-row .note{color:var(--c2);font-size:11px;margin-left:4px}
+.step-title{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.step-title .idx{font-size:16px;font-weight:700}
+.step-title .name{font-weight:600;font-size:13px}
+.step-amount{display:flex;gap:12px;margin:8px 0;padding:6px 0;border-top:1px dashed rgba(56,189,248,.15);border-bottom:1px dashed rgba(56,189,248,.15)}
+.step-amount .label{font-size:11px;color:var(--t2)}
+.step-amount .value{font-size:18px;font-weight:700}
+.step-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:12px}
 </style>
 </head>
 <body>
 <div class="orb o1"></div><div class="orb o2"></div>
 <div style="position:relative;z-index:1;max-width:1320px;margin:0 auto;padding:20px;">
 <div style="text-align:center;margin-bottom:16px;">
-<h1 style="font-size:24px;font-weight:700;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">采购成本计算器 V4</h1>
+<h1 style="font-size:24px;font-weight:700;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">税负测算 V4</h1>
 <p style="color:var(--t2);font-size:12px;margin-top:4px;">五主体经营实况 · 智能发票分配 · 核定征收无票避风港</p>
 </div>
 <div style="display:flex;gap:0;margin-bottom:0;overflow-x:auto;">
@@ -90,9 +107,17 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 <div><label>小规模已收进项(万)</label><input type="number" id="smallInput" value="27" step="1" oninput="updateTab1()"></div>
 <div><label>平均毛利率(%)</label><input type="number" id="avgGM1" value="15" step="1" oninput="updateTab1()"></div>
 </div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:10px;">
+<div><label>租金(万)</label><input type="number" id="expRent" value="0" step="1" oninput="updateTab1()"></div>
+<div><label>折旧(万)</label><input type="number" id="expDep" value="0" step="1" oninput="updateTab1()"></div>
+<div><label>人工(万)</label><input type="number" id="expLabor" value="0" step="1" oninput="updateTab1()"></div>
+<div><label>运杂物流费(万)</label><input type="number" id="expLogistics" value="0" step="1" oninput="updateTab1()"></div>
+<div><label>其他(万)</label><input type="number" id="expOther" value="0" step="1" oninput="updateTab1()"></div>
+</div>
 <div style="font-size:11px;color:var(--t2);margin-top:8px;line-height:1.6;">
 💡 有票已销额 = 已收进项 ÷ (1 - 平均毛利率)；无票总额 = 总销售额 - 有票已销合计 - 个体户合计，按有票比例分摊<br>
-💡 所得税率固定：<strong style="color:var(--c2)">一般纳税人15%</strong> / <strong style="color:var(--c2)">小规模5%</strong> / <strong style="color:var(--c2)">个体户核定10%</strong>
+💡 所得税率固定：<strong style="color:var(--c2)">一般纳税人15%</strong> / <strong style="color:var(--c2)">小规模5%</strong> / <strong style="color:var(--c2)">个体户核定10%</strong><br>
+💡 期间费用在税负对比中从公司类主体应纳税所得额中扣除（按销售额比例分摊）
 </div>
 </div>
 
@@ -257,7 +282,7 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 </div>
 </div>
 
-<div class="ft">开发者：张洪杰 | 西藏中合五金供应链科技有限公司 财务部</div>
+<div class="ft">税负测算 V4</div>
 
 <script>
 /* ==================== 共用常量与函数 ==================== */
@@ -285,6 +310,13 @@ function updateTab1(){
   const genInput = parseFloat(document.getElementById('genInput').value) || 0;
   const smallInput = parseFloat(document.getElementById('smallInput').value) || 0;
   const tSales = parseFloat(document.getElementById('tSales').value) || 0;
+
+  // 读取期间费用（万元）
+  const periodExpTotal = (parseFloat(document.getElementById('expRent').value)||0) + 
+                         (parseFloat(document.getElementById('expDep').value)||0) + 
+                         (parseFloat(document.getElementById('expLabor').value)||0) + 
+                         (parseFloat(document.getElementById('expLogistics').value)||0) + 
+                         (parseFloat(document.getElementById('expOther').value)||0);
 
   // 同步个体户限额到EN数组
   EN[2].sl = parseFloat(document.getElementById('limInd0').value) || 90;
@@ -377,7 +409,8 @@ function updateTab1(){
     tSales, genInput, smallInput, avgGM,
     genInvoicedSales, smallInvoicedSales, totalInvoicedSales,
     genNoInvSales, smallNoInvSales, noInvTotal,
-    genTotalSales, smallTotalSales, totalIndSales
+    genTotalSales, smallTotalSales, totalIndSales,
+    periodExpTotal
   };
 
   renderTab1Summary(data, tSales, noInvTotal, genCover, smallCover);
@@ -412,12 +445,18 @@ function renderTaxComparison(data, avgGM){
   const genData = d[0];
   const smallData = d[1];
 
+  // 期间费用全额从中合五金扣除（发票都开在中合五金名下）
+  const periodExpTotal = tab1GlobalData ? (tab1GlobalData.periodExpTotal || 0) : 0;
+  const genExpDeduct = periodExpTotal; // 万元（发票开在中合五金名下，全额扣除）
+  const smallExpDeduct = 0; // 小规模不扣除（费用发票不在小规模名下）
+
   // 中合五金
   const genVATPessimistic = (genData.totalSales - genData.inputVal) / 1.13 * 0.13;
   const genInvCost = genData.inputVal / 1.13;
   const genNoInvCost = genData.noInvSales / 1.13;
   const genCITBasePess = (genData.invoicedSales - genInvCost) + genData.noInvSales / 1.13;
-  const genCITPess = Math.max(0, genCITBasePess * 0.15);
+  const genCITBasePessAfterExp = Math.max(0, genCITBasePess - genExpDeduct); // 扣除期间费用
+  const genCITPess = Math.max(0, genCITBasePessAfterExp * 0.15);
   const genTotalPess = genVATPessimistic + genCITPess;
 
   // 乐观：无票部分也有专票
@@ -426,10 +465,11 @@ function renderTaxComparison(data, avgGM){
   const genRevOpt = genData.totalSales / 1.13;
   const genVatOpt = (genRevOpt - genTotalCostOpt) * 0.13;
   const genGPOpt = genRevOpt - genTotalCostOpt;
-  const genCITOpt = Math.max(0, genGPOpt * 0.15);
+  const genCITBaseOptAfterExp = Math.max(0, genGPOpt - genExpDeduct); // 扣除期间费用
+  const genCITOpt = Math.max(0, genCITBaseOptAfterExp * 0.15);
   const genTotalOpt = genVatOpt + genCITOpt;
 
-  // 小规模
+  // 小规模（不扣除期间费用）
   const smallVATPess = smallData.totalSales / 1.01 * 0.01;
   const smallInvGP = smallData.invoicedSales / 1.01 - smallData.inputVal;
   const smallCITBasePess = smallInvGP + smallData.noInvSales / 1.01;
@@ -444,7 +484,7 @@ function renderTaxComparison(data, avgGM){
   const smallCITOpt = Math.max(0, smallGPOpt * 0.05);
   const smallTotalOpt = smallVatOpt + smallCITOpt;
 
-  // 个体户（悲观=乐观）
+  // 个体户（悲观=乐观，核定征收不看费用）
   let indResults = [];
   for(let i = 2; i < 5; i++){
     const ind = d[i];
@@ -465,11 +505,12 @@ function renderTaxComparison(data, avgGM){
   const indDiff = 0;
 
   // 渲染税负对比区
+  const expNote = periodExpTotal > 0 ? `<span style="color:var(--ok)">（含期间费用<span style="font-weight:600">${fW(periodExpTotal)}万</span>已从中合五金扣除）</span>` : '';
   const html = `
 <div id="taxComparisonZone" style="margin-top:16px;">
 <div style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(99,102,241,.03));border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:16px;margin-bottom:0;">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px;">
-<div style="font-size:14px;font-weight:600;color:var(--inf);">⚖️ 税负对比（悲观 vs 乐观）</div>
+<div style="font-size:14px;font-weight:600;color:var(--inf);">⚖️ 税负对比（悲观 vs 乐观）${expNote}</div>
 <div style="font-size:11px;color:var(--t2);">悲观=无票找不到进项调增 | 乐观=无票都有专票可抵扣</div>
 </div>
 <div style="overflow-x:auto;">
@@ -908,6 +949,8 @@ function renderAllocResult(results, entities, params){
     const isConfirmed = !!confirmedMap[i];
 
     const salesWanLocal = p.sellPrice * p.qty / 10000;
+
+    // 计算所有主体的利润和排名
     const allProfits = EN.map((en, ei) => {
       const pf = calcItemProfit(p, en, params.specMk, params.normMk, params.avgGM, params.citType, params.deemedRate);
       pf.entityIdx = ei;
@@ -938,6 +981,7 @@ function renderAllocResult(results, entities, params){
     let cardClass = isConfirmed ? 'best' : 'warn';
     h += `<div class="rec-card ${cardClass}" style="margin-bottom:14px;${isConfirmed?'border-width:2px;':''}">`;
 
+    // 卡片头部
     h += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">`;
     h += `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">`;
     h += `<span style="font-weight:700;font-size:14px;color:var(--c2)">${p.name}</span>`;
@@ -959,6 +1003,7 @@ function renderAllocResult(results, entities, params){
     }
     h += `</div></div>`;
 
+    // 推荐提示
     if(!isAutoBest){
       h += `<div style="background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(16,185,129,.04));border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;line-height:1.6">`;
       h += `<span style="color:var(--ok);font-weight:700">🏆 系统推荐：${bestEntity.n}</span>`;
@@ -970,6 +1015,7 @@ function renderAllocResult(results, entities, params){
       h += `</div>`;
     }
 
+    // 最终方案提示
     if(isConfirmed){
       h += `<div style="background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(16,185,129,.02));border:1px solid rgba(16,185,129,.25);border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:12px">`;
       h += `<span style="color:var(--ok);font-weight:700">📌 最终方案：${e.n}</span>`;
@@ -977,43 +1023,212 @@ function renderAllocResult(results, entities, params){
       h += `</div>`;
     }
 
-    h += `<div style="overflow-x:auto"><table class="tb" style="min-width:700px"><thead><tr>`;
-    h += `<th style="width:40px">排名</th><th style="text-align:left">主体</th><th>发票</th><th>毛利率</th><th>增值税</th><th>所得税</th><th>净利润</th><th>净利率</th><th>备注</th>`;
-    h += `</tr></thead><tbody>`;
+    // 五主体逐步计算子卡片
+    h += `<div class="step-grid">`;
 
-    allProfits.forEach(pf => {
-      const en = EN[pf.entityIdx];
+    allProfits.forEach((pf, ei) => {
+      const en = EN[ei];
       const isCurrent = en.n === e.n;
-      const rowStyle = isCurrent ? 'background:rgba(14,165,233,.08);' : '';
-      const rankBadge = pf.rank === 1 ? 'rank-1' : pf.rank === 2 ? 'rank-2' : pf.rank === 3 ? 'rank-3' : pf.rank === 4 ? 'rank-4' : 'rank-5';
-      const taxVal = pf.cit || pf.pit || 0;
-      let note = '';
-      if(pf.noCostInvoice) note = '<span style="color:var(--pu)">无需成本票</span>';
-      else if(pf.adj) note = `<span style="color:var(--ng)">调增${fW(pf.adj)}</span>`;
-      if(pf.vatExempt) note += (note ? ' ' : '') + '<span style="color:var(--ok)">免增值税</span>';
-      if(pf.isFull) note += (note ? ' ' : '') + '<span style="color:var(--ng)">🔴已满</span>';
-      else if(pf.wouldOverflow) note += (note ? ' ' : '') + '<span style="color:var(--ng)">⚠️将超限</span>';
-      if(pf.unsuitable) note += (note ? ' ' : '') + '<span style="color:var(--wn)">不适用</span>';
+      const isBest = pf.rank === 1 && !pf.isFull && !pf.wouldOverflow && !pf.unsuitable;
+      let cardClass = 'step-card';
+      if(pf.unsuitable) cardClass += ' unsuitable';
+      if(isCurrent && isConfirmed) cardClass += ' confirmed';
+      else if(isCurrent) cardClass += ' active';
 
-      h += `<tr style="${rowStyle}">`;
-      h += `<td style="text-align:center"><span class="rank-badge ${rankBadge}">${pf.rank}</span></td>`;
-      h += `<td style="text-align:left;font-weight:600;color:${typeColor[en.t]};white-space:nowrap">${en.n}${isCurrent ? (isConfirmed?' 🔒':' ✅') : ''}</td>`;
-      h += `<td style="font-size:12px">${pf.invLabel}</td>`;
-      h += `<td style="color:${pf.gm>=0?'var(--ok)':'var(--ng)'};font-weight:600">${fP(pf.gm)}</td>`;
-      h += `<td style="font-size:12px">${fW(pf.vat||0)}</td>`;
-      h += `<td style="font-size:12px;color:var(--wn)">${fW(taxVal)}</td>`;
-      h += `<td style="font-weight:700;color:${pf.np>=0?'var(--ok)':'var(--ng)'}">${fW(pf.np)}</td>`;
-      h += `<td style="font-weight:700;font-size:13px;color:${pf.nm>=0.05?'var(--ok)':pf.nm>=0?'var(--c2)':pf.nm>=-0.05?'var(--wn)':'var(--ng)'}">${fP(pf.nm)}</td>`;
-      h += `<td style="font-size:11px">${note}</td>`;
-      h += `</tr>`;
+      // 生成逐步计算步骤
+      let steps = [];
+      const baseCost = p.baseCost;
+      const sellPrice = p.sellPrice;
+      const qty = p.qty;
+      const salesTotal = sellPrice * qty;
+
+      if(en.t === 'general'){
+        if(p.invType === 'special'){
+          // 一般纳税人+专票
+          const invPriceTotal = baseCost * (1 + params.specMk) * qty;
+          const costExVAT = invPriceTotal / 1.13;
+          const inputVAT = costExVAT * 0.13;
+          const revExVAT = salesTotal / 1.13;
+          const outputVAT = revExVAT * 0.13;
+          const vat = outputVAT - inputVAT;
+          const gp = revExVAT - costExVAT;
+          const cit = Math.max(0, gp * 0.15);
+          const np = gp - cit;
+          steps = [
+            {formula:`含税采购价 = ${fW(baseCost)} × (1+${(params.specMk*100).toFixed(0)}%) × ${qty}`, result:fW(invPriceTotal)},
+            {formula:`不含税成本 = ${fW(invPriceTotal)} ÷ 1.13`, result:fW(costExVAT), note:'专票可税前扣除'},
+            {formula:`可抵扣进项税 = ${fW(costExVAT)} × 13%`, result:fW(inputVAT)},
+            {formula:`不含税售价 = ${fW(salesTotal)} ÷ 1.13`, result:fW(revExVAT)},
+            {formula:`销项税 = ${fW(revExVAT)} × 13%`, result:fW(outputVAT)},
+            {formula:`应缴增值税 = ${fW(outputVAT)} - ${fW(inputVAT)}`, result:fW(vat)},
+            {formula:`毛利 = ${fW(revExVAT)} - ${fW(costExVAT)}`, result:fW(gp)},
+            {formula:`所得税(15%) = ${fW(gp)} × 15%`, result:fW(cit)},
+            {formula:`净利润 = ${fW(gp)} - ${fW(cit)}`, result:fW(np)}
+          ];
+        } else if(p.invType === 'normal'){
+          // 一般纳税人+普票
+          const invPriceTotal = baseCost * (1 + params.normMk) * qty;
+          const revExVAT = salesTotal / 1.13;
+          const outputVAT = revExVAT * 0.13;
+          const vat = outputVAT;
+          const gp = revExVAT - invPriceTotal;
+          const cit = Math.max(0, gp * 0.15);
+          const np = gp - cit;
+          steps = [
+            {formula:`含税采购价 = ${fW(baseCost)} × (1+${(params.normMk*100).toFixed(0)}%) × ${qty}`, result:fW(invPriceTotal)},
+            {formula:`不含税售价 = ${fW(salesTotal)} ÷ 1.13`, result:fW(revExVAT)},
+            {formula:`销项税 = ${fW(revExVAT)} × 13%`, result:fW(outputVAT)},
+            {formula:`应缴增值税 = ${fW(outputVAT)}（普票不可抵扣进项）`, result:fW(vat)},
+            {formula:`毛利 = ${fW(revExVAT)} - ${fW(invPriceTotal)}`, result:fW(gp)},
+            {formula:`所得税(15%) = ${fW(gp)} × 15%`, result:fW(cit)},
+            {formula:`净利润 = ${fW(gp)} - ${fW(cit)}`, result:fW(np)}
+          ];
+        } else {
+          // 一般纳税人+无票
+          const totalCost = baseCost * qty;
+          const revExVAT = salesTotal / 1.13;
+          const outputVAT = revExVAT * 0.13;
+          const vat = outputVAT;
+          const gp = revExVAT - totalCost;
+          const ti = gp + totalCost;
+          const cit = Math.max(0, ti * 0.15);
+          const np = gp - cit;
+          steps = [
+            {formula:`采购成本 = ${fW(baseCost)} × ${qty}`, result:fW(totalCost)},
+            {formula:`不含税售价 = ${fW(salesTotal)} ÷ 1.13`, result:fW(revExVAT)},
+            {formula:`销项税 = ${fW(revExVAT)} × 13%`, result:fW(outputVAT)},
+            {formula:`应缴增值税 = ${fW(outputVAT)}`, result:fW(vat)},
+            {formula:`毛利 = ${fW(revExVAT)} - ${fW(totalCost)}`, result:fW(gp)},
+            {formula:`纳税调增 = ${fW(totalCost)}（无票不能税前扣除）`, result:fW(totalCost), note:'⚠️'},
+            {formula:`应纳税所得额 = ${fW(gp)} + ${fW(totalCost)} = ${fW(ti)}`, result:fW(ti)},
+            {formula:`所得税(15%) = ${fW(ti)} × 15%`, result:fW(cit)},
+            {formula:`净利润 = ${fW(gp)} - ${fW(cit)}`, result:fW(np)}
+          ];
+        }
+      } else if(en.t === 'small'){
+        const revExVAT = salesTotal / 1.01;
+        const mk = p.invType === 'special' ? params.specMk : params.normMk;
+        if(p.invType !== 'none'){
+          // 小规模+专票/普票
+          const totalCost = baseCost * (1 + mk) * qty;
+          const vat = revExVAT * 0.01;
+          const gp = revExVAT - totalCost;
+          const cit = Math.max(0, gp * 0.05);
+          const np = gp - cit;
+          steps = [
+            {formula:`含税采购价 = ${fW(baseCost)} × (1+${(mk*100).toFixed(0)}%) × ${qty}`, result:fW(totalCost)},
+            {formula:`不含税售价 = ${fW(salesTotal)} ÷ 1.01`, result:fW(revExVAT)},
+            {formula:`增值税 = ${fW(revExVAT)} × 1%`, result:fW(vat)},
+            {formula:`毛利 = ${fW(revExVAT)} - ${fW(totalCost)}`, result:fW(gp)},
+            {formula:`所得税(5%) = ${fW(gp)} × 5%`, result:fW(cit)},
+            {formula:`净利润 = ${fW(gp)} - ${fW(cit)}`, result:fW(np)}
+          ];
+        } else {
+          // 小规模+无票
+          const totalCost = baseCost * qty;
+          const vat = revExVAT * 0.01;
+          const gp = revExVAT - totalCost;
+          const ti = gp + totalCost;
+          const cit = Math.max(0, ti * 0.05);
+          const np = gp - cit;
+          steps = [
+            {formula:`采购成本 = ${fW(baseCost)} × ${qty}`, result:fW(totalCost)},
+            {formula:`不含税售价 = ${fW(salesTotal)} ÷ 1.01`, result:fW(revExVAT)},
+            {formula:`增值税 = ${fW(revExVAT)} × 1%`, result:fW(vat)},
+            {formula:`毛利 = ${fW(revExVAT)} - ${fW(totalCost)}`, result:fW(gp)},
+            {formula:`纳税调增 = ${fW(totalCost)}（无票不能税前扣除）`, result:fW(totalCost), note:'⚠️'},
+            {formula:`应纳税所得额 = ${fW(gp)} + ${fW(totalCost)} = ${fW(ti)}`, result:fW(ti)},
+            {formula:`所得税(5%) = ${fW(ti)} × 5%`, result:fW(cit)},
+            {formula:`净利润 = ${fW(gp)} - ${fW(cit)}`, result:fW(np)}
+          ];
+        }
+      } else {
+        // 个体户（核定征收）
+        const vatExempt = salesTotal <= 100000;
+        const rev = vatExempt ? salesTotal : salesTotal / 1.01;
+        const vat = vatExempt ? 0 : rev * 0.01;
+        const totalCost = baseCost * qty;
+        const gp = rev - totalCost;
+        const deemedIncome = rev * 0.10;
+        const pit = pitP(deemedIncome);
+        const np = gp - pit;
+        steps = [
+          {formula:`销售额 = ${fW(sellPrice)} × ${qty}`, result:fW(salesTotal)},
+          {formula:`${vatExempt ? '✅ 月销售额≤10万，免征增值税' : '增值税 = ' + fW(rev) + ' × 1%'}`, result:fW(vat), note: vatExempt ? '免征' : ''},
+          {formula:`收入 = ${vatExempt ? fW(salesTotal) : fW(salesTotal) + ' ÷ 1.01 = ' + fW(rev)}`, result:fW(rev)},
+          {formula:`采购成本 = ${fW(baseCost)} × ${qty}`, result:fW(totalCost)},
+          {formula:`毛利 = ${fW(rev)} - ${fW(totalCost)}`, result:fW(gp)},
+          {formula:`应税所得 = ${fW(rev)} × 10%`, result:fW(deemedIncome)},
+          {formula:`个人所得税 = pitP(${fW(deemedIncome)})`, result:fW(pit), note:'五级累进'},
+          {formula:`净利润 = ${fW(rev)} - ${fW(totalCost)} - ${fW(vat)} - ${fW(pit)}`, result:fW(np)}
+        ];
+        if(p.invType !== 'none'){
+          steps.unshift({formula:`⚠️ 有票品种走个体户不适用`, result:'', note:'专票给个体户不能抵扣进项还多付加价'});
+        }
+      }
+
+      // 判断状态标签
+      let statusLabel = '';
+      let statusClass = '';
+      if(pf.unsuitable){
+        statusLabel = '不适用';
+        statusClass = 'background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:600';
+      } else if(pf.isFull){
+        statusLabel = '已满';
+        statusClass = 'background:rgba(239,68,68,.15);color:#ef4444;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:600';
+      } else if(pf.wouldOverflow){
+        statusLabel = '将超限';
+        statusClass = 'background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:600';
+      } else if(isBest){
+        statusLabel = '最优';
+        statusClass = 'background:rgba(16,185,129,.15);color:#10b981;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:600';
+      }
+
+      // 渲染子卡片
+      h += `<div class="${cardClass}">`;
+      h += `<div class="step-title">`;
+      h += `<span class="idx" style="color:${typeColor[en.t]}">${['①','②','③','④','⑤'][ei]}</span>`;
+      h += `<span class="name" style="color:${typeColor[en.t]}">${en.n}</span>`;
+      h += `<span style="font-size:10px;color:var(--t2)">${pf.invLabel || (en.t==='individual'?'核定征收':'发票')}</span>`;
+      if(statusLabel) h += `<span style="${statusClass}">${statusLabel}</span>`;
+      if(isBest) h += `<span style="font-size:12px">🏆</span>`;
+      if(isCurrent) h += `<span style="font-size:11px;color:${isConfirmed?'var(--ok)':'var(--wn)'}">${isConfirmed?'🔒':(isAutoBest?'✅推荐':'✅')}</span>`;
+      h += `</div>`;
+
+      // 净利润和净利率
+      h += `<div class="step-amount">`;
+      h += `<div><div class="label">净利润</div><div class="value" style="color:${pf.np>=0?'var(--ok)':'var(--ng)'}">${fW(pf.np)}元</div></div>`;
+      h += `<div><div class="label">净利率</div><div class="value" style="color:${pf.nm>=0.05?'var(--ok)':pf.nm>=0?'var(--c2)':pf.nm>=-0.05?'var(--wn)':'var(--ng)'}">${fP(pf.nm)}</div></div>`;
+      h += `<div><div class="label">毛利率</div><div class="value" style="color:${pf.gm>=0?'var(--ok)':'var(--ng)'}">${fP(pf.gm)}</div></div>`;
+      h += `</div>`;
+
+      // 逐步计算明细
+      steps.forEach((step, si) => {
+        const num = si + 1;
+        h += `<div class="step-row">`;
+        h += `<span class="num">${num}.</span>`;
+        h += `<span class="formula">${step.formula}</span>`;
+        if(step.result) h += `<span class="result">= ${step.result}</span>`;
+        if(step.note) h += `<span class="note">${step.note}</span>`;
+        h += `</div>`;
+      });
+
+      // 备注行
+      if(pf.adj) h += `<div style="font-size:11px;color:var(--ng);margin-top:6px">⚠️ 纳税调增 ${fW(pf.adj)}元</div>`;
+      if(pf.vatExempt) h += `<div style="font-size:11px;color:var(--ok);margin-top:6px">✅ 免征增值税（月销≤10万）</div>`;
+      if(pf.noCostInvoice) h += `<div style="font-size:11px;color:var(--pu);margin-top:6px">✅ 核定征收不需要成本票</div>`;
+
+      h += `</div>`; // end step-card
     });
-    h += `</tbody></table></div>`;
 
+    h += `</div>`; // end step-grid
+
+    // 分配原因
     h += `<div style="margin-top:8px;font-size:12px;color:var(--t2);border-top:1px dashed rgba(56,189,248,.1);padding-top:6px">`;
     h += `→ ${r.reason}`;
     if(profit.adj) h += ` | 纳税调增 <span style="color:var(--ng)">${fW(profit.adj)}元</span>`;
     if(profit.noCostInvoice) h += ` | <span style="color:var(--pu)">✅ 核定征收不需要成本票</span>`;
-    h += `</div></div>`;
+    h += `</div></div>`; // end rec-card
   });
 
   document.getElementById('allocResult').innerHTML = h;
@@ -1064,7 +1279,7 @@ function exportAllData(){
   const specMk = document.getElementById('specMarkup').value;
   const normMk = document.getElementById('normMarkup').value;
 
-  let csv = '# 采购成本计算器V4 数据导出\n';
+  let csv = '# 税负测算V4 数据导出\n';
   csv += '# 导出时间: ' + new Date().toLocaleString('zh-CN') + '\n';
 
   csv += '\n## Tab1-全局参数\n';
@@ -1079,6 +1294,14 @@ function exportAllData(){
   csv += `个体户1,${document.getElementById('indSales0').value||0},${document.getElementById('limInd0').value||90}\n`;
   csv += `个体户2,${document.getElementById('indSales1').value||0},${document.getElementById('limInd1').value||72}\n`;
   csv += `个体户3,${document.getElementById('indSales2').value||0},${document.getElementById('limInd2').value||72}\n`;
+
+  csv += '\n## Tab1-期间费用\n';
+  csv += '费用项,金额(万)\n';
+  csv += `租金,${document.getElementById('expRent').value||0}\n`;
+  csv += `折旧,${document.getElementById('expDep').value||0}\n`;
+  csv += `人工,${document.getElementById('expLabor').value||0}\n`;
+  csv += `运杂物流费,${document.getElementById('expLogistics').value||0}\n`;
+  csv += `其他,${document.getElementById('expOther').value||0}\n`;
 
   // 导出无票分配数据
   if(tab1GlobalData){
@@ -1169,6 +1392,18 @@ function importAllData(event){
           if(key==='无票总额(万)') noInvData.noInvTotal = parseFloat(val)||0;
           else if(key==='中合五金无票已销(万)') noInvData.genNoInvSales = parseFloat(val)||0;
           else if(key==='小规模无票已销(万)') noInvData.smallNoInvSales = parseFloat(val)||0;
+        }
+      }
+      if(section === 'Tab1-期间费用'){
+        const parts = line.split(',');
+        if(parts.length >= 2){
+          const key = parts[0].trim();
+          const val = parts[1].trim();
+          if(key==='租金') document.getElementById('expRent').value = val;
+          else if(key==='折旧') document.getElementById('expDep').value = val;
+          else if(key==='人工') document.getElementById('expLabor').value = val;
+          else if(key==='运杂物流费') document.getElementById('expLogistics').value = val;
+          else if(key==='其他') document.getElementById('expOther').value = val;
         }
       }
       if(section === '参数'){
