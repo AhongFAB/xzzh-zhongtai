@@ -633,20 +633,6 @@ function renderTaxComparison(data, avgGM){
   const genDiff = genTotalOpt - genTotalPess;
   const smallDiff = smallTotalOpt - smallTotalPess;
 
-  // === 总体税负率指标 ===
-  const g = tab1GlobalData;
-  const totalSalesWan = g ? g.tSales : 0;
-  // 总毛利(乐观) = 各主体毛利之和
-  const totalGrossProfitOpt = genGPOptCalc + smallGPOptCalc + indResults.reduce((s,r)=>s+(r.salesWan - r.salesWan*(1-avgGM)),0);
-  // 税前利润(乐观) = 总毛利 - 期间费用
-  const totalProfitBeforeTaxOpt = totalGrossProfitOpt - (periodExpTotal || 0);
-  // 税负占销售比
-  const pessSalesRatio = totalSalesWan > 0 ? totalPessAll / totalSalesWan : 0;
-  const optSalesRatio = totalSalesWan > 0 ? totalOptAll / totalSalesWan : 0;
-  // 税负占利润比
-  const pessProfitRatio = totalProfitBeforeTaxOpt > 0 ? totalPessAll / totalProfitBeforeTaxOpt : 0;
-  const optProfitRatio = totalProfitBeforeTaxOpt > 0 ? totalOptAll / totalProfitBeforeTaxOpt : 0;
-
   // ====== 构建逐步计算步骤 ======
   function buildSteps(entityName, scenario, steps, totalTax, diff){
     const idx = scenario === '悲观' ? '🔴' : '🟢';
@@ -759,6 +745,16 @@ function renderTaxComparison(data, avgGM){
   const totalPessAll = genTotalPess + smallTotalPess + totalIndTax;
   const totalOptAll = genTotalOpt + smallTotalOpt + totalIndTax;
   const totalDiff = totalOptAll - totalPessAll;
+
+  // === 总体税负率指标 ===
+  const gd = tab1GlobalData;
+  const totalSalesWan = gd ? gd.tSales : 0;
+  const totalGrossProfitOpt = genGPOptCalc + smallGPOptCalc + indResults.reduce((s,r)=>s+(r.salesWan - r.salesWan*(1-avgGM)),0);
+  const totalProfitBeforeTaxOpt = totalGrossProfitOpt - (periodExpTotal || 0);
+  const pessSalesRatio = totalSalesWan > 0 ? totalPessAll / totalSalesWan : 0;
+  const optSalesRatio = totalSalesWan > 0 ? totalOptAll / totalSalesWan : 0;
+  const pessProfitRatio = totalProfitBeforeTaxOpt > 0 ? totalPessAll / totalProfitBeforeTaxOpt : 0;
+  const optProfitRatio = totalProfitBeforeTaxOpt > 0 ? totalOptAll / totalProfitBeforeTaxOpt : 0;
 
   // 费用分配过程卡片
   let expAllocHtml = '';
