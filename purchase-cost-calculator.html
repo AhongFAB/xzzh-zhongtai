@@ -444,67 +444,178 @@ function renderTaxComparison(data, avgGM){
   const periodExpTotal = tab1GlobalData ? (tab1GlobalData.periodExpTotal || 0) : 0;
   const periodExpInvoiced = tab1GlobalData ? (tab1GlobalData.periodExpInvoiced || 0) : 0;
   const periodExpNoInv = tab1GlobalData ? (tab1GlobalData.periodExpNoInv || 0) : 0;
-  // 悲观：只扣有票费用；乐观：全扣
-  const genExpDeductPess = periodExpInvoiced; // 万元（悲观只扣有票）
-  const genExpDeductOpt = periodExpTotal; // 万元（乐观全扣）
-  const smallExpDeduct = 0; // 小规模不扣除（费用发票不在小规模名下）
+  const genExpDeductPess = periodExpInvoiced;
+  const genExpDeductOpt = periodExpTotal;
+  const smallExpDeduct = 0;
 
-  // 中合五金
-  const genVATPessimistic = (genData.totalSales - genData.inputVal) / 1.13 * 0.13;
-  const genInvCost = genData.inputVal / 1.13;
-  const genNoInvCost = genData.noInvSales / 1.13;
-  const genCITBasePess = (genData.invoicedSales - genInvCost) + genData.noInvSales / 1.13;
-  const genCITBasePessAfterExp = Math.max(0, genCITBasePess - genExpDeductPess); // 悲观：只扣有票费用
+  // ====== 中合五金 悲观 ======
+  const genRevPess = genData.totalSales / 1.13;
+  const genOutputVATPess = genRevPess * 0.13;
+  const genInvCostPess = genData.inputVal / 1.13;
+  const genInputVATPess = genInvCostPess * 0.13;
+  const genVATPess = genOutputVATPess - genInputVATPess;
+  const genNoInvRevPess = genData.noInvSales / 1.13;
+  const genGPPess = genRevPess - genInvCostPess;
+  const genAdjPess = genNoInvRevPess;
+  const genCITBasePess = genGPPess + genAdjPess;
+  const genCITBasePessAfterExp = Math.max(0, genCITBasePess - genExpDeductPess);
   const genCITPess = Math.max(0, genCITBasePessAfterExp * 0.15);
-  const genTotalPess = genVATPessimistic + genCITPess;
+  const genTotalPess = genVATPess + genCITPess;
 
-  // 乐观：无票销售找到进项 + 费用全扣
+  // ====== 中合五金 乐观 ======
   const genNoInvCostOpt = genData.noInvSales * (1 - avgGM) / 1.13;
-  const genTotalCostOpt = genData.inputVal / 1.13 + genNoInvCostOpt;
-  const genRevOpt = genData.totalSales / 1.13;
-  const genVatOpt = (genRevOpt - genTotalCostOpt) * 0.13;
-  const genGPOpt = genRevOpt - genTotalCostOpt;
-  const genCITBaseOptAfterExp = Math.max(0, genGPOpt - genExpDeductOpt); // 乐观：全扣费用
+  const genTotalCostOpt = genInvCostPess + genNoInvCostOpt;
+  const genVatOpt = (genRevPess - genTotalCostOpt) * 0.13;
+  const genGPOpt = genRevPess - genTotalCostOpt;
+  const genCITBaseOptAfterExp = Math.max(0, genGPOpt - genExpDeductOpt);
   const genCITOpt = Math.max(0, genCITBaseOptAfterExp * 0.15);
   const genTotalOpt = genVatOpt + genCITOpt;
 
-  // 小规模（不扣除期间费用）
-  const smallVATPess = smallData.totalSales / 1.01 * 0.01;
-  const smallInvGP = smallData.invoicedSales / 1.01 - smallData.inputVal;
-  const smallCITBasePess = smallInvGP + smallData.noInvSales / 1.01;
+  // ====== 小规模 悲观 ======
+  const smallRevPess = smallData.totalSales / 1.01;
+  const smallVATPess = smallRevPess * 0.01;
+  const smallInvCostPess = smallData.inputVal;
+  const smallInvGP = smallData.invoicedSales / 1.01 - smallInvCostPess;
+  const smallNoInvRevPess = smallData.noInvSales / 1.01;
+  const smallCITBasePess = smallInvGP + smallNoInvRevPess;
   const smallCITPess = Math.max(0, smallCITBasePess * 0.05);
   const smallTotalPess = smallVATPess + smallCITPess;
 
-  // 乐观小规模
-  const smallVatOpt = smallVATPess; // VAT same
+  // ====== 小规模 乐观 ======
+  const smallVatOpt = smallVATPess;
   const smallNoInvCostOpt = smallData.noInvSales * (1 - avgGM);
-  const smallTotalCostOpt = smallData.inputVal + smallNoInvCostOpt;
+  const smallTotalCostOpt = smallInvCostPess + smallNoInvCostOpt;
   const smallGPOpt = smallData.totalSales / 1.01 - smallTotalCostOpt;
   const smallCITOpt = Math.max(0, smallGPOpt * 0.05);
   const smallTotalOpt = smallVatOpt + smallCITOpt;
 
-  // 个体户（悲观=乐观，核定征收不看费用）
+  // ====== 个体户 ======
   let indResults = [];
   for(let i = 2; i < 5; i++){
     const ind = d[i];
     const monthlySales = ind.totalSales * 10000 / 12;
     const vatExempt = monthlySales <= 100000;
     const rev = vatExempt ? ind.totalSales * 10000 : ind.totalSales * 10000 / 1.01;
-    const vat = (vatExempt ? 0 : rev * 0.01) / 10000; // 转万
+    const vat = (vatExempt ? 0 : rev * 0.01) / 10000;
     const deemedIncome = rev * 0.10;
-    const pit = pitP(deemedIncome) / 10000; // 转万
+    const pit = pitP(deemedIncome) / 10000;
     const total = vat + pit;
-    indResults.push({ name: ind.n, vat, pit, total });
+    indResults.push({ name: ind.n, vat, pit, total, salesWan: ind.totalSales, vatExempt, revWan: rev/10000, deemedIncomeWan: deemedIncome/10000 });
   }
   const totalIndTax = indResults.reduce((s,r)=>s+r.total,0);
 
   // 差额
-  const genDiff = genTotalOpt - genTotalPess; // 正=省钱(乐观便宜)
+  const genDiff = genTotalOpt - genTotalPess;
   const smallDiff = smallTotalOpt - smallTotalPess;
-  const indDiff = 0;
 
-  // 渲染税负对比区
+  // ====== 构建逐步计算步骤 ======
+  function buildSteps(entityName, scenario, steps, totalTax, diff){
+    const idx = scenario === '悲观' ? '🔴' : '🟢';
+    const borderColor = scenario === '悲观' ? 'rgba(245,158,11,.3)' : 'rgba(16,185,129,.3)';
+    const titleColor = scenario === '悲观' ? '#f59e0b' : '#10b981';
+    let h = `<div class="step-card" style="border-color:${borderColor}">`;
+    h += `<div class="step-title">`;
+    h += `<span class="idx" style="color:${titleColor}">${idx}</span>`;
+    h += `<span class="name" style="color:${titleColor}">${entityName} · ${scenario}</span>`;
+    if(diff !== null){
+      const diffColor = diff <= 0 ? 'var(--ok)' : 'var(--ng)';
+      const diffIcon = diff <= 0 ? '✅' : '⚠️';
+      h += `<span style="font-size:11px;color:${diffColor};font-weight:600">差额 ${diff >= 0 ? '+' : ''}${fW(diff)}万 ${diffIcon}</span>`;
+    }
+    h += `</div>`;
+    h += `<div class="step-amount"><div><div class="label">合计税负</div><div class="value" style="color:${titleColor}">${fW(totalTax)}万</div></div></div>`;
+    steps.forEach((step, si) => {
+      h += `<div class="step-row">`;
+      h += `<span class="num">${si+1}.</span>`;
+      h += `<span class="formula">${step.formula}</span>`;
+      if(step.result) h += `<span class="result">= ${step.result}</span>`;
+      if(step.note) h += `<span class="note">${step.note}</span>`;
+      h += `</div>`;
+    });
+    h += `</div>`;
+    return h;
+  }
+
+  // 中合五金 悲观步骤
+  const genPessSteps = [];
+  genPessSteps.push({formula:`不含税收入 = ${fW(genData.totalSales)} ÷ 1.13`, result: fW(genRevPess)});
+  genPessSteps.push({formula:`销项税 = ${fW(genRevPess)} × 13%`, result: fW(genOutputVATPess)});
+  genPessSteps.push({formula:`不含税进项成本 = ${fW(genData.inputVal)} ÷ 1.13`, result: fW(genInvCostPess)});
+  genPessSteps.push({formula:`可抵进项税 = ${fW(genInvCostPess)} × 13%`, result: fW(genInputVATPess)});
+  genPessSteps.push({formula:`应缴增值税 = ${fW(genOutputVATPess)} - ${fW(genInputVATPess)}`, result: fW(genVATPess)});
+  genPessSteps.push({formula:`毛利 = ${fW(genRevPess)} - ${fW(genInvCostPess)}`, result: fW(genGPPess)});
+  genPessSteps.push({formula:`纳税调增 = ${fW(genData.noInvSales)} ÷ 1.13（无票成本不能扣除）`, result: fW(genAdjPess), note: '⚠️'});
+  genPessSteps.push({formula:`应纳税所得额 = ${fW(genGPPess)} + ${fW(genAdjPess)}`, result: fW(genCITBasePess)});
+  if(periodExpTotal > 0){
+    genPessSteps.push({formula:`扣除有票费用 = ${fW(genCITBasePess)} - ${fW(genExpDeductPess)}`, result: fW(genCITBasePessAfterExp), note: '只扣有票'});
+  }
+  genPessSteps.push({formula:`所得税(15%) = ${fW(genCITBasePessAfterExp)} × 15%`, result: fW(genCITPess)});
+  genPessSteps.push({formula:`合计税负 = ${fW(genVATPess)} + ${fW(genCITPess)}`, result: fW(genTotalPess)});
+
+  // 中合五金 乐观步骤
+  const genOptSteps = [];
+  genOptSteps.push({formula:`不含税收入 = ${fW(genData.totalSales)} ÷ 1.13`, result: fW(genRevPess)});
+  genOptSteps.push({formula:`不含税进项成本 = ${fW(genData.inputVal)} ÷ 1.13`, result: fW(genInvCostPess)});
+  genOptSteps.push({formula:`无票部分成本（乐观按毛利率反算）= ${fW(genData.noInvSales)} × (1-${fP(avgGM)}) ÷ 1.13`, result: fW(genNoInvCostOpt), note: '找到进项'});
+  genOptSteps.push({formula:`总成本 = ${fW(genInvCostPess)} + ${fW(genNoInvCostOpt)}`, result: fW(genTotalCostOpt)});
+  genOptSteps.push({formula:`应缴增值税 = (${fW(genRevPess)} - ${fW(genTotalCostOpt)}) × 13%`, result: fW(genVatOpt)});
+  genOptSteps.push({formula:`毛利 = ${fW(genRevPess)} - ${fW(genTotalCostOpt)}`, result: fW(genGPOpt)});
+  if(periodExpTotal > 0){
+    genOptSteps.push({formula:`扣除全部费用 = ${fW(genGPOpt)} - ${fW(genExpDeductOpt)}`, result: fW(genCITBaseOptAfterExp), note: '全扣'});
+  }
+  genOptSteps.push({formula:`所得税(15%) = ${fW(genCITBaseOptAfterExp)} × 15%`, result: fW(genCITOpt)});
+  genOptSteps.push({formula:`合计税负 = ${fW(genVatOpt)} + ${fW(genCITOpt)}`, result: fW(genTotalOpt)});
+
+  // 小规模 悲观步骤
+  const smallPessSteps = [];
+  smallPessSteps.push({formula:`不含税收入 = ${fW(smallData.totalSales)} ÷ 1.01`, result: fW(smallRevPess)});
+  smallPessSteps.push({formula:`增值税(1%) = ${fW(smallRevPess)} × 1%`, result: fW(smallVATPess)});
+  smallPessSteps.push({formula:`有票部分毛利 = ${fW(smallData.invoicedSales)} ÷ 1.01 - ${fW(smallInvCostPess)}`, result: fW(smallInvGP)});
+  smallPessSteps.push({formula:`无票收入调增 = ${fW(smallData.noInvSales)} ÷ 1.01（无票成本不能扣除）`, result: fW(smallNoInvRevPess), note: '⚠️'});
+  smallPessSteps.push({formula:`应纳税所得额 = ${fW(smallInvGP)} + ${fW(smallNoInvRevPess)}`, result: fW(smallCITBasePess)});
+  smallPessSteps.push({formula:`所得税(5%) = ${fW(smallCITBasePess)} × 5%`, result: fW(smallCITPess)});
+  smallPessSteps.push({formula:`合计税负 = ${fW(smallVATPess)} + ${fW(smallCITPess)}`, result: fW(smallTotalPess)});
+  if(periodExpTotal > 0){
+    smallPessSteps.push({formula:`⚠️ 期间费用票不在小规模名下，不能扣除`, result: '', note: '不扣'});
+  }
+
+  // 小规模 乐观步骤
+  const smallOptSteps = [];
+  smallOptSteps.push({formula:`不含税收入 = ${fW(smallData.totalSales)} ÷ 1.01`, result: fW(smallRevPess)});
+  smallOptSteps.push({formula:`增值税(1%) = ${fW(smallRevPess)} × 1%`, result: fW(smallVatOpt)});
+  smallOptSteps.push({formula:`有票进项成本 = ${fW(smallInvCostPess)}`, result: fW(smallInvCostPess)});
+  smallOptSteps.push({formula:`无票部分成本（乐观按毛利率反算）= ${fW(smallData.noInvSales)} × (1-${fP(avgGM)})`, result: fW(smallNoInvCostOpt), note: '找到进项'});
+  smallOptSteps.push({formula:`总成本 = ${fW(smallInvCostPess)} + ${fW(smallNoInvCostOpt)}`, result: fW(smallTotalCostOpt)});
+  smallOptSteps.push({formula:`毛利 = ${fW(smallData.totalSales / 1.01)} - ${fW(smallTotalCostOpt)}`, result: fW(smallGPOpt)});
+  smallOptSteps.push({formula:`所得税(5%) = ${fW(smallGPOpt)} × 5%`, result: fW(smallCITOpt)});
+  smallOptSteps.push({formula:`合计税负 = ${fW(smallVatOpt)} + ${fW(smallCITOpt)}`, result: fW(smallTotalOpt)});
+
+  // 个体户步骤
+  const indStepCards = [];
+  indResults.forEach((r, idx) => {
+    const steps = [];
+    steps.push({formula:`已销额 = ${fW(r.salesWan)}万`, result: fW(r.salesWan)});
+    if(r.vatExempt){
+      steps.push({formula:`月销售额 ${fW(r.salesWan*10000/12/10000)}万 ≤ 10万`, result: '免征增值税', note: '✅'});
+    } else {
+      steps.push({formula:`月销售额 ${fW(r.salesWan*10000/12/10000)}万 > 10万`, result: '需缴增值税'});
+      steps.push({formula:`增值税 = ${fW(r.revWan)} × 1%`, result: fW(r.vat)});
+    }
+    steps.push({formula:`收入 = ${fW(r.salesWan)}${r.vatExempt ? '' : ' ÷ 1.01 = ' + fW(r.revWan)}`, result: fW(r.revWan)});
+    steps.push({formula:`应税所得 = ${fW(r.revWan)} × 10%（核定征收）`, result: fW(r.deemedIncomeWan)});
+    steps.push({formula:`个人所得税 = 五级累进计算`, result: fW(r.pit)});
+    steps.push({formula:`合计税负 = ${fW(r.vat)} + ${fW(r.pit)}`, result: fW(r.total)});
+
+    indStepCards.push(buildSteps(r.name, '核定征收', steps, r.total, null));
+  });
+
+  // 汇总表
+  const totalPessAll = genTotalPess + smallTotalPess + totalIndTax;
+  const totalOptAll = genTotalOpt + smallTotalOpt + totalIndTax;
+  const totalDiff = totalOptAll - totalPessAll;
+
   const expNote = periodExpTotal > 0 ? `<span style="color:var(--ok)">（悲观扣有票费用<span style="font-weight:600">${fW(periodExpInvoiced)}万</span>，乐观全扣<span style="font-weight:600">${fW(periodExpTotal)}万</span>）</span>` : '';
+
   const html = `
 <div id="taxComparisonZone" style="margin-top:16px;">
 <div style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(99,102,241,.03));border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:16px;margin-bottom:0;">
@@ -512,71 +623,55 @@ function renderTaxComparison(data, avgGM){
 <div style="font-size:14px;font-weight:600;color:var(--inf);">⚖️ 税负对比（悲观 vs 乐观）${expNote}</div>
 <div style="font-size:11px;color:var(--t2);">悲观=无票找不到进项调增 | 乐观=无票都有专票可抵扣</div>
 </div>
-<div style="overflow-x:auto;">
-<table class="tb" style="min-width:800px">
-<thead>
-<tr>
-<th style="text-align:left">主体</th>
-<th style="color:#f59e0b">悲观增值税(万)</th>
-<th style="color:#f59e0b">悲观所得税(万)</th>
-<th style="color:#f59e0b">悲观合计(万)</th>
-<th style="color:#10b981">乐观增值税(万)</th>
-<th style="color:#10b981">乐观所得税(万)</th>
-<th style="color:#10b981">乐观合计(万)</th>
-<th style="color:var(--c2)">差额(万)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left;font-weight:600;color:#38bdf8">中合五金</td>
-<td>${fW(genVATPessimistic)}</td>
-<td>${fW(genCITPess)}</td>
-<td style="font-weight:700;color:#f59e0b">${fW(genTotalPess)}</td>
-<td>${fW(genVatOpt)}</td>
-<td>${fW(genCITOpt)}</td>
-<td style="font-weight:700;color:#10b981">${fW(genTotalOpt)}</td>
-<td style="font-weight:700;color:${genDiff<=0?'var(--ok)':'var(--ng)'}">${fW(genDiff)} ${genDiff<=0?'✅':'⚠️'}</td>
-</tr>
-<tr>
-<td style="text-align:left;font-weight:600;color:#34d399">小规模公司</td>
-<td>${fW(smallVATPess)}</td>
-<td>${fW(smallCITPess)}</td>
-<td style="font-weight:700;color:#f59e0b">${fW(smallTotalPess)}</td>
-<td>${fW(smallVatOpt)}</td>
-<td>${fW(smallCITOpt)}</td>
-<td style="font-weight:700;color:#10b981">${fW(smallTotalOpt)}</td>
-<td style="font-weight:700;color:${smallDiff<=0?'var(--ok)':'var(--ng)'}">${fW(smallDiff)} ${smallDiff<=0?'✅':'⚠️'}</td>
-</tr>
-${indResults.map(r=>`<tr>
-<td style="text-align:left;font-weight:600;color:#a78bfa">${r.name}</td>
-<td>${fW(r.vat)}</td>
-<td>${fW(r.pit)}</td>
-<td style="font-weight:700;color:#a78bfa">${fW(r.total)}</td>
-<td>${fW(r.vat)}</td>
-<td>${fW(r.pit)}</td>
-<td style="font-weight:700;color:#a78bfa">${fW(r.total)}</td>
-<td style="font-weight:700;color:var(--t2)">${fW(0)} —</td>
-</tr>`).join('')}
-<tr class="tt">
-<td style="text-align:left;font-weight:700;color:var(--inf)">合计</td>
-<td>${fW(genVATPessimistic + smallVATPess + indResults.reduce((s,r)=>s+r.vat,0))}</td>
-<td>${fW(genCITPess + smallCITPess + indResults.reduce((s,r)=>s+r.pit,0))}</td>
-<td style="font-weight:700;color:#f59e0b">${fW(genTotalPess + smallTotalPess + totalIndTax)}</td>
-<td>${fW(genVatOpt + smallVatOpt + indResults.reduce((s,r)=>s+r.vat,0))}</td>
-<td>${fW(genCITOpt + smallCITOpt + indResults.reduce((s,r)=>s+r.pit,0))}</td>
-<td style="font-weight:700;color:#10b981">${fW(genTotalOpt + smallTotalOpt + totalIndTax)}</td>
-<td style="font-weight:700;color:${(genDiff+smallDiff)<=0?'var(--ok)':'var(--ng)'}">${fW(genDiff+smallDiff)} ${(genDiff+smallDiff)<=0?'✅省钱':'⚠️风险'}</td>
-</tr>
-</tbody>
-</table>
+
+<!-- 汇总速览 -->
+<div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:10px 16px;flex:1;min-width:160px;text-align:center">
+<div style="font-size:11px;color:#f59e0b;margin-bottom:4px">悲观合计税负</div>
+<div style="font-size:22px;font-weight:700;color:#f59e0b">${fW(totalPessAll)}万</div>
 </div>
-<div style="margin-top:10px;font-size:11px;color:var(--t2);line-height:1.6;">
-<span style="color:var(--ok)">✅ 绿色差额</span>=乐观比悲观省税（无票收入找到进项可抵扣）；<span style="color:var(--ng)">🔴 红色差额</span>=即使乐观仍需纳税调增，风险较高
+<div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:10px 16px;flex:1;min-width:160px;text-align:center">
+<div style="font-size:11px;color:#10b981;margin-bottom:4px">乐观合计税负</div>
+<div style="font-size:22px;font-weight:700;color:#10b981">${fW(totalOptAll)}万</div>
+</div>
+<div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:10px 16px;flex:1;min-width:160px;text-align:center">
+<div style="font-size:11px;color:var(--inf);margin-bottom:4px">乐观可省</div>
+<div style="font-size:22px;font-weight:700;color:${totalDiff<=0?'var(--ok)':'var(--ng)'}">${fW(Math.abs(totalDiff))}万</div>
+</div>
+</div>
+
+<!-- 中合五金 -->
+<div style="margin-bottom:12px">
+<div style="font-size:13px;font-weight:600;color:#38bdf8;margin-bottom:8px">🏢 中合五金（一般纳税人 · 期间费用只从中合五金扣除）</div>
+<div class="step-grid" style="grid-template-columns:1fr 1fr;gap:10px">
+${buildSteps('中合五金', '悲观', genPessSteps, genTotalPess, genDiff)}
+${buildSteps('中合五金', '乐观', genOptSteps, genTotalOpt, genDiff)}
+</div>
+</div>
+
+<!-- 小规模 -->
+<div style="margin-bottom:12px">
+<div style="font-size:13px;font-weight:600;color:#34d399;margin-bottom:8px">🏢 小规模公司（期间费用不在小规模名下，不扣除）</div>
+<div class="step-grid" style="grid-template-columns:1fr 1fr;gap:10px">
+${buildSteps('小规模公司', '悲观', smallPessSteps, smallTotalPess, smallDiff)}
+${buildSteps('小规模公司', '乐观', smallOptSteps, smallTotalOpt, smallDiff)}
+</div>
+</div>
+
+<!-- 个体户 -->
+<div style="margin-bottom:12px">
+<div style="font-size:13px;font-weight:600;color:#a78bfa;margin-bottom:8px">👤 个体户（核定征收，悲观=乐观，不需要成本票）</div>
+<div class="step-grid" style="grid-template-columns:repeat(3,1fr);gap:10px">
+${indStepCards.join('')}
+</div>
+</div>
+
+<div style="font-size:11px;color:var(--t2);line-height:1.6;margin-top:6px;">
+<span style="color:var(--ok)">✅ 乐观省税</span>=找到无票进项可抵扣+费用全扣；<span style="color:var(--ng)">🔴 悲观增税</span>=无票收入纳税调增+只扣有票费用
 </div>
 </div>
 </div>`;
 
-  // 插入到 tab1Summary 之后
   const summaryEl = document.getElementById('tab1Summary');
   let existing = document.getElementById('taxComparisonZone');
   if(existing) existing.remove();
