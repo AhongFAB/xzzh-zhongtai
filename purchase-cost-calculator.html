@@ -113,7 +113,7 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 </div>
 <div style="font-size:11px;color:var(--t2);margin-top:8px;line-height:1.6;">
 💡 有票已销额 = 已收进项 ÷ (1 - 平均毛利率)；无票总额 = 总销售额 - 有票已销合计 - 个体户已销合计，优先分配个体户→小规模→一般纳税人<br>
-💡 所得税率：<strong style="color:var(--c2)">公司类≤300万5%</strong>(小微) / <strong style="color:var(--c2)">&gt;300万9%</strong>(西部鼓励) / <strong style="color:var(--c2)">个体户核定10%</strong><br>
+💡 所得税率：<strong style="color:var(--c2)">公司类≤300万5%</strong>(小微) / <strong style="color:var(--c2)">&gt;300万9%</strong>(西部鼓励) / <strong style="color:var(--c2)">个体户核定0.7%</strong><br>
 💡 期间费用票开在中合五金名下；悲观=只扣有票费用，乐观=有票扣中合+无票智能分配
 </div>
 </div>
@@ -230,7 +230,7 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 <div class="zone-label">📈 C区 — 核心参数</div>
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
 <div><label>平均毛利率(%) <span style="font-size:9px;color:var(--t2)">系统取数</span></label><input type="number" id="avgGM" value="15" step="1"></div>
-<div><label>所得税率 <span style="font-size:9px;color:var(--t2)">固定</span></label><div style="padding:8px 0;font-size:13px;color:var(--c2);font-weight:600">所得税率 ≤300万5%(小微)/&gt;300万9%(西部鼓励) / 个体户10%</div></div>
+<div><label>所得税率 <span style="font-size:9px;color:var(--t2)">固定</span></label><div style="padding:8px 0;font-size:13px;color:var(--c2);font-weight:600">所得税率 ≤300万5%(小微)/&gt;300万9%(西部鼓励) / 个体户0.7%(核定)</div></div>
 <div></div>
 </div>
 <div style="font-size:11px;color:var(--t2);margin-top:8px;line-height:1.6;">
@@ -292,17 +292,17 @@ const EN=[
 ];
 const PIT=[{l:3e4,r:.05,d:0},{l:9e4,r:.1,d:1500},{l:3e5,r:.2,d:10500},{l:5e5,r:.3,d:40500},{l:Infinity,r:.35,d:65500}];
 function pitP(y){for(let t of PIT)if(y<=t.l)return Math.max(0,y*t.r-t.d);return 0}
-function gCR(c,w){if(c==='5')return w<=300?.05:.09;if(c==='10')return.10;return.25}
-function gCL(c,w){if(c==='5')return w<=300?'5%(小微)':'9%(西部鼓励)';if(c==='10')return '10%';return '25%'}
+function gCR(c,w){if(c==='5')return w<=300?.05:.09;if(c==='10')return.007;return.25}
+function gCL(c,w){if(c==='5')return w<=300?'5%(小微)':'9%(西部鼓励)';if(c==='10')return '0.7%(核定)';return '25%'}
 function getEntityCITRate(et){
   const g=tab1GlobalData;if(!g)return 0.05;
-  if(et==='individual')return 0.10;
+  if(et==='individual')return 0.007;
   let tb=0;
   if(et==='general'){const r=g.genTotalSales/1.13,c=g.genInput/1.13,a=g.genNoInvSales/1.13;tb=(r-c)+a;}
   else{const r=g.smallTotalSales/1.01,c=g.smallInput,igp=g.smallInvoicedSales/1.01-c,a=g.smallNoInvSales/1.01;tb=igp+a;}
   return tb<=300?0.05:0.09;
 }
-function getEntityCITLabel(et){const r=getEntityCITRate(et);return r<=0.05?'5%(小微)':'9%(西部鼓励)';}
+function getEntityCITLabel(et){const r=getEntityCITRate(et);if(et==='individual')return '0.7%(核定)';return r<=0.05?'5%(小微)':'9%(西部鼓励)';}
 function fW(n){return n==null||isNaN(n)?'-':n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fP(n){return(n*100).toFixed(2)+'%'}
 function stab(id,b){document.querySelectorAll('.tab-c').forEach(c=>c.classList.remove('on'));document.querySelectorAll('.tab-b').forEach(x=>x.classList.remove('on'));document.getElementById('tab-'+id).classList.add('on');b.classList.add('on')}
@@ -623,10 +623,9 @@ function renderTaxComparison(data, avgGM){
     const vatExempt = monthlySales <= 100000;
     const rev = vatExempt ? ind.totalSales * 10000 : ind.totalSales * 10000 / 1.01;
     const vat = (vatExempt ? 0 : rev * 0.01) / 10000;
-    const deemedIncome = rev * 0.10;
-    const pit = pitP(deemedIncome) / 10000;
+    const pit = rev * 0.007 / 10000;
     const total = vat + pit;
-    indResults.push({ name: ind.n, vat, pit, total, salesWan: ind.totalSales, vatExempt, revWan: rev/10000, deemedIncomeWan: deemedIncome/10000 });
+    indResults.push({ name: ind.n, vat, pit, total, salesWan: ind.totalSales, vatExempt, revWan: rev/10000 });
   }
   const totalIndTax = indResults.reduce((s,r)=>s+r.total,0);
 
@@ -736,8 +735,7 @@ function renderTaxComparison(data, avgGM){
       steps.push({formula:`增值税 = ${fW(r.revWan)} × 1%`, result: fW(r.vat)});
     }
     steps.push({formula:`收入 = ${fW(r.salesWan)}${r.vatExempt ? '' : ' ÷ 1.01 = ' + fW(r.revWan)}`, result: fW(r.revWan)});
-    steps.push({formula:`应税所得 = ${fW(r.revWan)} × 10%（核定征收）`, result: fW(r.deemedIncomeWan)});
-    steps.push({formula:`个人所得税 = 五级累进计算`, result: fW(r.pit)});
+    steps.push({formula:`经营所得税 = ${fW(r.revWan)} × 0.7%（核定征收率）`, result: fW(r.pit)});
     steps.push({formula:`合计税负 = ${fW(r.vat)} + ${fW(r.pit)}`, result: fW(r.total)});
 
     indStepCards.push(buildSteps(r.name, '核定征收', steps, r.total, null));
@@ -826,7 +824,7 @@ ${indStepCards.join('')}
 
 <div style="font-size:11px;color:var(--t2);line-height:1.6;margin-top:6px;">
 <span style="color:var(--ok)">✅ 乐观省税</span>=找到无票进项可抵扣+无票费用智能分配；<span style="color:var(--ng)">🔴 悲观增税</span>=无票收入纳税调增+无票费用不能扣除<br>
-所得税率：公司类≤300万5%(小微)/&gt;300万9%(西部鼓励+地方减免) | 个体户核定10%
+所得税率：公司类≤300万5%(小微)/&gt;300万9%(西部鼓励+地方减免) | 个体户核定0.7%
 </div>
 </div>
 </div>`;
@@ -896,7 +894,7 @@ function calcSmartAlloc(){
   const specMk = (parseFloat(document.getElementById('specMarkup').value) || 10) / 100;
   const normMk = (parseFloat(document.getElementById('normMarkup').value) || 3) / 100;
   const citType = '15';
-  const deemedRate = 0.10;
+  const deemedRate = 0.007;
 
   // 从Tab1全局数据读取
   const g = tab1GlobalData;
@@ -1149,7 +1147,7 @@ function calcItemProfit(product, entity, specMk, normMk, avgGM, citType, deemedR
     const gp = rev - totalCost;
     const gm = rev ? gp / rev : 0;
     const deemedIncome = rev * deemedRate;
-    const pit = pitP(deemedIncome);
+    const pit = deemedIncome;
     const np = gp - pit;
     const nm = rev ? np / rev : 0;
     Object.assign(R, { revExVAT: rev, costExVAT: totalCost, vat, gp, gm, deemedIncome, pit, np, nm, invLabel: '无需票✅', vatExempt, noCostInvoice: true });
@@ -1403,8 +1401,8 @@ function renderAllocResult(results, entities, params){
         const vat = vatExempt ? 0 : rev * 0.01;
         const totalCost = baseCost * qty;
         const gp = rev - totalCost;
-        const deemedIncome = rev * 0.10;
-        const pit = pitP(deemedIncome);
+        const deemedIncome = rev * 0.007;
+        const pit = deemedIncome;
         const np = gp - pit;
         steps = [
           {formula:`销售额 = ${fW(sellPrice)} × ${qty}`, result:fW(salesTotal)},
@@ -1412,8 +1410,7 @@ function renderAllocResult(results, entities, params){
           {formula:`收入 = ${vatExempt ? fW(salesTotal) : fW(salesTotal) + ' ÷ 1.01 = ' + fW(rev)}`, result:fW(rev)},
           {formula:`采购成本 = ${fW(baseCost)} × ${qty}`, result:fW(totalCost)},
           {formula:`毛利 = ${fW(rev)} - ${fW(totalCost)}`, result:fW(gp)},
-          {formula:`应税所得 = ${fW(rev)} × 10%`, result:fW(deemedIncome)},
-          {formula:`个人所得税 = pitP(${fW(deemedIncome)})`, result:fW(pit), note:'五级累进'},
+          {formula:`经营所得税 = ${fW(rev)} × 0.7%（核定征收率）`, result:fW(pit)},
           {formula:`净利润 = ${fW(rev)} - ${fW(totalCost)} - ${fW(vat)} - ${fW(pit)}`, result:fW(np)}
         ];
         if(p.invType !== 'none'){
