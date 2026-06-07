@@ -107,17 +107,14 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 <div><label>小规模已收进项(万)</label><input type="number" id="smallInput" value="27" step="1" oninput="updateTab1()"></div>
 <div><label>平均毛利率(%)</label><input type="number" id="avgGM1" value="15" step="1" oninput="updateTab1()"></div>
 </div>
-<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:10px;">
-<div><label>租金(万)</label><input type="number" id="expRent" value="0" step="1" oninput="updateTab1()"></div>
-<div><label>折旧(万)</label><input type="number" id="expDep" value="0" step="1" oninput="updateTab1()"></div>
-<div><label>人工(万)</label><input type="number" id="expLabor" value="0" step="1" oninput="updateTab1()"></div>
-<div><label>运杂物流费(万)</label><input type="number" id="expLogistics" value="0" step="1" oninput="updateTab1()"></div>
-<div><label>其他(万)</label><input type="number" id="expOther" value="0" step="1" oninput="updateTab1()"></div>
+<div style="margin-top:10px;max-width:250px;">
+<label>实际已发生期间费用合计(万) <span style="font-size:9px;color:var(--t2)">租金/折旧/人工/运杂/其他等</span></label>
+<input type="number" id="periodExp" value="0" step="1" oninput="updateTab1()">
 </div>
 <div style="font-size:11px;color:var(--t2);margin-top:8px;line-height:1.6;">
 💡 有票已销额 = 已收进项 ÷ (1 - 平均毛利率)；无票总额 = 总销售额 - 有票已销合计 - 个体户合计，按有票比例分摊<br>
 💡 所得税率固定：<strong style="color:var(--c2)">一般纳税人15%</strong> / <strong style="color:var(--c2)">小规模5%</strong> / <strong style="color:var(--c2)">个体户核定10%</strong><br>
-💡 期间费用在税负对比中从公司类主体应纳税所得额中扣除（按销售额比例分摊）
+💡 期间费用票开在中合五金名下，只从中合五金所得税前扣除
 </div>
 </div>
 
@@ -311,12 +308,8 @@ function updateTab1(){
   const smallInput = parseFloat(document.getElementById('smallInput').value) || 0;
   const tSales = parseFloat(document.getElementById('tSales').value) || 0;
 
-  // 读取期间费用（万元）
-  const periodExpTotal = (parseFloat(document.getElementById('expRent').value)||0) + 
-                         (parseFloat(document.getElementById('expDep').value)||0) + 
-                         (parseFloat(document.getElementById('expLabor').value)||0) + 
-                         (parseFloat(document.getElementById('expLogistics').value)||0) + 
-                         (parseFloat(document.getElementById('expOther').value)||0);
+  // 读取期间费用合计（万元）
+  const periodExpTotal = parseFloat(document.getElementById('periodExp').value) || 0;
 
   // 同步个体户限额到EN数组
   EN[2].sl = parseFloat(document.getElementById('limInd0').value) || 90;
@@ -1296,12 +1289,8 @@ function exportAllData(){
   csv += `个体户3,${document.getElementById('indSales2').value||0},${document.getElementById('limInd2').value||72}\n`;
 
   csv += '\n## Tab1-期间费用\n';
-  csv += '费用项,金额(万)\n';
-  csv += `租金,${document.getElementById('expRent').value||0}\n`;
-  csv += `折旧,${document.getElementById('expDep').value||0}\n`;
-  csv += `人工,${document.getElementById('expLabor').value||0}\n`;
-  csv += `运杂物流费,${document.getElementById('expLogistics').value||0}\n`;
-  csv += `其他,${document.getElementById('expOther').value||0}\n`;
+  csv += '期间费用合计(万),\n';
+  csv += `${document.getElementById('periodExp').value||0}\n`;
 
   // 导出无票分配数据
   if(tab1GlobalData){
@@ -1396,14 +1385,9 @@ function importAllData(event){
       }
       if(section === 'Tab1-期间费用'){
         const parts = line.split(',');
-        if(parts.length >= 2){
-          const key = parts[0].trim();
-          const val = parts[1].trim();
-          if(key==='租金') document.getElementById('expRent').value = val;
-          else if(key==='折旧') document.getElementById('expDep').value = val;
-          else if(key==='人工') document.getElementById('expLabor').value = val;
-          else if(key==='运杂物流费') document.getElementById('expLogistics').value = val;
-          else if(key==='其他') document.getElementById('expOther').value = val;
+        if(parts.length >= 1 && !parts[0].includes('期间费用合计')){
+          const val = parts[0].trim();
+          if(val && !isNaN(parseFloat(val))) document.getElementById('periodExp').value = val;
         }
       }
       if(section === '参数'){
