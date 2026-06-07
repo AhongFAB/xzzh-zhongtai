@@ -565,6 +565,7 @@ function renderEntityStatusTable(data){
       status = '✅ 无限制'; statusColor = 'var(--c2)';
     } else if(pct !== null){
       if(pct > 100){ status = '🔴 超限'; statusColor = 'var(--ng)'; }
+      else if(pct >= 100){ status = '🔴 已满'; statusColor = 'var(--ng)'; }
       else if(pct > 80){ status = '⚡ 接近满'; statusColor = 'var(--wn)'; }
       else { status = '✅ 安全'; statusColor = 'var(--ok)'; }
     }
@@ -891,8 +892,8 @@ function renderAllocResult(results, entities, params){
     const totalUsed = e.estSales + e.newAlloc;
     const pct = e.sl > 0 ? (totalUsed / e.sl * 100) : 0;
     const pctStr = e.sl > 0 ? pct.toFixed(1) + '%' : '-';
-    const status = e.sl === 0 ? '✅ 无限制' : pct > 100 ? '🔴 超限!' : pct > 80 ? '⚡ 接近满' : '✅ 安全';
-    const statusColor = e.sl === 0 ? 'var(--c2)' : pct > 100 ? 'var(--ng)' : pct > 80 ? 'var(--wn)' : 'var(--ok)';
+    const status = e.sl === 0 ? '✅ 无限制' : pct >= 100 ? '🔴 已满' : pct > 100 ? '🔴 超限!' : pct > 80 ? '⚡ 接近满' : '✅ 安全';
+    const statusColor = e.sl === 0 ? 'var(--c2)' : pct >= 100 ? 'var(--ng)' : pct > 100 ? 'var(--ng)' : pct > 80 ? 'var(--wn)' : 'var(--ok)';
     h += `<tr><td style="text-align:left;font-weight:600;color:${typeColor[e.t]}">${e.n}</td><td>${e.lb}</td><td>${fW(e.estSales)}</td><td style="font-weight:600;color:var(--c2)">${fW(e.newAlloc)}</td><td style="font-weight:700">${fW(totalUsed)}</td><td>${e.sl > 0 ? e.sl : '∞'}</td><td>${pctStr}</td><td style="color:${statusColor};font-weight:600">${status}</td></tr>`;
   });
   h += `</tbody></table></div>`;
@@ -906,18 +907,33 @@ function renderAllocResult(results, entities, params){
     const invLabel = p.invType === 'special' ? '有专票' : p.invType === 'normal' ? '有普票' : '无票';
     const isConfirmed = !!confirmedMap[i];
 
+    const salesWanLocal = p.sellPrice * p.qty / 10000;
     const allProfits = EN.map((en, ei) => {
       const pf = calcItemProfit(p, en, params.specMk, params.normMk, params.avgGM, params.citType, params.deemedRate);
       pf.entityIdx = ei;
+      const entityData = allocData.entities[ei];
+      pf.isFull = entityData && entityData.remain !== Infinity && entityData.remain <= 0;
+      pf.wouldOverflow = false;
+      if(entityData && entityData.sl > 0){
+        const afterAlloc = entityData.estSales + entityData.newAlloc + salesWanLocal;
+        if(afterAlloc > entityData.sl) pf.wouldOverflow = true;
+      }
+      pf.unsuitable = (en.t === 'individual' && p.invType !== 'none');
       return pf;
     });
-    const ranked = [...allProfits].sort((a,b) => b.np - a.np);
+    const ranked = [...allProfits].sort((a,b) => {
+      const aBad = a.isFull || a.wouldOverflow || a.unsuitable;
+      const bBad = b.isFull || b.wouldOverflow || b.unsuitable;
+      if(aBad && !bBad) return 1;
+      if(!aBad && bBad) return -1;
+      return b.np - a.np;
+    });
     ranked.forEach((rp, ri) => { rp.rank = ri + 1; });
     ranked.forEach(rp => { allProfits[rp.entityIdx].rank = rp.rank; });
 
-    const bestProfit = ranked[0];
+    const bestProfit = ranked.find(r => !r.isFull && !r.wouldOverflow && !r.unsuitable) || ranked[0];
     const bestEntity = EN[bestProfit.entityIdx];
-    const isAutoBest = e.n === bestEntity.n;
+    const isAutoBest = e.n === bestEntity.n && !bestProfit.isFull && !bestProfit.wouldOverflow && !bestProfit.unsuitable;
 
     let cardClass = isConfirmed ? 'best' : 'warn';
     h += `<div class="rec-card ${cardClass}" style="margin-bottom:14px;${isConfirmed?'border-width:2px;':''}">`;
@@ -975,6 +991,9 @@ function renderAllocResult(results, entities, params){
       if(pf.noCostInvoice) note = '<span style="color:var(--pu)">无需成本票</span>';
       else if(pf.adj) note = `<span style="color:var(--ng)">调增${fW(pf.adj)}</span>`;
       if(pf.vatExempt) note += (note ? ' ' : '') + '<span style="color:var(--ok)">免增值税</span>';
+      if(pf.isFull) note += (note ? ' ' : '') + '<span style="color:var(--ng)">🔴已满</span>';
+      else if(pf.wouldOverflow) note += (note ? ' ' : '') + '<span style="color:var(--ng)">⚠️将超限</span>';
+      if(pf.unsuitable) note += (note ? ' ' : '') + '<span style="color:var(--wn)">不适用</span>';
 
       h += `<tr style="${rowStyle}">`;
       h += `<td style="text-align:center"><span class="rank-badge ${rankBadge}">${pf.rank}</span></td>`;
