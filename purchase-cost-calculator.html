@@ -1057,6 +1057,15 @@ function importAllData(event){
   event.target.value = '';
 }
 
+/* ==================== TAB 3: 发票分布总览渲染 ==================== */
+function renderDistribution(entities, results){
+  const typeColor = {general:'#38bdf8', small:'#34d399', individual:'#a78bfa'};
+  let h = '';
+
+  // 1. 各主体容量占用率
+  h += `<h3 style="font-size:15px;font-weight:600;color:var(--c2);margin-bottom:12px">📊 各主体容量占用率</h3>`;
+  h += `<div style="display:grid;gap:12px;margin-bottom:24px">`;
+
   entities.forEach(e => {
     const totalUsed = e.estSales + e.newAlloc;
     const pct = e.sl > 0 ? Math.min(100, totalUsed / e.sl * 100) : 0;
