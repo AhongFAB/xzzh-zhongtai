@@ -91,7 +91,7 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 <div><label>平均毛利率(%)</label><input type="number" id="avgGM1" value="15" step="1" oninput="updateTab1()"></div>
 </div>
 <div style="font-size:11px;color:var(--t2);margin-top:8px;line-height:1.6;">
-💡 已销额自动从进项反算：已销额 = 已收进项 ÷ (1 - 平均毛利率)；个体户手填实际已销额<br>
+💡 有票已销额 = 已收进项 ÷ (1 - 平均毛利率)；无票总额 = 总销售额 - 有票已销合计 - 个体户合计，按有票比例分摊<br>
 💡 所得税率固定：<strong style="color:var(--c2)">一般纳税人15%</strong> / <strong style="color:var(--c2)">小规模5%</strong> / <strong style="color:var(--c2)">个体户核定10%</strong>
 </div>
 </div>
@@ -104,10 +104,12 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 <div class="ec">
 <div style="background:rgba(14,165,233,.15);color:#38bdf8;display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:6px">一般纳税人</div>
 <div style="font-weight:600;font-size:14px;margin-bottom:4px">中合五金</div>
-<div style="font-size:12px;color:var(--t2);margin-bottom:4px">年限额: <span style="color:var(--t1);font-weight:600">无上限</span></div>
-<div style="font-size:12px;color:var(--t1);font-weight:600" id="card0-sales">已销额: 0.00万</div>
+<div style="font-size:12px;color:var(--t2);margin-bottom:2px">年限额: <span style="color:var(--t1);font-weight:600">无上限</span></div>
+<div style="font-size:11px;color:var(--t2)" id="card0-invoiced">有票已销: 0.00万</div>
+<div style="font-size:11px;color:var(--ng);font-weight:600" id="card0-noinv">无票已销: 0.00万 <span style="font-size:9px">🔴</span></div>
+<div style="font-size:12px;color:var(--t1);font-weight:600;border-top:1px dashed rgba(56,189,248,.2);padding-top:3px;margin-top:3px" id="card0-sales">总已销额: 0.00万</div>
 <div style="font-size:11px;color:var(--t2)" id="card0-input">进项: 0.00万</div>
-<div style="font-size:11px;color:var(--t2)" id="card0-cover">覆盖率: —</div>
+<div style="font-size:11px;color:var(--t2)" id="card0-cover">进项覆盖率: —</div>
 <div style="margin-top:6px">
 <div class="bar-bg"><div class="bar-fill" id="card0-bar" style="width:0%;background:#10b981">—</div></div>
 <div style="font-size:11px;color:var(--t2);margin-top:3px;text-align:right" id="card0-remain">剩余: <span style="color:var(--c2);font-weight:600">∞</span></div>
@@ -118,10 +120,12 @@ label{font-size:12px;color:var(--t2);font-weight:500;display:block;margin-bottom
 <div class="ec">
 <div style="background:rgba(16,185,129,.15);color:#34d399;display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:6px">小规模纳税人</div>
 <div style="font-weight:600;font-size:14px;margin-bottom:4px">小规模公司</div>
-<div style="font-size:12px;color:var(--t2);margin-bottom:4px">年限额: <span style="color:var(--t1);font-weight:600">500万</span></div>
-<div style="font-size:12px;color:var(--t1);font-weight:600" id="card1-sales">已销额: 0.00万</div>
+<div style="font-size:12px;color:var(--t2);margin-bottom:2px">年限额: <span style="color:var(--t1);font-weight:600">500万</span></div>
+<div style="font-size:11px;color:var(--t2)" id="card1-invoiced">有票已销: 0.00万</div>
+<div style="font-size:11px;color:var(--ng);font-weight:600" id="card1-noinv">无票已销: 0.00万 <span style="font-size:9px">🔴</span></div>
+<div style="font-size:12px;color:var(--t1);font-weight:600;border-top:1px dashed rgba(56,189,248,.2);padding-top:3px;margin-top:3px" id="card1-sales">总已销额: 0.00万</div>
 <div style="font-size:11px;color:var(--t2)" id="card1-input">进项: 0.00万</div>
-<div style="font-size:11px;color:var(--t2)" id="card1-cover">覆盖率: —</div>
+<div style="font-size:11px;color:var(--t2)" id="card1-cover">进项覆盖率: —</div>
 <div style="margin-top:6px">
 <div class="bar-bg"><div class="bar-fill" id="card1-bar" style="width:0%;background:#10b981">0%</div></div>
 <div style="font-size:11px;color:var(--t2);margin-top:3px;text-align:right" id="card1-remain">剩余: <span style="color:var(--ok);font-weight:600">0.00万</span></div>
@@ -273,8 +277,9 @@ function fP(n){return(n*100).toFixed(2)+'%'}
 function stab(id,b){document.querySelectorAll('.tab-c').forEach(c=>c.classList.remove('on'));document.querySelectorAll('.tab-b').forEach(x=>x.classList.remove('on'));document.getElementById('tab-'+id).classList.add('on');b.classList.add('on')}
 
 /* ==================== TAB 1: 经营实况 ==================== */
+/* 全局数据存储（供外部使用） */
+let tab1GlobalData = null;
 
-/* 更新Tab1（只更新计算值，不重建DOM） */
 function updateTab1(){
   const avgGM = (parseFloat(document.getElementById('avgGM1').value) || 15) / 100;
   const genInput = parseFloat(document.getElementById('genInput').value) || 0;
@@ -289,27 +294,53 @@ function updateTab1(){
   // 同步毛利率到Tab2
   document.getElementById('avgGM').value = document.getElementById('avgGM1').value;
 
+  // 个体户已销额
+  const ind0Sales = parseFloat(document.getElementById('indSales0').value) || 0;
+  const ind1Sales = parseFloat(document.getElementById('indSales1').value) || 0;
+  const ind2Sales = parseFloat(document.getElementById('indSales2').value) || 0;
+  const totalIndSales = ind0Sales + ind1Sales + ind2Sales;
+
+  // 有票已销额 = 进项 / (1 - 毛利率)
+  const genInvoicedSales = avgGM > 0 && avgGM < 1 ? genInput / (1 - avgGM) : 0;
+  const smallInvoicedSales = avgGM > 0 && avgGM < 1 ? smallInput / (1 - avgGM) : 0;
+  const totalInvoicedSales = genInvoicedSales + smallInvoicedSales;
+
+  // 无票总额 = 总销售额 - 有票已销合计 - 个体户合计
+  const noInvTotal = Math.max(0, tSales - totalInvoicedSales - totalIndSales);
+
+  // 无票按有票比例分摊
+  const genNoInvSales = totalInvoicedSales > 0 ? noInvTotal * (genInvoicedSales / totalInvoicedSales) : 0;
+  const smallNoInvSales = totalInvoicedSales > 0 ? noInvTotal * (smallInvoicedSales / totalInvoicedSales) : 0;
+
+  // 每个主体的总已销额
+  const genTotalSales = genInvoicedSales + genNoInvSales;
+  const smallTotalSales = smallInvoicedSales + smallNoInvSales;
+
   // === Card 0: 中合五金 (general) ===
-  const genEstSales = avgGM > 0 && avgGM < 1 ? genInput / (1 - avgGM) : 0;
-  const genCover = genEstSales > 0 ? genInput / genEstSales : 0;
-  document.getElementById('card0-sales').textContent = '已销额: ' + fW(genEstSales) + '万';
+  // 进项覆盖率 = 进项 / 总已销额
+  const genCover = genTotalSales > 0 ? genInput / genTotalSales : 0;
+  document.getElementById('card0-invoiced').textContent = '有票已销: ' + fW(genInvoicedSales) + '万';
+  document.getElementById('card0-noinv').innerHTML = '无票已销: ' + fW(genNoInvSales) + '万 <span style="font-size:9px">🔴</span>';
+  document.getElementById('card0-sales').textContent = '总已销额: ' + fW(genTotalSales) + '万';
   document.getElementById('card0-input').textContent = '进项: ' + fW(genInput) + '万';
   const genCoverColor = genCover > 0.8 ? 'var(--ok)' : genCover > 0.5 ? 'var(--wn)' : 'var(--ng)';
-  document.getElementById('card0-cover').innerHTML = '覆盖率: <span style="color:'+genCoverColor+'">'+fP(genCover)+'</span>';
+  document.getElementById('card0-cover').innerHTML = '进项覆盖率: <span style="color:'+genCoverColor+'">'+fP(genCover)+'</span>';
   document.getElementById('card0-bar').style.width = '0%';
   document.getElementById('card0-bar').textContent = '—';
   document.getElementById('card0-remain').innerHTML = '剩余: <span style="color:var(--c2);font-weight:600">∞</span>';
 
   // === Card 1: 小规模公司 (small) ===
-  const smallEstSales = avgGM > 0 && avgGM < 1 ? smallInput / (1 - avgGM) : 0;
-  const smallRemain = Math.max(0, 500 - smallEstSales);
-  const smallCover = smallEstSales > 0 ? smallInput / smallEstSales : 0;
-  const smallPct = Math.min(100, smallEstSales / 500 * 100);
+  const smallRemain = Math.max(0, 500 - smallTotalSales);
+  const smallCover = smallTotalSales > 0 ? smallInput / smallTotalSales : 0;
+  // 进度条按总已销额/500万
+  const smallPct = Math.min(100, smallTotalSales / 500 * 100);
   const smallBarColor = smallPct > 80 ? '#f59e0b' : smallPct > 50 ? '#0ea5e9' : '#10b981';
   const smallCoverColor = smallCover > 0.8 ? 'var(--ok)' : smallCover > 0.5 ? 'var(--wn)' : 'var(--ng)';
-  document.getElementById('card1-sales').textContent = '已销额: ' + fW(smallEstSales) + '万';
+  document.getElementById('card1-invoiced').textContent = '有票已销: ' + fW(smallInvoicedSales) + '万';
+  document.getElementById('card1-noinv').innerHTML = '无票已销: ' + fW(smallNoInvSales) + '万 <span style="font-size:9px">🔴</span>';
+  document.getElementById('card1-sales').textContent = '总已销额: ' + fW(smallTotalSales) + '万';
   document.getElementById('card1-input').textContent = '进项: ' + fW(smallInput) + '万';
-  document.getElementById('card1-cover').innerHTML = '覆盖率: <span style="color:'+smallCoverColor+'">'+fP(smallCover)+'</span>';
+  document.getElementById('card1-cover').innerHTML = '进项覆盖率: <span style="color:'+smallCoverColor+'">'+fP(smallCover)+'</span>';
   document.getElementById('card1-bar').style.width = smallPct.toFixed(1) + '%';
   document.getElementById('card1-bar').style.background = smallBarColor;
   document.getElementById('card1-bar').textContent = smallPct.toFixed(0) + '%';
@@ -317,9 +348,10 @@ function updateTab1(){
   document.getElementById('card1-remain').innerHTML = '剩余: <span style="color:'+smallRemainColor+';font-weight:600">'+fW(smallRemain)+'万</span>';
 
   // === Cards 2-4: 个体户 ===
+  const indSalesArr = [ind0Sales, ind1Sales, ind2Sales];
   for(let i = 0; i < 3; i++){
     const cardIdx = i + 2;
-    const indSales = parseFloat(document.getElementById('indSales'+i).value) || 0;
+    const indSales = indSalesArr[i];
     const sl = EN[cardIdx].sl;
     const pct = sl > 0 && indSales > 0 ? Math.min(100, indSales / sl * 100) : 0;
     const remain = sl > 0 ? Math.max(0, sl - indSales) : 0;
@@ -331,49 +363,202 @@ function updateTab1(){
     document.getElementById('card'+cardIdx+'-remain').innerHTML = '剩余: <span style="color:'+remainColor+';font-weight:600">'+fW(remain)+'万</span>';
   }
 
-  // 构建data数组给汇总和A区
+  // 构建data数组给汇总和A区（含无票数据）
   const data = [
-    { n:'中合五金', t:'general', lb:'一般纳税人', sl:0, estSales: genEstSales, inputVal: genInput, remain: Infinity, cover: genCover, isInputSales: false },
-    { n:'小规模公司', t:'small', lb:'小规模纳税人', sl:500, estSales: smallEstSales, inputVal: smallInput, remain: smallRemain, cover: smallCover, isInputSales: false },
-    { n:'个体户1', t:'individual', lb:'个体工商户', sl:EN[2].sl, estSales: parseFloat(document.getElementById('indSales0').value)||0, inputVal: 0, remain: Math.max(0, EN[2].sl - (parseFloat(document.getElementById('indSales0').value)||0)), cover: null, isInputSales: true },
-    { n:'个体户2', t:'individual', lb:'个体工商户', sl:EN[3].sl, estSales: parseFloat(document.getElementById('indSales1').value)||0, inputVal: 0, remain: Math.max(0, EN[3].sl - (parseFloat(document.getElementById('indSales1').value)||0)), cover: null, isInputSales: true },
-    { n:'个体户3', t:'individual', lb:'个体工商户', sl:EN[4].sl, estSales: parseFloat(document.getElementById('indSales2').value)||0, inputVal: 0, remain: Math.max(0, EN[4].sl - (parseFloat(document.getElementById('indSales2').value)||0)), cover: null, isInputSales: true }
+    { n:'中合五金', t:'general', lb:'一般纳税人', sl:0, invoicedSales: genInvoicedSales, noInvSales: genNoInvSales, totalSales: genTotalSales, inputVal: genInput, remain: Infinity, cover: genCover, isInputSales: false },
+    { n:'小规模公司', t:'small', lb:'小规模纳税人', sl:500, invoicedSales: smallInvoicedSales, noInvSales: smallNoInvSales, totalSales: smallTotalSales, inputVal: smallInput, remain: smallRemain, cover: smallCover, isInputSales: false },
+    { n:'个体户1', t:'individual', lb:'个体工商户', sl:EN[2].sl, invoicedSales: ind0Sales, noInvSales: 0, totalSales: ind0Sales, inputVal: 0, remain: Math.max(0, EN[2].sl - ind0Sales), cover: null, isInputSales: true },
+    { n:'个体户2', t:'individual', lb:'个体工商户', sl:EN[3].sl, invoicedSales: ind1Sales, noInvSales: 0, totalSales: ind1Sales, inputVal: 0, remain: Math.max(0, EN[3].sl - ind1Sales), cover: null, isInputSales: true },
+    { n:'个体户3', t:'individual', lb:'个体工商户', sl:EN[4].sl, invoicedSales: ind2Sales, noInvSales: 0, totalSales: ind2Sales, inputVal: 0, remain: Math.max(0, EN[4].sl - ind2Sales), cover: null, isInputSales: true }
   ];
 
-  renderTab1Summary(data, tSales);
+  // 保存全局数据
+  tab1GlobalData = {
+    tSales, genInput, smallInput, avgGM,
+    genInvoicedSales, smallInvoicedSales, totalInvoicedSales,
+    genNoInvSales, smallNoInvSales, noInvTotal,
+    genTotalSales, smallTotalSales, totalIndSales
+  };
+
+  renderTab1Summary(data, tSales, noInvTotal, genCover, smallCover);
   renderEntityStatusTable(data);
+  renderTaxComparison(data, avgGM);
 }
 
 /* 渲染Tab1底部汇总 */
-function renderTab1Summary(data, tSales){
+function renderTab1Summary(data, tSales, noInvTotal, genCover, smallCover){
   const indData = data.filter(d => d.t === 'individual');
-  const genData = data[0];
-  const smallData = data[1];
-  const totalIndSales = indData.reduce((s,d)=>s+d.estSales,0);
+  const totalIndSales = indData.reduce((s,d)=>s+d.totalSales,0);
   const totalRemaining = data.reduce((s,d)=>s+(d.remain===Infinity?0:d.remain),0);
 
   let h = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center">
 <div style="font-size:13px;line-height:1.8">
-<span style="color:var(--c2);font-weight:600">📊 总已销额：</span>${fW(tSales)}万 / ${tSales}万 | 
+<span style="color:var(--c2);font-weight:600">📊 总销售额：</span>${fW(tSales)}万 | 
+<span style="color:var(--c2);font-weight:600">无票总额：</span><span style="color:var(--ng);font-weight:600">${fW(noInvTotal)}万</span>（待分配）<br>
 <span style="color:var(--c2);font-weight:600">剩余可分配容量：</span><span style="color:var(--ok);font-weight:600">${fW(totalRemaining)}万</span>
 </div>
 <div style="font-size:13px;line-height:1.8">
-<span style="color:var(--c2);font-weight:600">🏢 一般纳税人进项覆盖率：</span><span style="color:${genData.cover>0.5?'var(--ok)':'var(--wn)'};font-weight:600">${fP(genData.cover)}</span>
+<span style="color:var(--c2);font-weight:600">一般纳税人进项覆盖率：</span><span style="color:${genCover>0.5?'var(--ok)':'var(--wn)'};font-weight:600">${fP(genCover)}</span>
 &nbsp;&nbsp;
-<span style="color:var(--c2);font-weight:600">🏢 小规模进项覆盖率：</span><span style="color:${smallData.cover>0.5?'var(--ok)':'var(--wn)'};font-weight:600">${fP(smallData.cover)}</span>
+<span style="color:var(--c2);font-weight:600">小规模进项覆盖率：</span><span style="color:${smallCover>0.5?'var(--ok)':'var(--wn)'};font-weight:600">${fP(smallCover)}</span>
 </div>
 </div>`;
   document.getElementById('tab1Summary').innerHTML = h;
 }
 
+/* ==================== 税负对比 ==================== */
+function renderTaxComparison(data, avgGM){
+  const d = data;
+  const genData = d[0];
+  const smallData = d[1];
+
+  // 中合五金
+  const genVATPessimistic = (genData.totalSales - genData.inputVal) / 1.13 * 0.13;
+  const genInvCost = genData.inputVal / 1.13;
+  const genNoInvCost = genData.noInvSales / 1.13;
+  const genCITBasePess = (genData.invoicedSales - genInvCost) + genData.noInvSales / 1.13;
+  const genCITPess = Math.max(0, genCITBasePess * 0.15);
+  const genTotalPess = genVATPessimistic + genCITPess;
+
+  // 乐观：无票部分也有专票
+  const genNoInvCostOpt = genData.noInvSales * (1 - avgGM) / 1.13;
+  const genTotalCostOpt = genData.inputVal / 1.13 + genNoInvCostOpt;
+  const genRevOpt = genData.totalSales / 1.13;
+  const genVatOpt = (genRevOpt - genTotalCostOpt) * 0.13;
+  const genGPOpt = genRevOpt - genTotalCostOpt;
+  const genCITOpt = Math.max(0, genGPOpt * 0.15);
+  const genTotalOpt = genVatOpt + genCITOpt;
+
+  // 小规模
+  const smallVATPess = smallData.totalSales / 1.01 * 0.01;
+  const smallInvGP = smallData.invoicedSales / 1.01 - smallData.inputVal;
+  const smallCITBasePess = smallInvGP + smallData.noInvSales / 1.01;
+  const smallCITPess = Math.max(0, smallCITBasePess * 0.05);
+  const smallTotalPess = smallVATPess + smallCITPess;
+
+  // 乐观小规模
+  const smallVatOpt = smallVATPess; // VAT same
+  const smallNoInvCostOpt = smallData.noInvSales * (1 - avgGM);
+  const smallTotalCostOpt = smallData.inputVal + smallNoInvCostOpt;
+  const smallGPOpt = smallData.totalSales / 1.01 - smallTotalCostOpt;
+  const smallCITOpt = Math.max(0, smallGPOpt * 0.05);
+  const smallTotalOpt = smallVatOpt + smallCITOpt;
+
+  // 个体户（悲观=乐观）
+  let indResults = [];
+  for(let i = 2; i < 5; i++){
+    const ind = d[i];
+    const monthlySales = ind.totalSales * 10000 / 12;
+    const vatExempt = monthlySales <= 100000;
+    const rev = vatExempt ? ind.totalSales * 10000 : ind.totalSales * 10000 / 1.01;
+    const vat = vatExempt ? 0 : rev * 0.01;
+    const deemedIncome = rev * 0.10;
+    const pit = pitP(deemedIncome);
+    const total = vat + pit;
+    indResults.push({ name: ind.n, vat, pit, total });
+  }
+  const totalIndTax = indResults.reduce((s,r)=>s+r.total,0);
+
+  // 差额
+  const genDiff = genTotalOpt - genTotalPess; // 正=省钱(乐观便宜)
+  const smallDiff = smallTotalOpt - smallTotalPess;
+  const indDiff = 0;
+
+  // 渲染税负对比区
+  const html = `
+<div id="taxComparisonZone" style="margin-top:16px;">
+<div style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(99,102,241,.03));border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:16px;margin-bottom:0;">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px;">
+<div style="font-size:14px;font-weight:600;color:var(--inf);">⚖️ 税负对比（悲观 vs 乐观）</div>
+<div style="font-size:11px;color:var(--t2);">悲观=无票找不到进项调增 | 乐观=无票都有专票可抵扣</div>
+</div>
+<div style="overflow-x:auto;">
+<table class="tb" style="min-width:800px">
+<thead>
+<tr>
+<th style="text-align:left">主体</th>
+<th style="color:#f59e0b">悲观 VAT(万)</th>
+<th style="color:#f59e0b">悲观 CIT(万)</th>
+<th style="color:#f59e0b">悲观合计(万)</th>
+<th style="color:#10b981">乐观 VAT(万)</th>
+<th style="color:#10b981">乐观 CIT(万)</th>
+<th style="color:#10b981">乐观合计(万)</th>
+<th style="color:var(--c2)">差额(万)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;font-weight:600;color:#38bdf8">中合五金</td>
+<td>${fW(genVATPessimistic)}</td>
+<td>${fW(genCITPess)}</td>
+<td style="font-weight:700;color:#f59e0b">${fW(genTotalPess)}</td>
+<td>${fW(genVatOpt)}</td>
+<td>${fW(genCITOpt)}</td>
+<td style="font-weight:700;color:#10b981">${fW(genTotalOpt)}</td>
+<td style="font-weight:700;color:${genDiff<=0?'var(--ok)':'var(--ng)'}">${fW(genDiff)} ${genDiff<=0?'✅':'⚠️'}</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight:600;color:#34d399">小规模公司</td>
+<td>${fW(smallVATPess)}</td>
+<td>${fW(smallCITPess)}</td>
+<td style="font-weight:700;color:#f59e0b">${fW(smallTotalPess)}</td>
+<td>${fW(smallVatOpt)}</td>
+<td>${fW(smallCITOpt)}</td>
+<td style="font-weight:700;color:#10b981">${fW(smallTotalOpt)}</td>
+<td style="font-weight:700;color:${smallDiff<=0?'var(--ok)':'var(--ng)'}">${fW(smallDiff)} ${smallDiff<=0?'✅':'⚠️'}</td>
+</tr>
+${indResults.map(r=>`<tr>
+<td style="text-align:left;font-weight:600;color:#a78bfa">${r.name}</td>
+<td>${fW(r.vat)}</td>
+<td>${fW(r.pit)}</td>
+<td style="font-weight:700;color:#a78bfa">${fW(r.total)}</td>
+<td>${fW(r.vat)}</td>
+<td>${fW(r.pit)}</td>
+<td style="font-weight:700;color:#a78bfa">${fW(r.total)}</td>
+<td style="font-weight:700;color:var(--t2)">${fW(0)} —</td>
+</tr>`).join('')}
+<tr class="tt">
+<td style="text-align:left;font-weight:700;color:var(--inf)">合计</td>
+<td>${fW(genVATPessimistic + smallVATPess + indResults.reduce((s,r)=>s+r.vat,0))}</td>
+<td>${fW(genCITPess + smallCITPess + indResults.reduce((s,r)=>s+r.pit,0))}</td>
+<td style="font-weight:700;color:#f59e0b">${fW(genTotalPess + smallTotalPess + totalIndTax)}</td>
+<td>${fW(genVatOpt + smallVatOpt + indResults.reduce((s,r)=>s+r.vat,0))}</td>
+<td>${fW(genCITOpt + smallCITOpt + indResults.reduce((s,r)=>s+r.pit,0))}</td>
+<td style="font-weight:700;color:#10b981">${fW(genTotalOpt + smallTotalOpt + totalIndTax)}</td>
+<td style="font-weight:700;color:${(genDiff+smallDiff)<=0?'var(--ok)':'var(--ng)'}">${fW(genDiff+smallDiff)} ${(genDiff+smallDiff)<=0?'✅省钱':'⚠️风险'}</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div style="margin-top:10px;font-size:11px;color:var(--t2);line-height:1.6;">
+<span style="color:var(--ok)">✅ 绿色差额</span>=乐观比悲观省税（无票收入找到进项可抵扣）；<span style="color:var(--ng)">🔴 红色差额</span>=即使乐观仍需纳税调增，风险较高
+</div>
+</div>
+</div>`;
+
+  // 插入到 tab1Summary 之后
+  const summaryEl = document.getElementById('tab1Summary');
+  let existing = document.getElementById('taxComparisonZone');
+  if(existing) existing.remove();
+  summaryEl.insertAdjacentHTML('afterend', html);
+}
+
 /* ==================== TAB 2 A区: 主体状态只读同步表 ==================== */
 function renderEntityStatusTable(data){
   const tc={general:'#38bdf8',small:'#34d399',individual:'#a78bfa'};
-  let h = `<table class="tb" style="min-width:700px"><thead><tr>
-<th style="text-align:left">主体</th><th>类型</th><th>已销额(万)</th><th>进项(万)</th><th>覆盖率</th><th>剩余容量(万)</th><th>状态</th>
+  let h = `<table class="tb" style="min-width:900px"><thead><tr>
+<th style="text-align:left">主体</th>
+<th>类型</th>
+<th>有票已销(万)</th>
+<th>无票已销(万)</th>
+<th>总已销(万)</th>
+<th>进项(万)</th>
+<th>进项覆盖率</th>
+<th>剩余容量(万)</th>
+<th>状态</th>
 </tr></thead><tbody>`;
   data.forEach(d => {
-    const pct = d.sl > 0 && d.estSales > 0 ? (d.estSales / d.sl * 100) : null;
+    const pct = d.sl > 0 && d.totalSales > 0 ? (d.totalSales / d.sl * 100) : null;
     let status = '';
     let statusColor = '';
     if(d.sl === 0){
@@ -388,11 +573,14 @@ function renderEntityStatusTable(data){
     const coverColor = d.cover !== null ? (d.cover > 0.5 ? 'var(--ok)' : 'var(--wn)') : 'var(--t2)';
     const remainStr = d.remain === Infinity ? '∞' : fW(d.remain);
     const remainColor = d.remain === Infinity ? 'var(--c2)' : (d.remain < 10 ? 'var(--ng)' : 'var(--ok)');
+    const noInvColor = d.noInvSales > 0 ? 'var(--ng);font-weight:600' : 'var(--t2)';
 
     h += `<tr>
 <td style="text-align:left;font-weight:600;color:${tc[d.t]}">${d.n}</td>
 <td style="font-size:12px">${d.lb}</td>
-<td style="font-weight:600">${fW(d.estSales)}</td>
+<td>${fW(d.invoicedSales)}</td>
+<td style="color:${noInvColor}">${d.t==='individual'?'—':fW(d.noInvSales)}</td>
+<td style="font-weight:700">${fW(d.totalSales)}</td>
 <td style="color:${d.t==='individual'?'var(--pu)':'var(--t1)'}">${d.t==='individual'?'—':fW(d.inputVal)}</td>
 <td style="color:${coverColor}">${coverStr}</td>
 <td style="color:${remainColor};font-weight:600">${remainStr}</td>
@@ -414,19 +602,23 @@ function calcSmartAlloc(){
   const citType = '15';
   const deemedRate = 0.10;
 
-  // 从Tab1读取数据构建entities
-  const genInput = parseFloat(document.getElementById('genInput').value) || 0;
-  const smallInput = parseFloat(document.getElementById('smallInput').value) || 0;
+  // 从Tab1全局数据读取
+  const g = tab1GlobalData;
+  if(!g){
+    alert('请先在Tab1填写经营数据');
+    return;
+  }
 
+  // entities: estSales = 总已销额（有票+无票）
   const entities = EN.map((e, i) => {
     if(e.t === 'general'){
-      const estSales = avgGM < 1 && avgGM > 0 ? genInput / (1 - avgGM) : 0;
+      const estSales = g.genTotalSales; // 总已销额
       const remain = e.sl > 0 ? Math.max(0, e.sl - estSales) : Infinity;
-      return { ...e, idx: i, inputVal: genInput, estSales, remain, newAlloc: 0, items: [] };
+      return { ...e, idx: i, inputVal: g.genInput, estSales, remain, newAlloc: 0, items: [] };
     } else if(e.t === 'small'){
-      const estSales = avgGM < 1 && avgGM > 0 ? smallInput / (1 - avgGM) : 0;
+      const estSales = g.smallTotalSales; // 总已销额
       const remain = e.sl > 0 ? Math.max(0, e.sl - estSales) : Infinity;
-      return { ...e, idx: i, inputVal: smallInput, estSales, remain, newAlloc: 0, items: [] };
+      return { ...e, idx: i, inputVal: g.smallInput, estSales, remain, newAlloc: 0, items: [] };
     } else {
       const indSales = parseFloat(document.getElementById('indSales'+(i-2)).value) || 0;
       const estSales = indSales;
@@ -694,7 +886,7 @@ function renderAllocResult(results, entities, params){
   }
   h += `</div>`;
 
-  h += `<div style="overflow-x:auto;margin-bottom:20px"><table class="tb" style="min-width:800px"><thead><tr><th style="text-align:left">主体</th><th>类型</th><th>已用(万)</th><th>新分配(万)</th><th>分配后(万)</th><th>限额(万)</th><th>占用率</th><th>状态</th></tr></thead><tbody>`;
+  h += `<div style="overflow-x:auto;margin-bottom:20px"><table class="tb" style="min-width:800px"><thead><tr><th style="text-align:left">主体</th><th>类型</th><th>历史已销(万)</th><th>新分配(万)</th><th>分配后(万)</th><th>限额(万)</th><th>占用率</th><th>状态</th></tr></thead><tbody>`;
   entities.forEach(e => {
     const totalUsed = e.estSales + e.newAlloc;
     const pct = e.sl > 0 ? (totalUsed / e.sl * 100) : 0;
@@ -869,6 +1061,15 @@ function exportAllData(){
   csv += `个体户2,${document.getElementById('indSales1').value||0},${document.getElementById('limInd1').value||72}\n`;
   csv += `个体户3,${document.getElementById('indSales2').value||0},${document.getElementById('limInd2').value||72}\n`;
 
+  // 导出无票分配数据
+  if(tab1GlobalData){
+    csv += '\n## Tab1-无票分配\n';
+    csv += '参数名,值\n';
+    csv += `无票总额(万),${tab1GlobalData.noInvTotal}\n`;
+    csv += `中合五金无票已销(万),${tab1GlobalData.genNoInvSales}\n`;
+    csv += `小规模无票已销(万),${tab1GlobalData.smallNoInvSales}\n`;
+  }
+
   csv += '\n## 参数\n';
   csv += '参数名,值\n';
   csv += `平均毛利率(%),${avgGM}\n`;
@@ -910,6 +1111,7 @@ function importAllData(event){
     const lines = text.split('\n');
     let section = '';
     let productRows = [];
+    let noInvData = {};
 
     for(let line of lines){
       line = line.trim();
@@ -938,6 +1140,16 @@ function importAllData(event){
           if(name==='个体户1'){document.getElementById('indSales0').value=sales;document.getElementById('limInd0').value=limit;}
           else if(name==='个体户2'){document.getElementById('indSales1').value=sales;document.getElementById('limInd1').value=limit;}
           else if(name==='个体户3'){document.getElementById('indSales2').value=sales;document.getElementById('limInd2').value=limit;}
+        }
+      }
+      if(section === 'Tab1-无票分配'){
+        const parts = line.split(',');
+        if(parts.length >= 2){
+          const key = parts[0].trim();
+          const val = parts[1].trim();
+          if(key==='无票总额(万)') noInvData.noInvTotal = parseFloat(val)||0;
+          else if(key==='中合五金无票已销(万)') noInvData.genNoInvSales = parseFloat(val)||0;
+          else if(key==='小规模无票已销(万)') noInvData.smallNoInvSales = parseFloat(val)||0;
         }
       }
       if(section === '参数'){
