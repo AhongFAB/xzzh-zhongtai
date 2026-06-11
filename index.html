@@ -1,652 +1,111 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>凌云</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; overflow: hidden; }
-    
-    /* 背景：纯CSS深色渐变，克制不刺眼 */
-    .desktop-bg {
-      background: 
-        radial-gradient(ellipse at 20% 50%, rgba(30, 58, 138, 0.25) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 50%, rgba(88, 28, 135, 0.2) 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 100%, rgba(14, 116, 144, 0.15) 0%, transparent 40%),
-        linear-gradient(180deg, #0a0a0f 0%, #0f0f1a 50%, #0a0a12 100%);
-      height: 100vh;
-      width: 100vw;
-    }
-    
-    /* 菜单栏 */
-    .menu-bar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 28px;
-      background: rgba(15, 15, 22, 0.8);
-      backdrop-filter: blur(30px);
-      -webkit-backdrop-filter: blur(30px);
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      z-index: 1000;
-    }
-    .menu-bar .status-dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.5);
-      margin-right: 8px;
-    }
-    .menu-bar .brand {
-      font-size: 13px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.8);
-      display: flex;
-      align-items: center;
-    }
-    .menu-bar .time {
-      font-size: 12px;
-      color: rgba(255,255,255,0.5);
-    }
-    
-    /* 桌面图标容器 */
-    .desktop-icons {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: flex;
-      gap: 60px;
-      padding-top: 28px;
-    }
-    
-    /* 一级图标：圆形，flat渐变，无高光 */
-    .app-icon {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-    .app-icon:hover {
-      transform: translateY(-4px);
-    }
-    .app-icon .icon-circle {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 36px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-      transition: box-shadow 0.2s ease;
-    }
-    .app-icon:hover .icon-circle {
-      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-    }
-    .app-icon .label {
-      font-size: 12px;
-      color: rgba(255,255,255,0.7);
-      text-align: center;
-    }
-    
-    /* 抽屉 */
-    .drawer-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 500;
-      display: none;
-    }
-    .drawer-overlay.active {
-      display: block;
-    }
-    .drawer {
-      position: fixed;
-      width: 320px;
-      background: rgba(28, 28, 40, 0.75);
-      backdrop-filter: blur(50px) saturate(180%);
-      -webkit-backdrop-filter: blur(50px) saturate(180%);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-      max-height: calc(100vh - 160px);
-      overflow-y: auto;
-      z-index: 501;
-      opacity: 0;
-      transform: scale(0.95);
-      transition: opacity 0.2s ease, transform 0.2s ease;
-    }
-    .drawer.active {
-      opacity: 1;
-      transform: scale(1);
-    }
-    .drawer::-webkit-scrollbar {
-      width: 6px;
-    }
-    .drawer::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    .drawer::-webkit-scrollbar-thumb {
-      background: rgba(255,255,255,0.15);
-      border-radius: 3px;
-    }
-    
-    .drawer-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    .drawer-header .cat-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-    }
-    .drawer-header .cat-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.9);
-    }
-    .drawer-header .cat-count {
-      margin-left: auto;
-      font-size: 12px;
-      color: rgba(255,255,255,0.4);
-    }
-    
-    .drawer-items {
-      padding: 8px;
-    }
-    .drawer-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background 0.15s ease;
-    }
-    .drawer-item:hover {
-      background: rgba(255,255,255,0.06);
-    }
-    .drawer-item .item-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      flex-shrink: 0;
-    }
-    .drawer-item .item-name {
-      font-size: 14px;
-      color: rgba(255,255,255,0.85);
-    }
-    
-    /* Dock */
-    .dock {
-      position: fixed;
-      bottom: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(28, 28, 40, 0.6);
-      backdrop-filter: blur(50px) saturate(180%);
-      -webkit-backdrop-filter: blur(50px) saturate(180%);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 20px;
-      padding: 8px 12px;
-      display: flex;
-      gap: 8px;
-      z-index: 100;
-    }
-    .dock-item {
-      position: relative;
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      cursor: pointer;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    }
-    .dock-item:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-    }
-    .dock-item .running-dot {
-      position: absolute;
-      bottom: -4px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background: white;
-      display: none;
-    }
-    .dock-item.running .running-dot {
-      display: block;
-    }
-    
-    /* 窗口 */
-    .window {
-      position: fixed;
-      background: rgba(20, 20, 30, 0.95);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px;
-      box-shadow: 0 25px 80px rgba(0,0,0,0.5);
-      min-width: 400px;
-      min-height: 300px;
-      display: none;
-      flex-direction: column;
-      overflow: hidden;
-      z-index: 600;
-    }
-    .window.active {
-      display: flex;
-      animation: windowOpen 0.25s ease-out;
-    }
-    .window.closing {
-      animation: windowClose 0.15s ease-in forwards;
-    }
-    @keyframes windowOpen {
-      from { opacity: 0; transform: scale(0.92); }
-      to { opacity: 1; transform: scale(1); }
-    }
-    @keyframes windowClose {
-      from { opacity: 1; transform: scale(1); }
-      to { opacity: 0; transform: scale(0.95); }
-    }
-    
-    .window-titlebar {
-      height: 38px;
-      background: rgba(30, 30, 45, 0.9);
-      display: flex;
-      align-items: center;
-      padding: 0 12px;
-      cursor: move;
-      flex-shrink: 0;
-    }
-    .window-titlebar:hover .traffic-lights .light {
-      background: #6b6b7b;
-    }
-    .traffic-lights {
-      display: flex;
-      gap: 8px;
-    }
-    .traffic-lights .light {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: #4a4a5a;
-      transition: background 0.15s ease;
-      cursor: pointer;
-    }
-    .traffic-lights .light.close:hover { background: #ff5f57; }
-    .traffic-lights .light.minimize:hover { background: #febc2e; }
-    .traffic-lights .light.maximize:hover { background: #28c840; }
-    .window-title {
-      flex: 1;
-      text-align: center;
-      font-size: 13px;
-      color: rgba(255,255,255,0.7);
-    }
-    .window-content {
-      flex: 1;
-      background: rgba(15, 15, 22);
-      overflow: hidden;
-    }
-    .window-content iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-    
-    /* 移动端适配 */
-    @media (max-width: 768px) {
-      .desktop-icons {
-        gap: 40px;
-      }
-      .app-icon .icon-circle {
-        width: 64px;
-        height: 64px;
-        font-size: 28px;
-      }
-      .app-icon .label {
-        font-size: 11px;
-      }
-      .drawer {
-        width: calc(100vw - 32px);
-        left: 16px !important;
-        right: 16px;
-        transform: translateX(0) !important;
-      }
-      .dock {
-        bottom: 8px;
-        padding: 6px 10px;
-      }
-      .dock-item {
-        width: 40px;
-        height: 40px;
-        font-size: 18px;
-      }
-      .window {
-        min-width: calc(100vw - 16px);
-        min-height: calc(100vh - 100px);
-        left: 8px !important;
-        right: 8px;
-        top: 40px !important;
-        bottom: 80px;
-        width: auto !important;
-        height: auto !important;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="财务工具箱 - 非税工具箱、财税工具箱、汇报工具箱">
+    <meta name="theme-color" content="#0f172a">
+    <title>财务工具箱</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'PingFang SC','Microsoft YaHei',-apple-system,BlinkMacSystemFont,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;overflow-x:hidden}
+
+        .bg-particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+        .bg-particles span{position:absolute;border-radius:50%;background:rgba(147,197,253,.15);animation:float linear infinite}
+        @keyframes float{0%{transform:translateY(100vh) scale(0);opacity:0}50%{opacity:1}100%{transform:translateY(-10vh) scale(1);opacity:0}}
+
+        .hero{position:relative;z-index:1;text-align:center;padding:80px 20px 50px}
+        .hero-logo{display:inline-flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,#3b82f6,#06b6d4);font-size:40px;margin-bottom:24px;box-shadow:0 8px 32px rgba(59,130,246,.3)}
+        .hero h1{font-size:40px;font-weight:800;background:linear-gradient(135deg,#fff 0%,#93c5fd 50%,#06b6d4 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:3px;margin-bottom:12px}
+        .hero .subtitle{font-size:17px;color:#94a3b8;letter-spacing:6px;font-weight:300}
+        .hero .divider{width:60px;height:3px;background:linear-gradient(90deg,#3b82f6,#06b6d4);border-radius:2px;margin:28px auto 0}
+
+        .main{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:40px 20px 60px}
+        .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+        @media(max-width:900px){.cards{grid-template-columns:1fr;gap:24px}.hero h1{font-size:28px}.hero .subtitle{font-size:14px;letter-spacing:4px}}
+
+        .card{background:linear-gradient(145deg,rgba(30,41,59,.8),rgba(15,23,42,.9));border:1px solid rgba(148,163,184,.1);border-radius:22px;padding:48px 32px;cursor:pointer;transition:all .4s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;backdrop-filter:blur(10px);text-decoration:none;display:block;text-align:center}
+        .card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;border-radius:22px 22px 0 0;opacity:0;transition:opacity .4s}
+        .card:hover{transform:translateY(-8px);border-color:rgba(148,163,184,.25);box-shadow:0 20px 60px rgba(0,0,0,.3)}
+        .card:hover::before{opacity:1}
+        .card:active{transform:translateY(-3px)}
+
+        .card:nth-child(1)::before{background:linear-gradient(90deg,#10b981,#06b6d4)}
+        .card:nth-child(2)::before{background:linear-gradient(90deg,#3b82f6,#8b5cf6)}
+        .card:nth-child(3)::before{background:linear-gradient(90deg,#f97316,#ef4444)}
+
+        .card .glow{position:absolute;top:-50%;left:-50%;width:200%;height:200%;border-radius:50%;opacity:0;transition:opacity .4s;pointer-events:none}
+        .card:nth-child(1) .glow{background:radial-gradient(circle,rgba(16,185,129,.06),transparent 60%)}
+        .card:nth-child(2) .glow{background:radial-gradient(circle,rgba(59,130,246,.06),transparent 60%)}
+        .card:nth-child(3) .glow{background:radial-gradient(circle,rgba(249,115,22,.06),transparent 60%)}
+        .card:hover .glow{opacity:1}
+
+        .card-icon{font-size:64px;margin-bottom:24px;display:block}
+        .card-title{font-size:24px;font-weight:700;color:#f1f5f9;margin-bottom:10px;letter-spacing:2px}
+        .card-desc{font-size:14px;color:#94a3b8;line-height:1.7;margin-bottom:28px}
+        .card-link{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:15px;transition:all .3s}
+        .card:nth-child(1) .card-link{color:#34d399}
+        .card:nth-child(2) .card-link{color:#60a5fa}
+        .card:nth-child(3) .card-link{color:#fb923c}
+        .card-link .arrow{display:inline-block;transition:transform .3s}.card:hover .card-link .arrow{transform:translateX(6px)}
+
+        footer{position:relative;z-index:1;text-align:center;padding:40px 20px 24px;color:#475569;font-size:12px;letter-spacing:1px;line-height:1.8}
+        footer .copyright-line1{color:#64748b}
+        footer .copyright-line2{margin-top:4px;font-size:11px;opacity:.7}
+    </style>
 </head>
 <body>
-  <div class="desktop-bg">
-    <!-- 菜单栏 -->
-    <div class="menu-bar">
-      <div class="brand">
-        <span class="status-dot"></span>
-        凌云
-      </div>
-      <div class="time" id="clock">00:00</div>
+
+<div class="bg-particles" id="particles"></div>
+
+<div class="hero">
+    <div class="hero-logo">🧰</div>
+    <h1>财务工具箱</h1>
+    <p class="subtitle">非税 · 财税 · 汇报</p>
+    <div class="divider"></div>
+</div>
+
+<div class="main">
+    <div class="cards">
+        <a class="card" href="non-tax.html">
+            <div class="glow"></div>
+            <span class="card-icon">💼</span>
+            <div class="card-title">非税工具箱</div>
+            <div class="card-desc">应收应付 · 对账管理</div>
+            <span class="card-link">进入 <span class="arrow">→</span></span>
+        </a>
+        <a class="card" href="tax.html">
+            <div class="glow"></div>
+            <span class="card-icon">🔧</span>
+            <div class="card-title">财税工具箱</div>
+            <div class="card-desc">进项核查 · 开票建议 · 合同生成</div>
+            <span class="card-link">进入 <span class="arrow">→</span></span>
+        </a>
+        <a class="card" href="report.html">
+            <div class="glow"></div>
+            <span class="card-icon">📈</span>
+            <div class="card-title">汇报工具箱</div>
+            <div class="card-desc">日报 · 周报 · 月报</div>
+            <span class="card-link">进入 <span class="arrow">→</span></span>
+        </a>
     </div>
-    
-    <!-- 桌面图标 -->
-    <div class="desktop-icons" id="desktopIcons"></div>
-    
-    <!-- 抽屉遮罩 -->
-    <div class="drawer-overlay" id="drawerOverlay"></div>
-    
-    <!-- 抽屉 -->
-    <div class="drawer" id="drawer"></div>
-    
-    <!-- Dock -->
-    <div class="dock" id="dock"></div>
-    
-    <!-- 窗口容器 -->
-    <div id="windowContainer"></div>
-  </div>
+</div>
 
-  <script>
-    // 数据
-    const categories = [
-      { id: 'non-tax', name: '非税工具', icon: '💼', color: ['#0ea5e9', '#0284c7'] },
-      { id: 'tax', name: '财税工具', icon: '🔧', color: ['#f43f5e', '#be123c'] },
-      { id: 'report', name: '汇报工具', icon: '📝', color: ['#8b5cf6', '#6d28d9'] }
-    ];
+<footer>
+    <div class="copyright-line1">© 2026 财务工具箱 · 开发者：张洪杰</div>
+    <div class="copyright-line2">版权所有 · 未经授权禁止复制、传播或商业使用 · 侵权必究</div>
+</footer>
 
-    const subApps = {
-      'non-tax': [
-        { id: 'payment-tracker', name: '付款跟踪', icon: '💰', url: 'payment-tracker.html', color: ['#f59e0b', '#d97706'] },
-        { id: 'purchase-cost', name: '采购成本', icon: '🧮', url: 'purchase-cost-calculator.html', color: ['#a78bfa', '#7c3aed'] },
-        { id: 'receivable', name: '应收账款', icon: '📊', url: 'https://ahongfab.github.io/xzzh-yingshou/', color: ['#3b82f6', '#1d4ed8'] },
-        { id: 'voucher-match', name: '凭证匹配', icon: '📋', url: 'https://ahongfab.github.io/xzzh-voucher-match/', color: ['#06b6d4', '#0e7490'] },
-        { id: 'qw-approval', name: '企微审批', icon: '📈', url: 'qw-approval-report.html', color: ['#10b981', '#047857'] },
-        { id: 'statement', name: '对账单', icon: '🧾', url: 'https://ahongfab.github.io/xzzh-duizhang/', color: ['#ec4899', '#be185d'] }
-      ],
-      'tax': [
-        { id: 'tax-tool', name: '财税工具', icon: '🔧', url: 'tax.html', color: ['#f43f5e', '#be123c'] }
-      ],
-      'report': [
-        { id: 'report-tool', name: '汇报工具', icon: '📝', url: 'report.html', color: ['#8b5cf6', '#6d28d9'] }
-      ]
-    };
-
-    // 生成桌面图标
-    function renderDesktopIcons() {
-      const container = document.getElementById('desktopIcons');
-      container.innerHTML = categories.map(cat => `
-        <div class="app-icon" data-category="${cat.id}">
-          <div class="icon-circle" style="background: linear-gradient(135deg, ${cat.color[0]}, ${cat.color[1]})">
-            ${cat.icon}
-          </div>
-          <div class="label">${cat.name}</div>
-        </div>
-      `).join('');
-    }
-
-    // 生成Dock
-    function renderDock() {
-      const container = document.getElementById('dock');
-      const dockApps = [
-        { id: 'finder', name: '非税工具', icon: '💼', color: ['#0ea5e9', '#0284c7'] },
-        { id: 'settings', name: '财税工具', icon: '🔧', color: ['#f43f5e', '#be123c'] },
-        { id: 'notes', name: '汇报工具', icon: '📝', color: ['#8b5cf6', '#6d28d9'] }
-      ];
-      container.innerHTML = dockApps.map(app => `
-        <div class="dock-item ${app.id === 'finder' ? 'running' : ''}" data-category="${app.id === 'finder' ? 'non-tax' : app.id === 'settings' ? 'tax' : 'report'}">
-          <div style="background: linear-gradient(135deg, ${app.color[0]}, ${app.color[1]}); width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-            ${app.icon}
-          </div>
-          <div class="running-dot"></div>
-        </div>
-      `).join('');
-    }
-
-    // 显示抽屉
-    function showDrawer(categoryId) {
-      const cat = categories.find(c => c.id === categoryId);
-      const items = subApps[categoryId] || [];
-      
-      const drawer = document.getElementById('drawer');
-      drawer.innerHTML = `
-        <div class="drawer-header">
-          <div class="cat-icon" style="background: linear-gradient(135deg, ${cat.color[0]}, ${cat.color[1]})">
-            ${cat.icon}
-          </div>
-          <div class="cat-name">${cat.name}</div>
-          <div class="cat-count">${items.length}个工具</div>
-        </div>
-        <div class="drawer-items">
-          ${items.map(item => `
-            <div class="drawer-item" data-url="${item.url}" data-name="${item.name}">
-              <div class="item-icon" style="background: linear-gradient(135deg, ${item.color[0]}, ${item.color[1]})">
-                ${item.icon}
-              </div>
-              <div class="item-name">${item.name}</div>
-            </div>
-          `).join('')}
-        </div>
-      `;
-      
-      // 定位抽屉在点击图标下方
-      const iconEl = document.querySelector(`[data-category="${categoryId}"]`);
-      const iconRect = iconEl.getBoundingClientRect();
-      const drawerWidth = 320;
-      let left = iconRect.left + iconRect.width / 2 - drawerWidth / 2;
-      left = Math.max(16, Math.min(left, window.innerWidth - drawerWidth - 16));
-      
-      drawer.style.left = left + 'px';
-      drawer.style.top = (iconRect.bottom + 16) + 'px';
-      
-      document.getElementById('drawerOverlay').classList.add('active');
-      requestAnimationFrame(() => {
-        drawer.classList.add('active');
-      });
-      
-      // 绑定子项点击
-      drawer.querySelectorAll('.drawer-item').forEach(item => {
-        item.addEventListener('click', () => {
-          openWindow(item.dataset.url, item.dataset.name);
-          hideDrawer();
-        });
-      });
-    }
-
-    // 隐藏抽屉
-    function hideDrawer() {
-      const drawer = document.getElementById('drawer');
-      drawer.classList.remove('active');
-      document.getElementById('drawerOverlay').classList.remove('active');
-    }
-
-    // 打开窗口
-    function openWindow(url, title) {
-      const container = document.getElementById('windowContainer');
-      const windowId = 'win-' + Date.now();
-      
-      const winEl = document.createElement('div');
-      winEl.className = 'window active';
-      winEl.id = windowId;
-      winEl.style.left = (window.innerWidth / 2 - 400) + 'px';
-      winEl.style.top = (window.innerHeight / 2 - 300) + 'px';
-      winEl.style.width = '800px';
-      winEl.style.height = '600px';
-      
-      winEl.innerHTML = `
-        <div class="window-titlebar">
-          <div class="traffic-lights">
-            <div class="light close" data-action="close"></div>
-            <div class="light minimize" data-action="minimize"></div>
-            <div class="light maximize" data-action="maximize"></div>
-          </div>
-          <div class="window-title">${title}</div>
-        </div>
-        <div class="window-content">
-          <iframe src="${url}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
-        </div>
-      `;
-      
-      container.appendChild(winEl);
-      
-      // 拖拽
-      makeDraggable(winEl);
-      
-      // 交通灯
-      winEl.querySelector('.close').addEventListener('click', () => closeWindow(windowId));
-      winEl.querySelector('.minimize').addEventListener('click', () => minimizeWindow(windowId));
-      winEl.querySelector('.maximize').addEventListener('click', () => maximizeWindow(windowId));
-    }
-
-    // 关闭窗口
-    function closeWindow(windowId) {
-      const win = document.getElementById(windowId);
-      if (win) {
-        win.classList.add('closing');
-        setTimeout(() => win.remove(), 150);
-      }
-    }
-
-    // 最小化
-    function minimizeWindow(windowId) {
-      const win = document.getElementById(windowId);
-      if (win) {
-        win.style.display = win.style.display === 'none' ? 'flex' : 'none';
-      }
-    }
-
-    // 最大化
-    function maximizeWindow(windowId) {
-      const win = document.getElementById(windowId);
-      if (win) {
-        if (win.dataset.maximized === 'true') {
-          win.style.left = win.dataset.prevLeft;
-          win.style.top = win.dataset.prevTop;
-          win.style.width = win.dataset.prevWidth;
-          win.style.height = win.dataset.prevHeight;
-          win.dataset.maximized = 'false';
-        } else {
-          win.dataset.prevLeft = win.style.left;
-          win.dataset.prevTop = win.style.top;
-          win.dataset.prevWidth = win.style.width;
-          win.dataset.prevHeight = win.style.height;
-          win.style.left = '0';
-          win.style.top = '28px';
-          win.style.width = '100vw';
-          win.style.height = 'calc(100vh - 28px)';
-          win.style.borderRadius = '0';
-          win.dataset.maximized = 'true';
-        }
-      }
-    }
-
-    // 拖拽
-    function makeDraggable(el) {
-      const titlebar = el.querySelector('.window-titlebar');
-      let isDragging = false;
-      let startX, startY, startLeft, startTop;
-
-      titlebar.addEventListener('mousedown', (e) => {
-        if (e.target.classList.contains('light')) return;
-        isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        startLeft = parseInt(el.style.left) || 0;
-        startTop = parseInt(el.style.top) || 0;
-      });
-
-      document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        el.style.left = (startLeft + e.clientX - startX) + 'px';
-        el.style.top = (startTop + e.clientY - startY) + 'px';
-      });
-
-      document.addEventListener('mouseup', () => {
-        isDragging = false;
-      });
-    }
-
-    // 更新时间
-    function updateClock() {
-      const now = new Date();
-      const h = String(now.getHours()).padStart(2, '0');
-      const m = String(now.getMinutes()).padStart(2, '0');
-      document.getElementById('clock').textContent = `${h}:${m}`;
-    }
-
-    // 初始化
-    function init() {
-      renderDesktopIcons();
-      renderDock();
-      updateClock();
-      setInterval(updateClock, 1000);
-
-      // 桌面图标点击
-      document.getElementById('desktopIcons').addEventListener('click', (e) => {
-        const icon = e.target.closest('.app-icon');
-        if (icon) {
-          showDrawer(icon.dataset.category);
-        }
-      });
-
-      // Dock点击
-      document.getElementById('dock').addEventListener('click', (e) => {
-        const item = e.target.closest('.dock-item');
-        if (item) {
-          showDrawer(item.dataset.category);
-        }
-      });
-
-      // 点击遮罩关闭抽屉
-      document.getElementById('drawerOverlay').addEventListener('click', hideDrawer);
-
-      // ESC关闭抽屉
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') hideDrawer();
-      });
-    }
-
-    init();
-  </script>
+<script>
+const pc=document.getElementById('particles');
+for(let i=0;i<20;i++){
+    const s=document.createElement('span');
+    const size=Math.random()*4+2;
+    s.style.cssText=`left:${Math.random()*100}%;width:${size}px;height:${size}px;animation-duration:${Math.random()*15+10}s;animation-delay:${Math.random()*10}s`;
+    pc.appendChild(s);
+}
+</script>
 </body>
 </html>
+
