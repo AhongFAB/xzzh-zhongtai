@@ -1,1329 +1,652 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>凌云</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sf: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&display=swap');
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-font-smoothing: antialiased;
-        }
-        
-        body {
-            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-        }
-        
-        /* ==================== 星空背景 ==================== */
-        .wallpaper {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('https://s.coze.cn/image/vG7QeqqsSkA/') center/cover no-repeat fixed;
-            z-index: 0;
-        }
-        
-        /* 暗色叠加层，让图标更清晰 */
-        .wallpaper::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.2);
-            pointer-events: none;
-        }
-        
-        /* ==================== 液态玻璃 ==================== */
-        .glass {
-            background: rgba(25, 25, 45, 0.35);
-            backdrop-filter: blur(40px) saturate(180%);
-            -webkit-backdrop-filter: blur(40px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 
-                inset 0 0.5px 0 rgba(255, 255, 255, 0.08),
-                0 8px 32px rgba(0, 0, 0, 0.25);
-        }
-        
-        .glass-light {
-            background: rgba(45, 45, 70, 0.3);
-            backdrop-filter: blur(35px) saturate(160%);
-            -webkit-backdrop-filter: blur(35px) saturate(160%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .glass-dark {
-            background: rgba(15, 15, 30, 0.45);
-            backdrop-filter: blur(30px) saturate(150%);
-            -webkit-backdrop-filter: blur(30px) saturate(150%);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        
-        /* ==================== 菜单栏 ==================== */
-        .menubar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 28px;
-            z-index: 9999;
-        }
-        
-        .menubar-inner {
-            height: 100%;
-            background: rgba(15, 15, 30, 0.5);
-            backdrop-filter: blur(40px) saturate(200%);
-            -webkit-backdrop-filter: blur(40px) saturate(200%);
-            border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
-            display: flex;
-            align-items: center;
-            padding: 0 14px;
-        }
-        
-        .menubar-left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-        
-        .apple-dot {
-            width: 6px;
-            height: 6px;
-            background: radial-gradient(circle at 35% 35%, #fff 0%, #b0b0b0 100%);
-            border-radius: 50%;
-            box-shadow: 0 0 2px rgba(255,255,255,0.2);
-        }
-        
-        .menubar-title {
-            font-size: 13px;
-            font-weight: 500;
-            color: rgba(255, 255, 255, 0.95);
-            letter-spacing: -0.2px;
-        }
-        
-        .menubar-right {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-        
-        .menubar-icon {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.85);
-            cursor: pointer;
-            padding: 3px 5px;
-            border-radius: 4px;
-            transition: background 0.15s;
-        }
-        
-        .menubar-icon:hover {
-            background: rgba(255, 255, 255, 0.12);
-        }
-        
-        .menubar-time {
-            font-size: 13px;
-            font-weight: 400;
-            color: rgba(255, 255, 255, 0.9);
-            letter-spacing: -0.3px;
-        }
-        
-        /* ==================== 桌面 ==================== */
-        .desktop {
-            position: fixed;
-            top: 28px;
-            left: 0;
-            right: 0;
-            bottom: 90px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 100px;
-            z-index: 1;
-            padding: 20px;
-        }
-        
-        /* ==================== 一级桌面图标 ==================== */
-        .primary-icon {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            cursor: pointer;
-            padding: 10px;
-            border-radius: 18px;
-            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
-        }
-        
-        .primary-icon:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-        
-        .primary-icon:hover .icon-wrapper {
-            transform: scale(1.12);
-            box-shadow: 
-                inset 0 1px 0 rgba(255, 255, 255, 0.35),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-                0 20px 60px rgba(0, 0, 0, 0.5),
-                0 0 0 0.5px rgba(0, 0, 0, 0.1);
-        }
-        
-        .primary-icon:active .icon-wrapper {
-            transform: scale(1.06);
-        }
-        
-        .icon-wrapper {
-            width: 96px;
-            height: 96px;
-            border-radius: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            box-shadow: 
-                inset 0 1px 0 rgba(255, 255, 255, 0.28),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-                0 8px 24px rgba(0, 0, 0, 0.4),
-                0 0 0 0.5px rgba(0, 0, 0, 0.15);
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        
-        /* 图标顶部高光 */
-        .icon-wrapper::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 50%;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.1) 40%, transparent 100%);
-            border-radius: 24px 24px 0 0;
-            pointer-events: none;
-        }
-        
-        .icon-emoji {
-            font-size: 46px;
-            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
-            position: relative;
-            z-index: 1;
-        }
-        
-        .icon-label {
-            font-size: 15px;
-            font-weight: 500;
-            color: rgba(255, 255, 255, 0.92);
-            margin-top: 12px;
-            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-        }
-        
-        .icon-count {
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.5);
-            margin-top: 3px;
-        }
-        
-        /* ==================== 抽屉 ==================== */
-        .drawer-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.25);
-            backdrop-filter: blur(8px);
-            z-index: 9990;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.2s ease;
-        }
-        
-        .drawer-overlay.show {
-            opacity: 1;
-            visibility: visible;
-        }
-        
-        .drawer {
-            position: fixed;
-            z-index: 9991;
-            width: 340px;
-            background: rgba(20, 20, 40, 0.55);
-            backdrop-filter: blur(50px) saturate(200%);
-            -webkit-backdrop-filter: blur(50px) saturate(200%);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 22px;
-            box-shadow: 
-                inset 0 0.5px 0 rgba(255, 255, 255, 0.12),
-                0 30px 100px rgba(0, 0, 0, 0.5),
-                0 0 0 0.5px rgba(0, 0, 0, 0.1);
-            padding: 22px 18px;
-            transform: scale(0.85);
-            opacity: 0;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        
-        .drawer.show {
-            transform: scale(1);
-            opacity: 1;
-        }
-        
-        .drawer-header {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 18px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .drawer-header-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            box-shadow: 
-                inset 0 1px 0 rgba(255, 255, 255, 0.25),
-                0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-        
-        .drawer-header-title {
-            font-size: 17px;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.95);
-        }
-        
-        .drawer-header-count {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.45);
-            margin-top: 3px;
-        }
-        
-        .drawer-items {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        
-        .drawer-item {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 14px 16px;
-            border-radius: 14px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-        
-        .drawer-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .drawer-item:active {
-            transform: scale(0.98);
-            background: rgba(255, 255, 255, 0.06);
-        }
-        
-        .drawer-item-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 11px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            box-shadow: 
-                inset 0 1px 0 rgba(255, 255, 255, 0.22),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.15),
-                0 3px 8px rgba(0, 0, 0, 0.25);
-            position: relative;
-        }
-        
-        .drawer-item-icon::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 50%;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.06) 40%, transparent 100%);
-            border-radius: 11px 11px 0 0;
-            pointer-events: none;
-        }
-        
-        .drawer-item-emoji {
-            position: relative;
-            z-index: 1;
-            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.25));
-        }
-        
-        .drawer-item-name {
-            font-size: 15px;
-            font-weight: 400;
-            color: rgba(255, 255, 255, 0.9);
-        }
-        
-        /* ==================== Dock ==================== */
-        .dock-wrapper {
-            position: fixed;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9998;
-        }
-        
-        .dock {
-            display: flex;
-            align-items: flex-end;
-            gap: 7px;
-            padding: 7px 12px;
-            background: rgba(25, 25, 50, 0.45);
-            backdrop-filter: blur(40px) saturate(200%);
-            -webkit-backdrop-filter: blur(40px) saturate(200%);
-            border-radius: 22px;
-            border: 0.5px solid rgba(255, 255, 255, 0.18);
-            border-top-color: rgba(255, 255, 255, 0.35);
-            box-shadow: 
-                0 0 0 0.5px rgba(0, 0, 0, 0.1),
-                0 15px 60px rgba(0, 0, 0, 0.45),
-                inset 0 0.5px 0 rgba(255, 255, 255, 0.1);
-            position: relative;
-        }
-        
-        /* Dock 顶部高光 */
-        .dock::before {
-            content: '';
-            position: absolute;
-            top: 0.5px;
-            left: 18px;
-            right: 18px;
-            height: 0.5px;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
-        }
-        
-        .dock-item {
-            width: 52px;
-            height: 52px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
-        }
-        
-        .dock-item:hover {
-            transform: scale(1.4) translateY(-18px);
-        }
-        
-        .dock-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 
-                inset 0 1px 0 rgba(255, 255, 255, 0.25),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.18),
-                0 4px 10px rgba(0, 0, 0, 0.3),
-                0 0 0 0.5px rgba(0, 0, 0, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .dock-icon::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 50%;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.08) 40%, transparent 100%);
-            border-radius: 12px 12px 0 0;
-            pointer-events: none;
-        }
-        
-        .dock-emoji {
-            font-size: 22px;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-            position: relative;
-            z-index: 1;
-        }
-        
-        /* Dock 指示点 */
-        .dock-dot {
-            position: absolute;
-            bottom: -6px;
-            width: 4px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.65);
-            border-radius: 50%;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-        
-        .dock-item.running .dock-dot {
-            opacity: 1;
-        }
-        
-        /* Dock 倒影 */
-        .dock-reflection {
-            display: flex;
-            align-items: flex-start;
-            gap: 7px;
-            padding: 0 12px;
-            margin-top: -4px;
-            transform: scaleY(-1);
-            opacity: 0.05;
-            filter: blur(2px);
-            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.2), transparent 80%);
-            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.2), transparent 80%);
-            pointer-events: none;
-        }
-        
-        .dock-reflection .dock-item {
-            width: 52px;
-            height: 28px;
-            transform: scale(0.85);
-        }
-        
-        .dock-reflection .dock-icon {
-            width: 44px;
-            height: 28px;
-            border-radius: 12px;
-        }
-        
-        /* ==================== 窗口 ==================== */
-        .window {
-            position: fixed;
-            background: rgba(18, 18, 35, 0.88);
-            backdrop-filter: blur(45px) saturate(160%);
-            -webkit-backdrop-filter: blur(45px) saturate(160%);
-            border-radius: 14px;
-            border: 0.5px solid rgba(255, 255, 255, 0.13);
-            box-shadow: 
-                0 40px 100px -25px rgba(0, 0, 0, 0.7),
-                0 0 1px rgba(255, 255, 255, 0.18),
-                inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-width: 540px;
-            min-height: 420px;
-        }
-        
-        .window.opening {
-            animation: windowOpen 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-        
-        .window.closing {
-            animation: windowClose 0.2s ease-out forwards;
-        }
-        
-        @keyframes windowOpen {
-            from { opacity: 0; transform: scale(0.5); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        
-        @keyframes windowClose {
-            from { opacity: 1; transform: scale(1); }
-            to { opacity: 0; transform: scale(0.9); }
-        }
-        
-        .window-titlebar {
-            height: 42px;
-            background: rgba(40, 40, 65, 0.7);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            border-bottom: 0.5px solid rgba(0, 0, 0, 0.2);
-            display: flex;
-            align-items: center;
-            padding: 0 16px;
-            cursor: move;
-            flex-shrink: 0;
-            position: relative;
-        }
-        
-        .window-titlebar::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 0.5px;
-            background: rgba(255, 255, 255, 0.04);
-        }
-        
-        .window-controls {
-            display: flex;
-            gap: 9px;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .window-control {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: #4a4a5a;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 8px;
-            color: transparent;
-            transition: all 0.15s ease;
-        }
-        
-        .window-titlebar:hover .window-control {
-            background: #58586a;
-        }
-        
-        .window-control:hover.close {
-            background: #ff5f57;
-            color: rgba(0, 0, 0, 0.65);
-        }
-        
-        .window-control:hover.minimize {
-            background: #febc2e;
-            color: rgba(0, 0, 0, 0.55);
-        }
-        
-        .window-control:hover.maximize {
-            background: #28c840;
-            color: rgba(0, 0, 0, 0.55);
-        }
-        
-        .window-title {
-            flex: 1;
-            text-align: center;
-            font-size: 13px;
-            font-weight: 500;
-            color: rgba(255, 255, 255, 0.85);
-            margin-right: 66px;
-        }
-        
-        .window-content {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-            background: rgba(15, 15, 28, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
-        
-        .window-iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            background: #fff;
-        }
-        
-        .window-loading {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: rgba(18, 18, 35, 0.98);
-            z-index: 10;
-        }
-        
-        .window-loading .spinner {
-            width: 30px;
-            height: 30px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-top-color: rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-        }
-        
-        .window-loading .text {
-            color: rgba(255, 255, 255, 0.45);
-            font-size: 12px;
-            margin-top: 14px;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* ==================== 右键菜单 ==================== */
-        .context-menu {
-            position: fixed;
-            background: rgba(30, 30, 55, 0.85);
-            backdrop-filter: blur(40px) saturate(180%);
-            -webkit-backdrop-filter: blur(40px) saturate(180%);
-            border: 0.5px solid rgba(255, 255, 255, 0.14);
-            border-radius: 12px;
-            padding: 7px;
-            min-width: 175px;
-            z-index: 99999;
-            display: none;
-            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.5);
-        }
-        
-        .context-menu.show {
-            display: block;
-            animation: fadeIn 0.12s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        
-        .context-item {
-            padding: 8px 14px;
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 12px;
-            border-radius: 7px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 11px;
-            transition: background 0.1s;
-        }
-        
-        .context-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .context-divider {
-            height: 1px;
-            background: rgba(255, 255, 255, 0.08);
-            margin: 6px 10px;
-        }
-        
-        /* ==================== 关于弹窗 ==================== */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.45);
-            backdrop-filter: blur(15px);
-            z-index: 99998;
-            display: none;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal-overlay.show {
-            display: flex;
-        }
-        
-        .about-modal {
-            position: relative;
-            background: rgba(25, 25, 50, 0.92);
-            backdrop-filter: blur(50px) saturate(200%);
-            -webkit-backdrop-filter: blur(50px) saturate(200%);
-            border: 0.5px solid rgba(255, 255, 255, 0.16);
-            border-radius: 20px;
-            padding: 34px 40px;
-            width: 420px;
-            box-shadow: 
-                0 35px 100px rgba(0, 0, 0, 0.6),
-                0 0 1px rgba(255, 255, 255, 0.12),
-                inset 0 0.5px 0 rgba(255, 255, 255, 0.1);
-        }
-        
-        .about-modal h2 {
-            font-size: 22px;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.95);
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-        
-        .about-modal .version {
-            font-size: 11px;
-            font-weight: 400;
-            color: rgba(255, 255, 255, 0.5);
-            background: rgba(255, 255, 255, 0.08);
-            padding: 4px 12px;
-            border-radius: 12px;
-        }
-        
-        .about-modal p {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.6);
-            line-height: 1.75;
-            margin-top: 16px;
-        }
-        
-        .about-modal .close-btn {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            width: 28px;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 7px;
-            cursor: pointer;
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 15px;
-            transition: all 0.15s;
-        }
-        
-        .about-modal .close-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.8);
-        }
-        
-        /* ==================== 响应式 ==================== */
-        @media (max-width: 768px) {
-            .desktop {
-                gap: 50px;
-            }
-            
-            .icon-wrapper {
-                width: 78px;
-                height: 78px;
-                border-radius: 20px;
-            }
-            
-            .icon-emoji {
-                font-size: 36px;
-            }
-            
-            .icon-label {
-                font-size: 13px;
-            }
-            
-            .window {
-                left: 0 !important;
-                top: 28px !important;
-                width: 100% !important;
-                height: calc(100vh - 28px - 90px) !important;
-                border-radius: 0;
-            }
-            
-            .dock-item {
-                width: 44px;
-                height: 44px;
-            }
-            
-            .dock-icon {
-                width: 38px;
-                height: 38px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>凌云</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+    
+    /* 背景：纯CSS深色渐变，克制不刺眼 */
+    .desktop-bg {
+      background: 
+        radial-gradient(ellipse at 20% 50%, rgba(30, 58, 138, 0.25) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 50%, rgba(88, 28, 135, 0.2) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 100%, rgba(14, 116, 144, 0.15) 0%, transparent 40%),
+        linear-gradient(180deg, #0a0a0f 0%, #0f0f1a 50%, #0a0a12 100%);
+      height: 100vh;
+      width: 100vw;
+    }
+    
+    /* 菜单栏 */
+    .menu-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 28px;
+      background: rgba(15, 15, 22, 0.8);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 1000;
+    }
+    .menu-bar .status-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.5);
+      margin-right: 8px;
+    }
+    .menu-bar .brand {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.8);
+      display: flex;
+      align-items: center;
+    }
+    .menu-bar .time {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+    }
+    
+    /* 桌面图标容器 */
+    .desktop-icons {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      gap: 60px;
+      padding-top: 28px;
+    }
+    
+    /* 一级图标：圆形，flat渐变，无高光 */
+    .app-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .app-icon:hover {
+      transform: translateY(-4px);
+    }
+    .app-icon .icon-circle {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      transition: box-shadow 0.2s ease;
+    }
+    .app-icon:hover .icon-circle {
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+    .app-icon .label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+      text-align: center;
+    }
+    
+    /* 抽屉 */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      display: none;
+    }
+    .drawer-overlay.active {
+      display: block;
+    }
+    .drawer {
+      position: fixed;
+      width: 320px;
+      background: rgba(28, 28, 40, 0.75);
+      backdrop-filter: blur(50px) saturate(180%);
+      -webkit-backdrop-filter: blur(50px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      max-height: calc(100vh - 160px);
+      overflow-y: auto;
+      z-index: 501;
+      opacity: 0;
+      transform: scale(0.95);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .drawer.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .drawer::-webkit-scrollbar {
+      width: 6px;
+    }
+    .drawer::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .drawer::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15);
+      border-radius: 3px;
+    }
+    
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .drawer-header .cat-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .drawer-header .cat-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+    }
+    .drawer-header .cat-count {
+      margin-left: auto;
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+    }
+    
+    .drawer-items {
+      padding: 8px;
+    }
+    .drawer-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .drawer-item:hover {
+      background: rgba(255,255,255,0.06);
+    }
+    .drawer-item .item-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .drawer-item .item-name {
+      font-size: 14px;
+      color: rgba(255,255,255,0.85);
+    }
+    
+    /* Dock */
+    .dock {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(28, 28, 40, 0.6);
+      backdrop-filter: blur(50px) saturate(180%);
+      -webkit-backdrop-filter: blur(50px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 20px;
+      padding: 8px 12px;
+      display: flex;
+      gap: 8px;
+      z-index: 100;
+    }
+    .dock-item {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    .dock-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    .dock-item .running-dot {
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: white;
+      display: none;
+    }
+    .dock-item.running .running-dot {
+      display: block;
+    }
+    
+    /* 窗口 */
+    .window {
+      position: fixed;
+      background: rgba(20, 20, 30, 0.95);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+      min-width: 400px;
+      min-height: 300px;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 600;
+    }
+    .window.active {
+      display: flex;
+      animation: windowOpen 0.25s ease-out;
+    }
+    .window.closing {
+      animation: windowClose 0.15s ease-in forwards;
+    }
+    @keyframes windowOpen {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes windowClose {
+      from { opacity: 1; transform: scale(1); }
+      to { opacity: 0; transform: scale(0.95); }
+    }
+    
+    .window-titlebar {
+      height: 38px;
+      background: rgba(30, 30, 45, 0.9);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      cursor: move;
+      flex-shrink: 0;
+    }
+    .window-titlebar:hover .traffic-lights .light {
+      background: #6b6b7b;
+    }
+    .traffic-lights {
+      display: flex;
+      gap: 8px;
+    }
+    .traffic-lights .light {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #4a4a5a;
+      transition: background 0.15s ease;
+      cursor: pointer;
+    }
+    .traffic-lights .light.close:hover { background: #ff5f57; }
+    .traffic-lights .light.minimize:hover { background: #febc2e; }
+    .traffic-lights .light.maximize:hover { background: #28c840; }
+    .window-title {
+      flex: 1;
+      text-align: center;
+      font-size: 13px;
+      color: rgba(255,255,255,0.7);
+    }
+    .window-content {
+      flex: 1;
+      background: rgba(15, 15, 22);
+      overflow: hidden;
+    }
+    .window-content iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    
+    /* 移动端适配 */
+    @media (max-width: 768px) {
+      .desktop-icons {
+        gap: 40px;
+      }
+      .app-icon .icon-circle {
+        width: 64px;
+        height: 64px;
+        font-size: 28px;
+      }
+      .app-icon .label {
+        font-size: 11px;
+      }
+      .drawer {
+        width: calc(100vw - 32px);
+        left: 16px !important;
+        right: 16px;
+        transform: translateX(0) !important;
+      }
+      .dock {
+        bottom: 8px;
+        padding: 6px 10px;
+      }
+      .dock-item {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+      }
+      .window {
+        min-width: calc(100vw - 16px);
+        min-height: calc(100vh - 100px);
+        left: 8px !important;
+        right: 8px;
+        top: 40px !important;
+        bottom: 80px;
+        width: auto !important;
+        height: auto !important;
+      }
+    }
+  </style>
 </head>
 <body>
-    <!-- 星空背景 -->
-    <div class="wallpaper"></div>
-    
+  <div class="desktop-bg">
     <!-- 菜单栏 -->
-    <div class="menubar">
-        <div class="menubar-inner">
-            <div class="menubar-left">
-                <div class="apple-dot"></div>
-                <span class="menubar-title">凌云</span>
-            </div>
-            <div class="menubar-right">
-                <span class="menubar-icon">📶</span>
-                <span class="menubar-icon">🔋</span>
-                <span class="menubar-time" id="menuTime"></span>
-            </div>
-        </div>
+    <div class="menu-bar">
+      <div class="brand">
+        <span class="status-dot"></span>
+        凌云
+      </div>
+      <div class="time" id="clock">00:00</div>
     </div>
     
-    <!-- 桌面 -->
-    <div class="desktop" id="desktop"></div>
+    <!-- 桌面图标 -->
+    <div class="desktop-icons" id="desktopIcons"></div>
     
     <!-- 抽屉遮罩 -->
     <div class="drawer-overlay" id="drawerOverlay"></div>
+    
     <!-- 抽屉 -->
     <div class="drawer" id="drawer"></div>
     
     <!-- Dock -->
-    <div class="dock-wrapper">
-        <div class="dock" id="dock"></div>
-        <div class="dock-reflection" id="dockReflection"></div>
-    </div>
+    <div class="dock" id="dock"></div>
     
-    <!-- 右键菜单 -->
-    <div class="context-menu" id="contextMenu">
-        <div class="context-item" data-action="about">
-            <span>💡</span>
-            <span>关于凌云</span>
+    <!-- 窗口容器 -->
+    <div id="windowContainer"></div>
+  </div>
+
+  <script>
+    // 数据
+    const categories = [
+      { id: 'non-tax', name: '非税工具', icon: '💼', color: ['#0ea5e9', '#0284c7'] },
+      { id: 'tax', name: '财税工具', icon: '🔧', color: ['#f43f5e', '#be123c'] },
+      { id: 'report', name: '汇报工具', icon: '📝', color: ['#8b5cf6', '#6d28d9'] }
+    ];
+
+    const subApps = {
+      'non-tax': [
+        { id: 'payment-tracker', name: '付款跟踪', icon: '💰', url: 'payment-tracker.html', color: ['#f59e0b', '#d97706'] },
+        { id: 'purchase-cost', name: '采购成本', icon: '🧮', url: 'purchase-cost-calculator.html', color: ['#a78bfa', '#7c3aed'] },
+        { id: 'receivable', name: '应收账款', icon: '📊', url: 'https://ahongfab.github.io/xzzh-yingshou/', color: ['#3b82f6', '#1d4ed8'] },
+        { id: 'voucher-match', name: '凭证匹配', icon: '📋', url: 'https://ahongfab.github.io/xzzh-voucher-match/', color: ['#06b6d4', '#0e7490'] },
+        { id: 'qw-approval', name: '企微审批', icon: '📈', url: 'qw-approval-report.html', color: ['#10b981', '#047857'] },
+        { id: 'statement', name: '对账单', icon: '🧾', url: 'https://ahongfab.github.io/xzzh-duizhang/', color: ['#ec4899', '#be185d'] }
+      ],
+      'tax': [
+        { id: 'tax-tool', name: '财税工具', icon: '🔧', url: 'tax.html', color: ['#f43f5e', '#be123c'] }
+      ],
+      'report': [
+        { id: 'report-tool', name: '汇报工具', icon: '📝', url: 'report.html', color: ['#8b5cf6', '#6d28d9'] }
+      ]
+    };
+
+    // 生成桌面图标
+    function renderDesktopIcons() {
+      const container = document.getElementById('desktopIcons');
+      container.innerHTML = categories.map(cat => `
+        <div class="app-icon" data-category="${cat.id}">
+          <div class="icon-circle" style="background: linear-gradient(135deg, ${cat.color[0]}, ${cat.color[1]})">
+            ${cat.icon}
+          </div>
+          <div class="label">${cat.name}</div>
         </div>
-        <div class="context-divider"></div>
-        <div class="context-item" data-action="refresh">
-            <span>🔄</span>
-            <span>刷新桌面</span>
+      `).join('');
+    }
+
+    // 生成Dock
+    function renderDock() {
+      const container = document.getElementById('dock');
+      const dockApps = [
+        { id: 'finder', name: '非税工具', icon: '💼', color: ['#0ea5e9', '#0284c7'] },
+        { id: 'settings', name: '财税工具', icon: '🔧', color: ['#f43f5e', '#be123c'] },
+        { id: 'notes', name: '汇报工具', icon: '📝', color: ['#8b5cf6', '#6d28d9'] }
+      ];
+      container.innerHTML = dockApps.map(app => `
+        <div class="dock-item ${app.id === 'finder' ? 'running' : ''}" data-category="${app.id === 'finder' ? 'non-tax' : app.id === 'settings' ? 'tax' : 'report'}">
+          <div style="background: linear-gradient(135deg, ${app.color[0]}, ${app.color[1]}); width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            ${app.icon}
+          </div>
+          <div class="running-dot"></div>
         </div>
-    </div>
-    
-    <!-- 关于弹窗 -->
-    <div class="modal-overlay" id="aboutOverlay">
-        <div class="about-modal">
-            <div class="close-btn" id="closeAbout">✕</div>
-            <h2>🚀 凌云 <span class="version">v3.0</span></h2>
-            <p>专为中合五金供应链打造的智能财务工具箱。基于 macOS Sonoma 风格设计，融合 iOS 液态玻璃美学，星空背景透过玻璃层渗透，带来极致精致的桌面体验。</p>
-            <p style="margin-top: 16px; font-size: 11px; opacity: 0.45;">Built with ❤️ · Tailwind CSS</p>
+      `).join('');
+    }
+
+    // 显示抽屉
+    function showDrawer(categoryId) {
+      const cat = categories.find(c => c.id === categoryId);
+      const items = subApps[categoryId] || [];
+      
+      const drawer = document.getElementById('drawer');
+      drawer.innerHTML = `
+        <div class="drawer-header">
+          <div class="cat-icon" style="background: linear-gradient(135deg, ${cat.color[0]}, ${cat.color[1]})">
+            ${cat.icon}
+          </div>
+          <div class="cat-name">${cat.name}</div>
+          <div class="cat-count">${items.length}个工具</div>
         </div>
-    </div>
-    
-    <script>
-        // ==================== 数据配置 ====================
-        const primaryCategories = [
-            { 
-                id: 'non-tax', 
-                name: '非税工具', 
-                icon: '💼', 
-                colors: ['#06b6d4', '#0891b2'],
-                secondaryColor: '#164e63'
-            },
-            { 
-                id: 'tax', 
-                name: '财税工具', 
-                icon: '🔧', 
-                colors: ['#ef4444', '#dc2626'],
-                secondaryColor: '#7f1d1d'
-            },
-            { 
-                id: 'report', 
-                name: '汇报工具', 
-                icon: '📝', 
-                colors: ['#f59e0b', '#d97706'],
-                secondaryColor: '#78350f'
-            }
-        ];
-        
-        const subApps = {
-            'non-tax': [
-                { id: 'payment-tracker', name: '付款跟踪', icon: '💰', url: 'payment-tracker.html', colors: ['#fbbf24', '#d97706', '#92400e'] },
-                { id: 'purchase-cost', name: '采购成本', icon: '🧮', url: 'purchase-cost-calculator.html', colors: ['#a78bfa', '#7c3aed', '#4c1d95'] },
-                { id: 'receivable', name: '应收账款', icon: '📊', url: 'https://ahongfab.github.io/xzzh-yingshou/', colors: ['#60a5fa', '#2563eb', '#1e3a8a'] },
-                { id: 'voucher-match', name: '凭证匹配', icon: '📋', url: 'https://ahongfab.github.io/xzzh-voucher-match/', colors: ['#22d3ee', '#0891b2', '#164e63'] },
-                { id: 'qw-approval', name: '企微审批', icon: '📈', url: 'qw-approval-report.html', colors: ['#34d399', '#059669', '#064e3b'] },
-                { id: 'statement', name: '对账单', icon: '🧾', url: 'https://ahongfab.github.io/xzzh-duizhang/', colors: ['#f472b6', '#db2777', '#831843'] }
-            ],
-            'tax': [
-                { id: 'tax-tool', name: '财税工具', icon: '🔧', url: 'tax.html', colors: ['#f87171', '#dc2626', '#7f1d1d'] }
-            ],
-            'report': [
-                { id: 'report-tool', name: '汇报工具', icon: '📝', url: 'report.html', colors: ['#fb923c', '#ea580c', '#7c2d12'] }
-            ]
-        };
-        
-        // ==================== 状态管理 ====================
-        let windows = [];
-        let zIndexCounter = 100;
-        let isDragging = false;
-        let dragWindow = null;
-        let dragOffset = { x: 0, y: 0 };
-        let activeDrawer = null;
-        
-        // ==================== 初始化桌面 ====================
-        function initDesktop() {
-            const container = document.getElementById('desktop');
-            container.innerHTML = '';
-            
-            primaryCategories.forEach(cat => {
-                const icon = document.createElement('div');
-                icon.className = 'primary-icon';
-                icon.dataset.category = cat.id;
-                icon.innerHTML = `
-                    <div class="icon-wrapper" style="background: linear-gradient(145deg, ${cat.colors[0]} 0%, ${cat.colors[1]} 50%, ${cat.secondaryColor} 100%);">
-                        <span class="icon-emoji">${cat.icon}</span>
-                    </div>
-                    <span class="icon-label">${cat.name}</span>
-                    <span class="icon-count">${subApps[cat.id].length} 个工具</span>
-                `;
-                icon.addEventListener('click', (e) => toggleDrawer(cat, icon, e));
-                container.appendChild(icon);
-            });
-        }
-        
-        // ==================== 抽屉 ====================
-        function toggleDrawer(category, iconElement, event) {
-            const overlay = document.getElementById('drawerOverlay');
-            const drawer = document.getElementById('drawer');
-            
-            // 如果点击的是同一个分类，关闭抽屉
-            if (activeDrawer === category.id) {
-                closeDrawer();
-                return;
-            }
-            
-            // 显示遮罩
-            overlay.classList.add('show');
-            
-            // 获取图标位置
-            const rect = iconElement.getBoundingClientRect();
-            
-            // 计算抽屉位置（居中于图标下方）
-            const drawerWidth = 340;
-            const drawerHeight = 200 + subApps[category.id].length * 62;
-            let left = rect.left + rect.width / 2 - drawerWidth / 2;
-            let top = rect.bottom + 18;
-            
-            // 边界检测
-            if (left < 12) left = 12;
-            if (left + drawerWidth > window.innerWidth - 12) {
-                left = window.innerWidth - drawerWidth - 12;
-            }
-            if (top + drawerHeight > window.innerHeight - 110) {
-                top = rect.top - drawerHeight - 18;
-            }
-            
-            drawer.style.left = left + 'px';
-            drawer.style.top = top + 'px';
-            
-            // 生成抽屉内容
-            drawer.innerHTML = `
-                <div class="drawer-header">
-                    <div class="drawer-header-icon" style="background: linear-gradient(145deg, ${category.colors[0]} 0%, ${category.colors[1]} 50%, ${category.secondaryColor} 100%);">
-                        <span style="font-size: 24px;">${category.icon}</span>
-                    </div>
-                    <div>
-                        <div class="drawer-header-title">${category.name}</div>
-                        <div class="drawer-header-count">${subApps[category.id].length} 个工具</div>
-                    </div>
-                </div>
-                <div class="drawer-items">
-                    ${subApps[category.id].map(app => `
-                        <div class="drawer-item" data-app-id="${app.id}" data-url="${app.url}" data-name="${app.name}" data-colors="${app.colors.join(',')}" data-icon="${app.icon}" data-category="${category.id}">
-                            <div class="drawer-item-icon" style="background: linear-gradient(145deg, ${app.colors[0]} 0%, ${app.colors[1]} 50%, ${app.colors[2]} 100%);">
-                                <span class="drawer-item-emoji">${app.icon}</span>
-                            </div>
-                            <span class="drawer-item-name">${app.name}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-            
-            // 绑定子工具点击事件
-            drawer.querySelectorAll('.drawer-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const appId = item.dataset.appId;
-                    const url = item.dataset.url;
-                    const name = item.dataset.name;
-                    const icon = item.dataset.icon;
-                    const colors = item.dataset.colors.split(',');
-                    closeDrawer();
-                    setTimeout(() => {
-                        openWindow({ id: appId, name, icon, url, colors });
-                    }, 100);
-                });
-            });
-            
-            // 显示抽屉
-            setTimeout(() => {
-                drawer.classList.add('show');
-            }, 10);
-            
-            activeDrawer = category.id;
-        }
-        
-        function closeDrawer() {
-            const overlay = document.getElementById('drawerOverlay');
-            const drawer = document.getElementById('drawer');
-            overlay.classList.remove('show');
-            drawer.classList.remove('show');
-            activeDrawer = null;
-        }
-        
-        // 遮罩点击关闭
-        document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
-        
-        // ESC 关闭抽屉
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeDrawer();
-                document.getElementById('aboutOverlay').classList.remove('show');
-            }
+        <div class="drawer-items">
+          ${items.map(item => `
+            <div class="drawer-item" data-url="${item.url}" data-name="${item.name}">
+              <div class="item-icon" style="background: linear-gradient(135deg, ${item.color[0]}, ${item.color[1]})">
+                ${item.icon}
+              </div>
+              <div class="item-name">${item.name}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      
+      // 定位抽屉在点击图标下方
+      const iconEl = document.querySelector(`[data-category="${categoryId}"]`);
+      const iconRect = iconEl.getBoundingClientRect();
+      const drawerWidth = 320;
+      let left = iconRect.left + iconRect.width / 2 - drawerWidth / 2;
+      left = Math.max(16, Math.min(left, window.innerWidth - drawerWidth - 16));
+      
+      drawer.style.left = left + 'px';
+      drawer.style.top = (iconRect.bottom + 16) + 'px';
+      
+      document.getElementById('drawerOverlay').classList.add('active');
+      requestAnimationFrame(() => {
+        drawer.classList.add('active');
+      });
+      
+      // 绑定子项点击
+      drawer.querySelectorAll('.drawer-item').forEach(item => {
+        item.addEventListener('click', () => {
+          openWindow(item.dataset.url, item.dataset.name);
+          hideDrawer();
         });
-        
-        // ==================== 初始化 Dock ====================
-        function initDock() {
-            const dock = document.getElementById('dock');
-            const reflection = document.getElementById('dockReflection');
-            
-            dock.innerHTML = '';
-            reflection.innerHTML = '';
-            
-            primaryCategories.forEach((cat, index) => {
-                const item = createDockItem(cat);
-                dock.appendChild(item);
-                
-                const reflectionItem = item.cloneNode(true);
-                reflection.appendChild(reflectionItem);
-            });
+      });
+    }
+
+    // 隐藏抽屉
+    function hideDrawer() {
+      const drawer = document.getElementById('drawer');
+      drawer.classList.remove('active');
+      document.getElementById('drawerOverlay').classList.remove('active');
+    }
+
+    // 打开窗口
+    function openWindow(url, title) {
+      const container = document.getElementById('windowContainer');
+      const windowId = 'win-' + Date.now();
+      
+      const winEl = document.createElement('div');
+      winEl.className = 'window active';
+      winEl.id = windowId;
+      winEl.style.left = (window.innerWidth / 2 - 400) + 'px';
+      winEl.style.top = (window.innerHeight / 2 - 300) + 'px';
+      winEl.style.width = '800px';
+      winEl.style.height = '600px';
+      
+      winEl.innerHTML = `
+        <div class="window-titlebar">
+          <div class="traffic-lights">
+            <div class="light close" data-action="close"></div>
+            <div class="light minimize" data-action="minimize"></div>
+            <div class="light maximize" data-action="maximize"></div>
+          </div>
+          <div class="window-title">${title}</div>
+        </div>
+        <div class="window-content">
+          <iframe src="${url}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+        </div>
+      `;
+      
+      container.appendChild(winEl);
+      
+      // 拖拽
+      makeDraggable(winEl);
+      
+      // 交通灯
+      winEl.querySelector('.close').addEventListener('click', () => closeWindow(windowId));
+      winEl.querySelector('.minimize').addEventListener('click', () => minimizeWindow(windowId));
+      winEl.querySelector('.maximize').addEventListener('click', () => maximizeWindow(windowId));
+    }
+
+    // 关闭窗口
+    function closeWindow(windowId) {
+      const win = document.getElementById(windowId);
+      if (win) {
+        win.classList.add('closing');
+        setTimeout(() => win.remove(), 150);
+      }
+    }
+
+    // 最小化
+    function minimizeWindow(windowId) {
+      const win = document.getElementById(windowId);
+      if (win) {
+        win.style.display = win.style.display === 'none' ? 'flex' : 'none';
+      }
+    }
+
+    // 最大化
+    function maximizeWindow(windowId) {
+      const win = document.getElementById(windowId);
+      if (win) {
+        if (win.dataset.maximized === 'true') {
+          win.style.left = win.dataset.prevLeft;
+          win.style.top = win.dataset.prevTop;
+          win.style.width = win.dataset.prevWidth;
+          win.style.height = win.dataset.prevHeight;
+          win.dataset.maximized = 'false';
+        } else {
+          win.dataset.prevLeft = win.style.left;
+          win.dataset.prevTop = win.style.top;
+          win.dataset.prevWidth = win.style.width;
+          win.dataset.prevHeight = win.style.height;
+          win.style.left = '0';
+          win.style.top = '28px';
+          win.style.width = '100vw';
+          win.style.height = 'calc(100vh - 28px)';
+          win.style.borderRadius = '0';
+          win.dataset.maximized = 'true';
         }
-        
-        function createDockItem(category) {
-            const item = document.createElement('div');
-            item.className = 'dock-item';
-            item.dataset.category = category.id;
-            item.innerHTML = `
-                <div class="dock-icon" style="background: linear-gradient(145deg, ${category.colors[0]} 0%, ${category.colors[1]} 50%, ${category.secondaryColor} 100%);">
-                    <span class="dock-emoji">${category.icon}</span>
-                </div>
-                <div class="dock-dot"></div>
-            `;
-            item.addEventListener('click', (e) => {
-                const desktopIcon = document.querySelector(`.primary-icon[data-category="${category.id}"]`);
-                if (desktopIcon) {
-                    const rect = desktopIcon.getBoundingClientRect();
-                    toggleDrawer(category, desktopIcon, { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 });
-                }
-            });
-            return item;
+      }
+    }
+
+    // 拖拽
+    function makeDraggable(el) {
+      const titlebar = el.querySelector('.window-titlebar');
+      let isDragging = false;
+      let startX, startY, startLeft, startTop;
+
+      titlebar.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('light')) return;
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = parseInt(el.style.left) || 0;
+        startTop = parseInt(el.style.top) || 0;
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        el.style.left = (startLeft + e.clientX - startX) + 'px';
+        el.style.top = (startTop + e.clientY - startY) + 'px';
+      });
+
+      document.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+    }
+
+    // 更新时间
+    function updateClock() {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('clock').textContent = `${h}:${m}`;
+    }
+
+    // 初始化
+    function init() {
+      renderDesktopIcons();
+      renderDock();
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      // 桌面图标点击
+      document.getElementById('desktopIcons').addEventListener('click', (e) => {
+        const icon = e.target.closest('.app-icon');
+        if (icon) {
+          showDrawer(icon.dataset.category);
         }
-        
-        // ==================== 窗口管理 ====================
-        function openWindow(app) {
-            const existing = windows.find(w => w.app.id === app.id);
-            if (existing) {
-                focusWindow(existing.element);
-                if (existing.minimized) restoreWindow(existing);
-                return;
-            }
-            
-            const win = document.createElement('div');
-            win.className = 'window opening';
-            
-            const offset = windows.length * 30;
-            const isMobile = window.innerWidth <= 768;
-            
-            win.style.cssText = `
-                left: ${isMobile ? 0 : (100 + offset)}px;
-                top: ${isMobile ? 28 : (60 + offset)}px;
-                width: ${isMobile ? '100%' : '1000px'};
-                height: ${isMobile ? 'calc(100vh - 28px - 90px)' : '680px'};
-                z-index: ${++zIndexCounter};
-                ${isMobile ? 'border-radius: 0;' : ''}
-            `;
-            
-            win.innerHTML = `
-                <div class="window-titlebar">
-                    <div class="window-controls">
-                        <div class="window-control close">×</div>
-                        <div class="window-control minimize">−</div>
-                        <div class="window-control maximize">+</div>
-                    </div>
-                    <div class="window-title">${app.name}</div>
-                </div>
-                <div class="window-content">
-                    <div class="window-loading">
-                        <div class="spinner"></div>
-                        <div class="text">正在加载 ${app.name}...</div>
-                    </div>
-                    <iframe class="window-iframe" src="${app.url}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
-                </div>
-            `;
-            
-            document.body.appendChild(win);
-            
-            const windowData = {
-                element: win,
-                app: app,
-                minimized: false,
-                prevBounds: null
-            };
-            windows.push(windowData);
-            
-            const titlebar = win.querySelector('.window-titlebar');
-            const btnClose = win.querySelector('.window-control.close');
-            const btnMinimize = win.querySelector('.window-control.minimize');
-            const btnMaximize = win.querySelector('.window-control.maximize');
-            const iframe = win.querySelector('.window-iframe');
-            
-            iframe.addEventListener('load', () => {
-                const loading = win.querySelector('.window-loading');
-                if (loading) loading.style.display = 'none';
-            });
-            
-            win.addEventListener('mousedown', () => focusWindow(win));
-            
-            titlebar.addEventListener('mousedown', (e) => {
-                if (e.target.classList.contains('window-control')) return;
-                startDrag(e, win);
-            });
-            
-            titlebar.addEventListener('dblclick', (e) => {
-                if (!e.target.classList.contains('window-control')) {
-                    toggleMaximize(windowData);
-                }
-            });
-            
-            btnClose.addEventListener('click', () => closeWindow(windowData));
-            btnMinimize.addEventListener('click', () => minimizeWindow(windowData));
-            btnMaximize.addEventListener('click', () => toggleMaximize(windowData));
+      });
+
+      // Dock点击
+      document.getElementById('dock').addEventListener('click', (e) => {
+        const item = e.target.closest('.dock-item');
+        if (item) {
+          showDrawer(item.dataset.category);
         }
-        
-        function focusWindow(win) {
-            win.style.zIndex = ++zIndexCounter;
-        }
-        
-        function startDrag(e, win) {
-            isDragging = true;
-            dragWindow = win;
-            const rect = win.getBoundingClientRect();
-            dragOffset.x = e.clientX - rect.left;
-            dragOffset.y = e.clientY - rect.top;
-            document.body.style.cursor = 'move';
-        }
-        
-        function minimizeWindow(windowData) {
-            windowData.element.classList.add('closing');
-            setTimeout(() => {
-                windowData.element.style.display = 'none';
-                windowData.element.classList.remove('closing');
-                windowData.minimized = true;
-            }, 200);
-        }
-        
-        function restoreWindow(windowData) {
-            windowData.element.style.display = 'flex';
-            windowData.minimized = false;
-            focusWindow(windowData.element);
-        }
-        
-        function toggleMaximize(windowData) {
-            const win = windowData.element;
-            const menubarHeight = 28;
-            const dockHeight = 90;
-            
-            if (windowData.prevBounds) {
-                win.style.left = windowData.prevBounds.left + 'px';
-                win.style.top = windowData.prevBounds.top + 'px';
-                win.style.width = windowData.prevBounds.width + 'px';
-                win.style.height = windowData.prevBounds.height + 'px';
-                win.style.borderRadius = '14px';
-                windowData.prevBounds = null;
-            } else {
-                windowData.prevBounds = {
-                    left: win.offsetLeft,
-                    top: win.offsetTop,
-                    width: win.offsetWidth,
-                    height: win.offsetHeight
-                };
-                win.style.left = '0';
-                win.style.top = menubarHeight + 'px';
-                win.style.width = '100%';
-                win.style.height = `calc(100vh - ${menubarHeight}px - ${dockHeight}px)`;
-                win.style.borderRadius = '0';
-            }
-        }
-        
-        function closeWindow(windowData) {
-            windowData.element.classList.add('closing');
-            setTimeout(() => {
-                windowData.element.remove();
-                windows = windows.filter(w => w !== windowData);
-            }, 200);
-        }
-        
-        // ==================== 鼠标事件 ====================
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging && dragWindow) {
-                const windowData = windows.find(w => w.element === dragWindow);
-                if (windowData && !windowData.prevBounds) {
-                    dragWindow.style.left = Math.max(0, e.clientX - dragOffset.x) + 'px';
-                    dragWindow.style.top = Math.max(28, e.clientY - dragOffset.y) + 'px';
-                }
-            }
-        });
-        
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            dragWindow = null;
-            document.body.style.cursor = '';
-        });
-        
-        // ==================== 右键菜单 ====================
-        const contextMenu = document.getElementById('contextMenu');
-        const desktop = document.getElementById('desktop');
-        
-        desktop.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            contextMenu.style.left = e.clientX + 'px';
-            contextMenu.style.top = e.clientY + 'px';
-            contextMenu.classList.add('show');
-        });
-        
-        document.addEventListener('click', () => {
-            contextMenu.classList.remove('show');
-        });
-        
-        contextMenu.querySelectorAll('.context-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const action = item.dataset.action;
-                if (action === 'about') {
-                    document.getElementById('aboutOverlay').classList.add('show');
-                } else if (action === 'refresh') {
-                    location.reload();
-                }
-            });
-        });
-        
-        // ==================== 关于弹窗 ====================
-        document.getElementById('closeAbout').addEventListener('click', () => {
-            document.getElementById('aboutOverlay').classList.remove('show');
-        });
-        
-        document.getElementById('aboutOverlay').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('aboutOverlay')) {
-                document.getElementById('aboutOverlay').classList.remove('show');
-            }
-        });
-        
-        // ==================== 时间更新 ====================
-        function updateTime() {
-            const now = new Date();
-            const time = now.toLocaleTimeString('zh-CN', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                hour12: false 
-            });
-            document.getElementById('menuTime').textContent = time;
-        }
-        updateTime();
-        setInterval(updateTime, 1000);
-        
-        // ==================== 初始化 ====================
-        initDesktop();
-        initDock();
-    </script>
+      });
+
+      // 点击遮罩关闭抽屉
+      document.getElementById('drawerOverlay').addEventListener('click', hideDrawer);
+
+      // ESC关闭抽屉
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') hideDrawer();
+      });
+    }
+
+    init();
+  </script>
 </body>
 </html>
