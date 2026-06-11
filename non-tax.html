@@ -78,6 +78,7 @@
 <div class="bg-particles" id="particles"></div>
 
 <div class="header">
+    <a class="back-btn" onclick="if(window.history.length>1){history.back()}else{location.href='index.html'}" href="javascript:void(0)">← 返回主页</a>
 </div>
 
 <div class="hero">
@@ -123,13 +124,6 @@
             <div class="card-desc">导入销售出库单，按客户自动生成标准对账单，支持XLSX导出和PDF打印。</div>
             <span class="card-link">进入工具 <span class="arrow">→</span></span>
         </a>
-        <a class="card" href="payment-tracker.html" target="_blank">
-            <div class="glow"></div>
-            <span class="card-icon">💰</span>
-            <div class="card-title">付款跟踪系统</div>
-            <div class="card-desc">调货周结对账、付款申请管理、供应商欠款预警、付款排程与报表，一屏掌控全流程。</div>
-            <span class="card-link">进入工具 <span class="arrow">→</span></span>
-        </a>
     </div>
 </div>
 
@@ -149,3 +143,4 @@ for(let i=0;i<15;i++){
 </script>
 </body>
 </html>
+
