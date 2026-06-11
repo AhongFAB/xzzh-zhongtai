@@ -3,1188 +3,1032 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>财务工具箱 - 操作系统风格</title>
+    <title>昆仑云ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0ea5e9',
+                        'bg-dark': '#0f172a',
+                        'bg-darker': '#020617',
+                        glass: 'rgba(30,41,59,0.7)',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             user-select: none;
         }
-
-        :root {
-            --primary: #0ea5e9;
-            --primary-glow: rgba(14, 165, 233, 0.4);
-            --bg-dark: #0f172a;
-            --bg-darker: #020617;
-            --glass-bg: rgba(30, 41, 59, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --taskbar-height: 60px;
-            --window-radius: 12px;
-        }
-
+        
         body {
-            font-family: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
             overflow: hidden;
-            height: 100vh;
-            width: 100vw;
+            background: #020617;
         }
-
-        /* 桌面背景 */
-        .desktop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: var(--taskbar-height);
-            background: linear-gradient(135deg, var(--bg-darker) 0%, var(--bg-dark) 50%, #1e3a5f 100%);
-            background-size: 400% 400%;
-            animation: gradientShift 20s ease infinite;
-        }
-
-        @keyframes gradientShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-
-        /* 桌面网格背景 */
-        .desktop::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: 
-                radial-gradient(circle at 20% 30%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 70%, rgba(14, 165, 233, 0.08) 0%, transparent 50%);
-            pointer-events: none;
-        }
-
-        /* 桌面图标容器 */
-        .desktop-icons {
-            display: flex;
-            flex-direction: column;
-            flex-wrap: wrap;
-            align-content: flex-start;
-            gap: 10px;
-            padding: 20px;
-            height: 100%;
-            max-height: calc(100vh - 80px);
-        }
-
-        .icon-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-right: 30px;
-        }
-
-        .group-title {
-            color: var(--text-secondary);
-            font-size: 12px;
-            margin-bottom: 10px;
-            padding: 4px 12px;
-            background: var(--glass-bg);
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-        }
-
-        .desktop-icon {
-            width: 80px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 10px;
-            border-radius: 16px;
-            cursor: pointer;
-            transition: all 0.2s ease;
+        
+        /* 动态渐变壁纸 */
+        .desktop-bg {
+            background: linear-gradient(135deg, #020617 0%, #0f172a 40%, #1e3a5f 100%);
             position: relative;
         }
-
-        .desktop-icon:hover {
-            transform: scale(1.05);
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-        }
-
-        .desktop-icon:hover::after {
+        
+        .desktop-bg::before {
             content: '';
             position: absolute;
             inset: 0;
-            border-radius: 16px;
-            box-shadow: 0 0 20px var(--primary-glow);
-            pointer-events: none;
+            background: 
+                radial-gradient(ellipse 80% 50% at 20% 40%, rgba(14, 165, 233, 0.15), transparent),
+                radial-gradient(ellipse 60% 40% at 80% 20%, rgba(139, 92, 246, 0.1), transparent),
+                radial-gradient(ellipse 50% 30% at 50% 80%, rgba(16, 185, 129, 0.08), transparent);
+            animation: meshFlow 20s ease-in-out infinite;
         }
-
-        .desktop-icon:active {
-            transform: scale(0.95);
+        
+        @keyframes meshFlow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
         }
-
-        .icon-emoji {
-            width: 56px;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 14px;
-            backdrop-filter: blur(20px);
-            margin-bottom: 6px;
-            transition: all 0.2s ease;
+        
+        /* 顶部菜单栏 */
+        .menu-bar {
+            height: 28px;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(32px) saturate(180%);
+            -webkit-backdrop-filter: blur(32px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
-
-        .desktop-icon:hover .icon-emoji {
-            background: rgba(14, 165, 233, 0.2);
-            border-color: var(--primary);
-        }
-
-        .icon-label {
-            color: var(--text-primary);
-            font-size: 11px;
-            text-align: center;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-            line-height: 1.3;
-            max-width: 76px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-        }
-
-        /* 桌面右键菜单 */
-        .context-menu {
+        
+        /* Dock 样式 */
+        .dock-container {
             position: fixed;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 10px;
-            padding: 6px;
-            min-width: 160px;
-            z-index: 9999;
-            display: none;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        }
-
-        .context-menu.show {
-            display: block;
-            animation: fadeIn 0.15s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
-        .context-menu-item {
-            padding: 8px 14px;
-            color: var(--text-primary);
-            font-size: 13px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .context-menu-item:hover {
-            background: rgba(14, 165, 233, 0.2);
-        }
-
-        .context-menu-item .icon {
-            font-size: 14px;
-            width: 20px;
-        }
-
-        /* 任务栏 */
-        .taskbar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: var(--taskbar-height);
-            background: var(--glass-bg);
-            backdrop-filter: blur(30px);
-            border-top: 1px solid var(--glass-border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9000;
-            padding: 0 10px;
-        }
-
-        .taskbar-center {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 6px 10px;
-            border-radius: 16px;
-            border: 1px solid var(--glass-border);
-        }
-
-        .taskbar-item {
-            width: 44px;
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            background: transparent;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
-        }
-
-        .taskbar-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-4px);
-        }
-
-        .taskbar-item.active {
-            background: rgba(14, 165, 233, 0.3);
-        }
-
-        .taskbar-item.active::after {
-            content: '';
-            position: absolute;
-            bottom: 2px;
-            width: 20px;
-            height: 3px;
-            background: var(--primary);
-            border-radius: 2px;
-        }
-
-        .taskbar-item.open {
-            background: rgba(14, 165, 233, 0.15);
-        }
-
-        .taskbar-divider {
-            width: 1px;
-            height: 30px;
-            background: var(--glass-border);
-            margin: 0 4px;
-        }
-
-        .start-button {
-            width: 44px;
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            background: linear-gradient(135deg, var(--primary), #0284c7);
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
-        }
-
-        .start-button:hover {
-            transform: translateY(-2px) scale(1.05);
-            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
-        }
-
-        .taskbar-right {
-            position: absolute;
-            right: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .system-tray {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 6px 14px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            border: 1px solid var(--glass-border);
-        }
-
-        .tray-btn {
-            font-size: 16px;
-            cursor: pointer;
-            padding: 4px;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-        }
-
-        .tray-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .tray-time {
-            color: var(--text-primary);
-            font-size: 12px;
-            font-weight: 500;
-            min-width: 70px;
-            text-align: center;
-        }
-
-        .tray-date {
-            color: var(--text-secondary);
-            font-size: 10px;
-            text-align: center;
-        }
-
-        /* 开始菜单 */
-        .start-menu {
-            position: fixed;
-            bottom: calc(var(--taskbar-height) + 10px);
+            bottom: 4px;
             left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            width: 380px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(30px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 16px;
-            z-index: 9500;
-            display: none;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            transform: translateX(-50%);
+            z-index: 1000;
         }
-
-        .start-menu.show {
-            display: block;
-            animation: slideUp 0.25s ease;
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateX(-50%) translateY(30px); }
-            to { opacity: 1; transform: translateX(-50%) translateY(20px); }
-        }
-
-        .start-menu-header {
+        
+        .dock {
             display: flex;
-            align-items: center;
-            gap: 12px;
-            padding-bottom: 14px;
-            border-bottom: 1px solid var(--glass-border);
-            margin-bottom: 14px;
+            align-items-end;
+            gap: 4px;
+            padding: 4px 8px;
+            background: rgba(51, 51, 51, 0.5);
+            backdrop-filter: blur(32px) saturate(180%);
+            -webkit-backdrop-filter: blur(32px) saturate(180%);
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
         }
-
-        .user-avatar {
-            width: 44px;
-            height: 44px;
-            background: linear-gradient(135deg, var(--primary), #0284c7);
+        
+        .dock-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-origin: bottom center;
+            will-change: transform, width, height;
+        }
+        
+        .dock-icon {
+            width: 48px;
+            height: 48px;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
+            font-size: 24px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            will-change: width, height, font-size;
         }
-
-        .user-info h3 {
-            color: var(--text-primary);
-            font-size: 14px;
-            font-weight: 600;
+        
+        .dock-item:hover .dock-icon {
+            transform: scale(1.15);
         }
-
-        .user-info p {
-            color: var(--text-secondary);
-            font-size: 11px;
-            margin-top: 2px;
+        
+        .dock-item.active .dock-icon {
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
         }
-
-        .start-menu-section {
-            margin-bottom: 12px;
+        
+        .dock-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: white;
+            margin-top: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
         }
-
-        .start-menu-section-title {
-            color: var(--text-secondary);
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-            padding-left: 4px;
+        
+        .dock-item.active .dock-dot {
+            opacity: 1;
         }
-
-        .start-menu-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 12px;
-            border-radius: 10px;
+        
+        .dock-separator {
+            width: 1px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 0 4px;
+            align-self: center;
+        }
+        
+        /* 桌面图标 */
+        .desktop-icon {
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: all 0.2s ease;
         }
-
-        .start-menu-item:hover {
-            background: rgba(14, 165, 233, 0.2);
+        
+        .desktop-icon:hover {
+            transform: scale(1.05);
         }
-
-        .start-menu-item .icon {
-            width: 32px;
-            height: 32px;
+        
+        .desktop-icon.selected {
+            transform: scale(1.05);
+        }
+        
+        .desktop-icon.selected .icon-wrapper {
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+        }
+        
+        .icon-wrapper {
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
-            background: var(--glass-bg);
-            border-radius: 8px;
-            border: 1px solid var(--glass-border);
+            transition: all 0.2s ease;
         }
-
-        .start-menu-item .label {
-            color: var(--text-primary);
-            font-size: 13px;
-        }
-
-        .start-menu-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 12px;
-            border-top: 1px solid var(--glass-border);
-            margin-top: 8px;
-        }
-
-        .version-info {
-            color: var(--text-secondary);
-            font-size: 11px;
-        }
-
-        .settings-btn {
-            font-size: 14px;
-            cursor: pointer;
-            padding: 6px;
-            border-radius: 6px;
-            transition: all 0.15s ease;
-        }
-
-        .settings-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        /* 窗口系统 */
+        
+        /* 窗口样式 */
         .window {
             position: fixed;
-            background: var(--glass-bg);
-            backdrop-filter: blur(30px);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--window-radius);
-            box-shadow: 0 25px 80px rgba(0,0,0,0.6);
-            display: flex;
-            flex-direction: column;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.05);
             overflow: hidden;
-            min-width: 400px;
-            min-height: 300px;
+            min-width: 600px;
+            min-height: 400px;
         }
-
+        
         .window.opening {
-            animation: windowOpen 0.25s ease forwards;
+            animation: windowOpen 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-
+        
         .window.closing {
-            animation: windowClose 0.15s ease forwards;
+            animation: windowClose 0.2s ease-in forwards;
         }
-
+        
         .window.minimizing {
-            animation: windowMinimize 0.2s ease forwards;
+            animation: windowMinimize 0.4s ease-in forwards;
         }
-
+        
+        .window.maximizing {
+            animation: windowMaximize 0.3s ease-out forwards;
+        }
+        
         @keyframes windowOpen {
-            from { opacity: 0; transform: scale(0.8); }
-            to { opacity: 1; transform: scale(1); }
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
         }
-
+        
         @keyframes windowClose {
-            from { opacity: 1; transform: scale(1); }
-            to { opacity: 0; transform: scale(0.8); }
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.85); opacity: 0; }
         }
-
+        
         @keyframes windowMinimize {
-            from { opacity: 1; transform: scale(1) translateY(0); }
-            to { opacity: 0; transform: scale(0.5) translateY(100px); }
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.1) translateY(200px); opacity: 0; }
         }
-
+        
+        @keyframes windowMaximize {
+            0% { border-radius: 12px; }
+            100% { border-radius: 0; }
+        }
+        
         .window-titlebar {
-            height: 42px;
-            background: rgba(0, 0, 0, 0.3);
-            border-bottom: 1px solid var(--glass-border);
+            height: 36px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
             display: flex;
             align-items: center;
             padding: 0 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             cursor: move;
-            flex-shrink: 0;
         }
-
-        .window-icon {
-            font-size: 18px;
-            margin-right: 10px;
-        }
-
-        .window-title {
-            color: var(--text-primary);
-            font-size: 13px;
-            font-weight: 500;
-            flex: 1;
-        }
-
-        .window-controls {
+        
+        .traffic-lights {
             display: flex;
             gap: 8px;
         }
-
-        .window-btn {
-            width: 14px;
-            height: 14px;
+        
+        .traffic-light {
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.15s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 8px;
             color: transparent;
+            cursor: pointer;
+            transition: all 0.15s ease;
         }
-
-        .window-btn:hover {
-            color: rgba(0,0,0,0.7);
+        
+        .traffic-light:hover {
+            color: rgba(0, 0, 0, 0.7);
         }
-
-        .window-btn.close {
-            background: #ff5f57;
-        }
-
-        .window-btn.minimize {
-            background: #febc2e;
-        }
-
-        .window-btn.maximize {
-            background: #28c840;
-        }
-
+        
+        .traffic-light.close { background: #ff5f57; }
+        .traffic-light.minimize { background: #febc2e; }
+        .traffic-light.maximize { background: #28c840; }
+        
         .window-content {
             flex: 1;
-            position: relative;
             overflow: hidden;
-            background: rgba(0, 0, 0, 0.2);
+            position: relative;
         }
-
+        
         .window-iframe {
             width: 100%;
             height: 100%;
             border: none;
-            background: white;
         }
-
+        
         .window-loading {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            inset: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: rgba(15, 23, 42, 0.9);
-            z-index: 1;
+            background: rgba(15, 23, 42, 1);
+            z-index: 10;
         }
-
-        .window-loading .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--glass-border);
-            border-top-color: var(--primary);
-            border-radius: 50%;
+        
+        .loading-spinner {
+            font-size: 48px;
             animation: spin 1s linear infinite;
         }
-
-        .window-loading .text {
-            color: var(--text-secondary);
-            font-size: 12px;
-            margin-top: 12px;
-        }
-
+        
         @keyframes spin {
+            from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
-
-        /* 响应式 */
-        @media (max-width: 768px) {
-            .window {
-                left: 0 !important;
-                top: 0 !important;
-                width: 100% !important;
-                height: calc(100vh - var(--taskbar-height)) !important;
-                border-radius: 0;
-            }
-
-            .start-menu {
-                width: calc(100% - 20px);
-            }
-
-            .desktop-icons {
-                justify-content: center;
-            }
-
-            .icon-group {
-                margin-right: 15px;
-            }
+        
+        .resize-handle {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 16px;
+            height: 16px;
+            cursor: se-resize;
+            opacity: 0.3;
+            transition: opacity 0.2s;
         }
-
+        
+        .resize-handle:hover {
+            opacity: 0.6;
+        }
+        
+        .resize-handle::before {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            width: 8px;
+            height: 8px;
+            border-right: 2px solid rgba(255,255,255,0.4);
+            border-bottom: 2px solid rgba(255,255,255,0.4);
+        }
+        
+        /* 右键菜单 */
+        .context-menu {
+            position: fixed;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            padding: 6px;
+            z-index: 10000;
+            min-width: 180px;
+        }
+        
+        .context-menu-item {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: white;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        
+        .context-menu-item:hover {
+            background: rgba(14, 165, 233, 0.2);
+        }
+        
+        .context-menu-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 4px 0;
+        }
+        
         /* 关于弹窗 */
         .about-modal {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--glass-bg);
-            backdrop-filter: blur(30px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 30px;
-            width: 360px;
-            z-index: 9999;
-            display: none;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
-        }
-
-        .about-modal.show {
-            display: block;
-            animation: fadeIn 0.2s ease;
-        }
-
-        .about-modal h2 {
-            color: var(--text-primary);
-            font-size: 18px;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .about-modal .version {
-            color: var(--primary);
-            font-size: 12px;
-            background: rgba(14, 165, 233, 0.2);
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-
-        .about-modal p {
-            color: var(--text-secondary);
-            font-size: 13px;
-            line-height: 1.6;
-            margin-top: 12px;
-        }
-
-        .about-modal .close-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 28px;
-            height: 28px;
+            inset: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 6px;
-            cursor: pointer;
-            color: var(--text-secondary);
-            transition: all 0.15s ease;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 10001;
         }
-
-        .about-modal .close-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text-primary);
+        
+        .about-content {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            animation: modalOpen 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
-
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 9998;
-            display: none;
+        
+        @keyframes modalOpen {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
         }
-
-        .overlay.show {
-            display: block;
+        
+        .about-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #0ea5e9, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 40px;
+        }
+        
+        /* 滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* 分类标签 */
+        .category-label {
+            color: rgba(148, 163, 184, 0.6);
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .window {
+                width: 100% !important;
+                height: calc(100vh - 28px) !important;
+                min-width: unset !important;
+                min-height: unset !important;
+                top: 28px !important;
+                left: 0 !important;
+                border-radius: 0 !important;
+            }
+            
+            .dock {
+                transform: scale(0.8);
+            }
+            
+            .desktop-icons-container {
+                display: none;
+            }
         }
     </style>
 </head>
-<body>
-    <div class="desktop" id="desktop">
-        <div class="desktop-icons" id="desktopIcons"></div>
-    </div>
-
-    <div class="context-menu" id="contextMenu">
-        <div class="context-menu-item" data-action="refresh">
-            <span class="icon">🔄</span>
-            <span>刷新桌面</span>
+<body class="desktop-bg">
+    <!-- 顶部菜单栏 -->
+    <div class="menu-bar fixed top-0 left-0 right-0 flex items-center justify-between px-4 z-50" id="menuBar">
+        <div class="flex items-center gap-2">
+            <div class="w-3 h-3 rounded-full bg-gradient-to-br from-primary to-purple-500"></div>
+            <span class="text-[13px] font-semibold text-slate-200 cursor-pointer hover:text-white" onclick="showAbout()">昆仑云ERP</span>
         </div>
-        <div class="context-menu-item" data-action="about">
-            <span class="icon">💡</span>
-            <span>关于</span>
-        </div>
-        <div class="context-menu-item" data-action="export">
-            <span class="icon">📤</span>
-            <span>导出数据</span>
+        <div class="flex items-center gap-4 text-xs text-slate-400">
+            <span id="menuTime"></span>
         </div>
     </div>
-
-    <div class="taskbar">
-        <div class="taskbar-center">
-            <div class="start-button" id="startButton" title="开始">💼</div>
-            <div class="taskbar-divider"></div>
-            <div id="taskbarItems"></div>
-        </div>
-        <div class="taskbar-right">
-            <div class="system-tray">
-                <span class="tray-btn" id="exportBtn" title="导出数据">📤</span>
-                <div class="tray-time-info">
-                    <div class="tray-time" id="trayTime">00:00</div>
-                    <div class="tray-date" id="trayDate">0000年0月0日</div>
-                </div>
-            </div>
-        </div>
+    
+    <!-- 桌面图标区域 -->
+    <div class="desktop-icons-container fixed top-10 right-4 flex flex-col gap-6 z-10" id="desktopIcons">
+        <!-- 动态生成 -->
     </div>
-
-    <div class="start-menu" id="startMenu">
-        <div class="start-menu-header">
-            <div class="user-avatar">👤</div>
-            <div class="user-info">
-                <h3>中合五金供应链</h3>
-                <p>财务工具箱</p>
-            </div>
-        </div>
-        <div class="start-menu-section">
-            <div class="start-menu-section-title">非税工具</div>
-            <div class="start-menu-item" data-tool="purchase-cost">
-                <span class="icon">🧮</span>
-                <span class="label">采购成本计算器</span>
-            </div>
-            <div class="start-menu-item" data-tool="receivable">
-                <span class="icon">📊</span>
-                <span class="label">应收账款分析</span>
-            </div>
-            <div class="start-menu-item" data-tool="voucher-match">
-                <span class="icon">📋</span>
-                <span class="label">出纳凭证匹配</span>
-            </div>
-            <div class="start-menu-item" data-tool="qw-approval">
-                <span class="icon">📈</span>
-                <span class="label">企微审批统计</span>
-            </div>
-            <div class="start-menu-item" data-tool="statement">
-                <span class="icon">🧾</span>
-                <span class="label">对账单生成器</span>
-            </div>
-            <div class="start-menu-item" data-tool="payment-tracker">
-                <span class="icon">💰</span>
-                <span class="label">付款跟踪系统</span>
-            </div>
-        </div>
-        <div class="start-menu-section">
-            <div class="start-menu-section-title">财税工具</div>
-            <div class="start-menu-item" data-tool="tax">
-                <span class="icon">🔧</span>
-                <span class="label">财税工具</span>
-            </div>
-        </div>
-        <div class="start-menu-section">
-            <div class="start-menu-section-title">汇报工具</div>
-            <div class="start-menu-item" data-tool="report">
-                <span class="icon">📊</span>
-                <span class="label">汇报工具</span>
-            </div>
-        </div>
-        <div class="start-menu-footer">
-            <span class="version-info">v2.0.0</span>
-            <span class="settings-btn">⚙️</span>
-        </div>
+    
+    <!-- 窗口容器 -->
+    <div id="windowsContainer"></div>
+    
+    <!-- Dock -->
+    <div class="dock-container" id="dockContainer">
+        <div class="dock" id="dock"></div>
     </div>
-
-    <div class="overlay" id="overlay"></div>
-    <div class="about-modal" id="aboutModal">
-        <div class="close-btn" id="closeAbout">✕</div>
-        <h2>💼 财务工具箱 <span class="version">v2.0.0</span></h2>
-        <p>一款专为中合五金供应链打造的财务工具箱，采用现代化操作系统界面设计。</p>
-        <p style="margin-top: 16px; color: var(--text-secondary);">基于原生 HTML/CSS/JS 构建，无需任何外部依赖。深色液态玻璃风格，支持窗口拖拽、最小化、最大化等交互。</p>
+    
+    <!-- 右键菜单 -->
+    <div class="context-menu hidden" id="contextMenu">
+        <div class="context-menu-item" onclick="refreshDesktop()">刷新桌面</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="showAbout()">关于昆仑云ERP</div>
+    </div>
+    
+    <!-- 右键菜单（图标） -->
+    <div class="context-menu hidden" id="iconContextMenu">
+        <div class="context-menu-item" onclick="openFromContextMenu()">打开</div>
+    </div>
+    
+    <!-- 关于弹窗 -->
+    <div class="about-modal hidden" id="aboutModal">
+        <div class="about-content">
+            <div class="about-logo">☁️</div>
+            <h2 class="text-2xl font-bold text-white mb-2">昆仑云ERP</h2>
+            <p class="text-slate-400 text-sm mb-4">版本 v0.1.0-alpha</p>
+            <p class="text-slate-500 text-xs mb-6">开发者：张洪杰</p>
+            <button onclick="closeAbout()" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/80 transition-colors">
+                好
+            </button>
+        </div>
     </div>
 
     <script>
-        // 工具配置
-        const tools = [
-            { id: 'non-tax', name: '非税工具', icon: '💼', url: 'non-tax.html', group: '工具' },
-            { id: 'tax', name: '财税工具', icon: '🔧', url: 'tax.html', group: '工具' },
-            { id: 'report', name: '汇报工具', icon: '📊', url: 'report.html', group: '工具' }
+        // 应用配置
+        const categories = [
+            {
+                name: '非税工具',
+                apps: [
+                    { id: 'payment-tracker', name: '付款跟踪', icon: '💰', url: 'payment-tracker.html', color: '#f59e0b' },
+                    { id: 'purchase-cost', name: '采购成本', icon: '🧮', url: 'purchase-cost-calculator.html', color: '#8b5cf6' },
+                    { id: 'receivable', name: '应收账款', icon: '📊', url: 'https://ahongfab.github.io/xzzh-yingshou/', color: '#3b82f6' },
+                    { id: 'voucher-match', name: '凭证匹配', icon: '📋', url: 'https://ahongfab.github.io/xzzh-voucher-match/', color: '#06b6d4' },
+                    { id: 'qw-approval', name: '企微审批', icon: '📈', url: 'qw-approval-report.html', color: '#10b981' },
+                    { id: 'statement', name: '对账单', icon: '🧾', url: 'https://ahongfab.github.io/xzzh-duizhang/', color: '#ec4899' }
+                ]
+            },
+            {
+                name: '财税工具',
+                apps: [
+                    { id: 'tax', name: '财税工具', icon: '🔧', url: 'tax.html', color: '#ef4444' }
+                ]
+            },
+            {
+                name: '汇报工具',
+                apps: [
+                    { id: 'report', name: '汇报工具', icon: '📝', url: 'report.html', color: '#f97316' }
+                ]
+            }
         ];
 
-        const groups = ['工具'];
-        let windows = [];
-        let zIndexCounter = 100;
-        let isDragging = false;
-        let dragWindow = null;
-        let dragOffset = { x: 0, y: 0 };
-        let isResizing = false;
-        let resizeWindow = null;
-        let resizeStart = { x: 0, y: 0, w: 0, h: 0 };
+        // 状态管理
+        const state = {
+            windows: {},
+            activeWindow: null,
+            selectedIcon: null,
+            contextMenuTarget: null,
+            isDragging: false,
+            isResizing: false,
+            dragOffset: { x: 0, y: 0 },
+            resizeWindow: null
+        };
+
+        // 所有应用列表
+        let allApps = [];
+        categories.forEach(cat => {
+            allApps = allApps.concat(cat.apps);
+        });
+
+        // 更新时间
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('menuTime').textContent = timeStr;
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
 
         // 初始化桌面图标
         function initDesktopIcons() {
             const container = document.getElementById('desktopIcons');
             container.innerHTML = '';
-
-            groups.forEach(groupName => {
-                const groupDiv = document.createElement('div');
-                groupDiv.className = 'icon-group';
+            
+            categories.forEach((category, catIndex) => {
+                const catDiv = document.createElement('div');
+                catDiv.className = 'flex flex-col gap-1';
                 
-                const titleDiv = document.createElement('div');
-                titleDiv.className = 'group-title';
-                titleDiv.textContent = groupName;
-                groupDiv.appendChild(titleDiv);
-
-                tools.filter(t => t.group === groupName).forEach(tool => {
-                    const icon = document.createElement('div');
-                    icon.className = 'desktop-icon';
-                    icon.innerHTML = `
-                        <div class="icon-emoji">${tool.icon}</div>
-                        <div class="icon-label">${tool.name}</div>
-                    `;
-                    icon.addEventListener('dblclick', () => openWindow(tool));
-                    groupDiv.appendChild(icon);
+                const label = document.createElement('div');
+                label.className = 'category-label';
+                label.textContent = category.name;
+                catDiv.appendChild(label);
+                
+                category.apps.forEach(app => {
+                    const iconDiv = document.createElement('div');
+                    iconDiv.className = 'desktop-icon flex flex-col items-center p-2';
+                    iconDiv.dataset.id = app.id;
+                    
+                    const iconWrapper = document.createElement('div');
+                    iconWrapper.className = 'icon-wrapper w-16 h-16 mb-1';
+                    iconWrapper.style.background = `linear-gradient(135deg, ${app.color}, ${adjustColor(app.color, -30)})`;
+                    iconWrapper.innerHTML = `<span class="text-3xl">${app.icon}</span>`;
+                    
+                    const name = document.createElement('span');
+                    name.className = 'text-white text-[11px] text-center';
+                    name.textContent = app.name;
+                    
+                    iconDiv.appendChild(iconWrapper);
+                    iconDiv.appendChild(name);
+                    
+                    iconDiv.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        selectIcon(app.id);
+                    });
+                    
+                    iconDiv.addEventListener('dblclick', () => {
+                        openWindow(app);
+                    });
+                    
+                    iconDiv.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        showIconContextMenu(e, app);
+                    });
+                    
+                    catDiv.appendChild(iconDiv);
                 });
-
-                container.appendChild(groupDiv);
+                
+                container.appendChild(catDiv);
             });
+        }
+
+        // 颜色调整
+        function adjustColor(color, amount) {
+            const hex = color.replace('#', '');
+            const r = Math.max(0, Math.min(255, parseInt(hex.substr(0, 2), 16) + amount));
+            const g = Math.max(0, Math.min(255, parseInt(hex.substr(2, 2), 16) + amount));
+            const b = Math.max(0, Math.min(255, parseInt(hex.substr(4, 2), 16) + amount));
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+
+        // 初始化 Dock
+        function initDock() {
+            const dock = document.getElementById('dock');
+            dock.innerHTML = '';
+            
+            allApps.forEach((app, index) => {
+                if (index === 6) {
+                    const sep = document.createElement('div');
+                    sep.className = 'dock-separator';
+                    dock.appendChild(sep);
+                }
+                
+                const item = document.createElement('div');
+                item.className = 'dock-item';
+                item.dataset.id = app.id;
+                
+                const icon = document.createElement('div');
+                icon.className = 'dock-icon';
+                icon.style.background = `linear-gradient(135deg, ${app.color}, ${adjustColor(app.color, -30)})`;
+                icon.textContent = app.icon;
+                
+                const dot = document.createElement('div');
+                dot.className = 'dock-dot';
+                
+                item.appendChild(icon);
+                item.appendChild(dot);
+                
+                item.addEventListener('click', () => handleDockClick(app));
+                item.addEventListener('mouseenter', () => handleDockHover(index));
+                item.addEventListener('mouseleave', () => resetDockIcons());
+                
+                dock.appendChild(item);
+            });
+        }
+
+        // Dock 点击处理
+        function handleDockClick(app) {
+            if (!state.windows[app.id]) {
+                openWindow(app);
+            } else if (state.activeWindow === app.id) {
+                minimizeWindow(app.id);
+            } else {
+                focusWindow(app.id);
+            }
+        }
+
+        // Dock Magnification 效果
+        function handleDockHover(hoveredIndex) {
+            const items = document.querySelectorAll('.dock-item');
+            items.forEach((item, index) => {
+                const icon = item.querySelector('.dock-icon');
+                const distance = Math.abs(index - hoveredIndex);
+                
+                if (distance === 0) {
+                    icon.style.width = '68px';
+                    icon.style.height = '68px';
+                    icon.style.fontSize = '32px';
+                    icon.style.borderRadius = '16px';
+                } else if (distance === 1) {
+                    icon.style.width = '60px';
+                    icon.style.height = '60px';
+                    icon.style.fontSize = '28px';
+                    icon.style.borderRadius = '14px';
+                } else {
+                    icon.style.width = '48px';
+                    icon.style.height = '48px';
+                    icon.style.fontSize = '24px';
+                    icon.style.borderRadius = '12px';
+                }
+            });
+        }
+
+        function resetDockIcons() {
+            const items = document.querySelectorAll('.dock-item');
+            items.forEach(item => {
+                const icon = item.querySelector('.dock-icon');
+                icon.style.width = '48px';
+                icon.style.height = '48px';
+                icon.style.fontSize = '24px';
+                icon.style.borderRadius = '12px';
+            });
+        }
+
+        // 选择图标
+        function selectIcon(id) {
+            document.querySelectorAll('.desktop-icon').forEach(icon => {
+                icon.classList.remove('selected');
+            });
+            
+            if (state.selectedIcon === id) {
+                state.selectedIcon = null;
+            } else {
+                state.selectedIcon = id;
+                document.querySelector(`.desktop-icon[data-id="${id}"]`)?.classList.add('selected');
+            }
         }
 
         // 打开窗口
-        function openWindow(tool) {
-            const existingWindow = windows.find(w => w.tool.id === tool.id);
-            if (existingWindow) {
-                focusWindow(existingWindow.element);
-                if (existingWindow.minimized) {
-                    restoreWindow(existingWindow);
-                }
+        function openWindow(app) {
+            if (state.windows[app.id]) {
+                focusWindow(app.id);
                 return;
             }
-
+            
+            const container = document.getElementById('windowsContainer');
             const win = document.createElement('div');
-            win.className = 'window opening';
-            win.style.cssText = `
-                left: ${100 + windows.length * 30}px;
-                top: ${60 + windows.length * 30}px;
-                width: ${window.innerWidth > 768 ? '900px' : '100%'};
-                height: ${window.innerWidth > 768 ? '600px' : 'calc(100vh - 60px)'};
-                z-index: ${++zIndexCounter};
-            `;
-
+            win.className = 'window';
+            win.id = `window-${app.id}`;
+            win.style.width = '920px';
+            win.style.height = '620px';
+            win.style.left = `${100 + Object.keys(state.windows).length * 30}px`;
+            win.style.top = `${50 + Object.keys(state.windows).length * 30}px`;
+            win.style.zIndex = 1000 + Object.keys(state.windows).length;
+            
             win.innerHTML = `
-                <div class="window-titlebar">
-                    <span class="window-icon">${tool.icon}</span>
-                    <span class="window-title">${tool.name}</span>
-                    <div class="window-controls">
-                        <div class="window-btn minimize" title="最小化">−</div>
-                        <div class="window-btn maximize" title="最大化">□</div>
-                        <div class="window-btn close" title="关闭">×</div>
+                <div class="window-titlebar" onmousedown="startDrag(event, '${app.id}')">
+                    <div class="traffic-lights">
+                        <div class="traffic-light close" onclick="closeWindow('${app.id}')">×</div>
+                        <div class="traffic-light minimize" onclick="minimizeWindow('${app.id}')">−</div>
+                        <div class="traffic-light maximize" onclick="maximizeWindow('${app.id}')">↗</div>
                     </div>
+                    <div class="flex-1 text-center text-[13px] text-slate-200 font-medium">${app.name}</div>
                 </div>
                 <div class="window-content">
-                    <div class="window-loading">
-                        <div class="spinner"></div>
-                        <div class="text">加载中...</div>
+                    <div class="window-loading" id="loading-${app.id}">
+                        <div class="loading-spinner">${app.icon}</div>
+                        <div class="text-slate-400 mt-4 text-sm">正在启动...</div>
                     </div>
-                    <iframe class="window-iframe" src="${tool.url}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+                    <iframe 
+                        id="iframe-${app.id}"
+                        class="window-iframe"
+                        src="${app.url}"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                        onload="hideLoading('${app.id}')"
+                    ></iframe>
                 </div>
+                <div class="resize-handle" onmousedown="startResize(event, '${app.id}')"></div>
             `;
-
-            document.body.appendChild(win);
-
-            const windowData = {
+            
+            container.appendChild(win);
+            
+            // 添加入场动画
+            win.classList.add('opening');
+            setTimeout(() => {
+                win.classList.remove('opening');
+            }, 350);
+            
+            state.windows[app.id] = {
                 element: win,
-                tool: tool,
                 minimized: false,
                 maximized: false,
-                prevBounds: null
+                originalSize: { width: '920px', height: '620px' },
+                originalPosition: { left: win.style.left, top: win.style.top }
             };
-            windows.push(windowData);
-
-            // 事件绑定
-            const titlebar = win.querySelector('.window-titlebar');
-            const btnClose = win.querySelector('.window-btn.close');
-            const btnMinimize = win.querySelector('.window-btn.minimize');
-            const btnMaximize = win.querySelector('.window-btn.maximize');
-            const iframe = win.querySelector('.window-iframe');
-
-            // iframe 加载完成
-            iframe.addEventListener('load', () => {
-                const loading = win.querySelector('.window-loading');
-                if (loading) loading.style.display = 'none';
-            });
-
-            // 点击置顶
-            win.addEventListener('mousedown', () => focusWindow(win));
-
-            // 拖拽
-            titlebar.addEventListener('mousedown', (e) => {
-                if (e.target.classList.contains('window-btn')) return;
-                const windowData = windows.find(w => w.element === win);
-                if (windowData && windowData.maximized) return;
-                startDrag(e, win);
-            });
-
-            // 关闭
-            btnClose.addEventListener('click', () => closeWindow(windowData));
-
-            // 最小化
-            btnMinimize.addEventListener('click', () => minimizeWindow(windowData));
-
-            // 最大化
-            btnMaximize.addEventListener('click', () => toggleMaximize(windowData));
-
-            // 双击标题栏最大化
-            titlebar.addEventListener('dblclick', (e) => {
-                if (!e.target.classList.contains('window-btn')) {
-                    toggleMaximize(windowData);
-                }
-            });
-
-            // 更新任务栏
-            updateTaskbar();
-        }
-
-        // 聚焦窗口
-        function focusWindow(win) {
-            win.style.zIndex = ++zIndexCounter;
-        }
-
-        // 开始拖拽
-        function startDrag(e, win) {
-            isDragging = true;
-            dragWindow = win;
-            const rect = win.getBoundingClientRect();
-            dragOffset.x = e.clientX - rect.left;
-            dragOffset.y = e.clientY - rect.top;
-            document.body.style.cursor = 'move';
-        }
-
-        // 最小化窗口
-        function minimizeWindow(windowData) {
-            windowData.element.classList.add('minimizing');
-            setTimeout(() => {
-                windowData.element.style.display = 'none';
-                windowData.element.classList.remove('minimizing');
-                windowData.minimized = true;
-                updateTaskbar();
-            }, 200);
-        }
-
-        // 恢复窗口
-        function restoreWindow(windowData) {
-            windowData.element.style.display = 'flex';
-            windowData.minimized = false;
-            focusWindow(windowData.element);
-            updateTaskbar();
-        }
-
-        // 最大化/还原
-        function toggleMaximize(windowData) {
-            const win = windowData.element;
-            const taskbarHeight = 60;
             
-            if (windowData.maximized) {
-                // 还原
-                win.style.left = windowData.prevBounds.left + 'px';
-                win.style.top = windowData.prevBounds.top + 'px';
-                win.style.width = windowData.prevBounds.width + 'px';
-                win.style.height = windowData.prevBounds.height + 'px';
-                win.style.borderRadius = '12px';
-                windowData.maximized = false;
-            } else {
-                // 最大化
-                windowData.prevBounds = {
-                    left: win.offsetLeft,
-                    top: win.offsetTop,
-                    width: win.offsetWidth,
-                    height: win.offsetHeight
-                };
-                win.style.left = '0';
-                win.style.top = '0';
-                win.style.width = '100%';
-                win.style.height = `calc(100vh - ${taskbarHeight}px)`;
-                win.style.borderRadius = '0';
-                windowData.maximized = true;
+            // 点击窗口聚焦
+            win.addEventListener('mousedown', () => focusWindow(app.id));
+            
+            // 更新 Dock 状态
+            updateDockState(app.id, true);
+            
+            state.activeWindow = app.id;
+        }
+
+        // 隐藏加载
+        function hideLoading(id) {
+            const loading = document.getElementById(`loading-${id}`);
+            if (loading) {
+                loading.style.opacity = '0';
+                loading.style.transition = 'opacity 0.3s';
+                setTimeout(() => loading.remove(), 300);
             }
         }
 
         // 关闭窗口
-        function closeWindow(windowData) {
-            windowData.element.classList.add('closing');
+        function closeWindow(id) {
+            const winData = state.windows[id];
+            if (!winData) return;
+            
+            const win = winData.element;
+            win.classList.add('closing');
+            
             setTimeout(() => {
-                windowData.element.remove();
-                windows = windows.filter(w => w !== windowData);
-                updateTaskbar();
-            }, 150);
+                win.remove();
+                delete state.windows[id];
+                updateDockState(id, false);
+                
+                if (state.activeWindow === id) {
+                    state.activeWindow = Object.keys(state.windows).pop() || null;
+                }
+            }, 200);
         }
 
-        // 更新任务栏
-        function updateTaskbar() {
-            const container = document.getElementById('taskbarItems');
-            container.innerHTML = '';
-
-            windows.forEach(w => {
-                const item = document.createElement('div');
-                item.className = 'taskbar-item';
-                if (w.element.style.zIndex == zIndexCounter && !w.minimized) {
-                    item.classList.add('active');
-                }
-                if (!w.minimized) {
-                    item.classList.add('open');
-                }
-                item.textContent = w.tool.icon;
-                item.title = w.tool.name;
-                item.addEventListener('click', () => {
-                    if (w.minimized) {
-                        restoreWindow(w);
-                    } else {
-                        const windowData = windows.find(win => win.element.style.zIndex == zIndexCounter);
-                        if (w === windowData) {
-                            minimizeWindow(w);
-                        } else {
-                            focusWindow(w.element);
-                        }
-                    }
-                    updateTaskbar();
-                });
-                container.appendChild(item);
-            });
+        // 最小化窗口
+        function minimizeWindow(id) {
+            const winData = state.windows[id];
+            if (!winData || winData.minimized) return;
+            
+            const win = winData.element;
+            win.classList.add('minimizing');
+            
+            setTimeout(() => {
+                win.style.display = 'none';
+                win.classList.remove('minimizing');
+                winData.minimized = true;
+            }, 400);
         }
 
-        // 鼠标移动
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging && dragWindow) {
-                const windowData = windows.find(w => w.element === dragWindow);
-                if (windowData && !windowData.maximized) {
-                    dragWindow.style.left = (e.clientX - dragOffset.x) + 'px';
-                    dragWindow.style.top = (e.clientY - dragOffset.y) + 'px';
-                }
+        // 最大化窗口
+        function maximizeWindow(id) {
+            const winData = state.windows[id];
+            if (!winData) return;
+            
+            const win = winData.element;
+            
+            if (winData.maximized) {
+                // 恢复
+                win.classList.add('maximizing');
+                win.style.width = winData.originalSize.width;
+                win.style.height = winData.originalSize.height;
+                win.style.left = winData.originalPosition.left;
+                win.style.top = winData.originalPosition.top;
+                win.style.borderRadius = '12px';
+                
+                setTimeout(() => {
+                    win.classList.remove('maximizing');
+                }, 300);
+                
+                winData.maximized = false;
+            } else {
+                // 最大化
+                winData.originalSize = {
+                    width: win.style.width,
+                    height: win.style.height
+                };
+                winData.originalPosition = {
+                    left: win.style.left,
+                    top: win.style.top
+                };
+                
+                win.classList.add('maximizing');
+                win.style.width = '100vw';
+                win.style.height = 'calc(100vh - 28px - 80px)';
+                win.style.left = '0';
+                win.style.top = '28px';
+                win.style.borderRadius = '0';
+                
+                setTimeout(() => {
+                    win.classList.remove('maximizing');
+                }, 300);
+                
+                winData.maximized = true;
             }
-            if (isResizing && resizeWindow) {
-                const dx = e.clientX - resizeStart.x;
-                const dy = e.clientY - resizeStart.y;
-                resizeWindow.style.width = Math.max(400, resizeStart.w + dx) + 'px';
-                resizeWindow.style.height = Math.max(300, resizeStart.h + dy) + 'px';
+        }
+
+        // 聚焦窗口
+        function focusWindow(id) {
+            const winData = state.windows[id];
+            if (!winData) return;
+            
+            const win = winData.element;
+            if (winData.minimized) {
+                win.style.display = 'block';
+                win.classList.add('opening');
+                setTimeout(() => win.classList.remove('opening'), 350);
+                winData.minimized = false;
             }
-        });
+            
+            // 置顶
+            const maxZ = Math.max(...Object.values(state.windows).map(w => parseInt(w.element.style.zIndex) || 0));
+            win.style.zIndex = maxZ + 1;
+            
+            state.activeWindow = id;
+        }
 
-        // 鼠标释放
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            dragWindow = null;
-            isResizing = false;
-            resizeWindow = null;
-            document.body.style.cursor = '';
-        });
+        // 窗口拖拽
+        function startDrag(e, id) {
+            if (e.target.classList.contains('traffic-light')) return;
+            
+            const winData = state.windows[id];
+            if (!winData || winData.maximized) return;
+            
+            state.isDragging = true;
+            state.dragOffset = {
+                x: e.clientX - winData.element.offsetLeft,
+                y: e.clientY - winData.element.offsetTop
+            };
+            state.dragWindowId = id;
+            
+            document.addEventListener('mousemove', handleDrag);
+            document.addEventListener('mouseup', stopDrag);
+        }
 
-        // 开始菜单
-        const startButton = document.getElementById('startButton');
-        const startMenu = document.getElementById('startMenu');
+        function handleDrag(e) {
+            if (!state.isDragging) return;
+            
+            const winData = state.windows[state.dragWindowId];
+            if (!winData) return;
+            
+            const win = winData.element;
+            win.style.left = `${e.clientX - state.dragOffset.x}px`;
+            win.style.top = `${e.clientY - state.dragOffset.y}px`;
+        }
 
-        startButton.addEventListener('click', (e) => {
+        function stopDrag() {
+            state.isDragging = false;
+            document.removeEventListener('mousemove', handleDrag);
+            document.removeEventListener('mouseup', stopDrag);
+        }
+
+        // 窗口缩放
+        function startResize(e, id) {
+            e.preventDefault();
             e.stopPropagation();
-            startMenu.classList.toggle('show');
-        });
+            
+            state.isResizing = true;
+            state.resizeWindow = id;
+            
+            document.addEventListener('mousemove', handleResize);
+            document.addEventListener('mouseup', stopResize);
+        }
 
-        document.addEventListener('click', (e) => {
-            if (!startMenu.contains(e.target) && e.target !== startButton) {
-                startMenu.classList.remove('show');
-            }
-        });
+        function handleResize(e) {
+            if (!state.isResizing) return;
+            
+            const winData = state.windows[state.resizeWindow];
+            if (!winData || winData.maximized) return;
+            
+            const win = winData.element;
+            const newWidth = Math.max(600, e.clientX - win.offsetLeft);
+            const newHeight = Math.max(400, e.clientY - win.offsetTop);
+            
+            win.style.width = `${newWidth}px`;
+            win.style.height = `${newHeight}px`;
+        }
 
-        // 开始菜单项点击
-        document.querySelectorAll('.start-menu-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const toolId = item.dataset.tool;
-                const tool = tools.find(t => t.id === toolId);
-                if (tool) {
-                    openWindow(tool);
-                    startMenu.classList.remove('show');
+        function stopResize() {
+            state.isResizing = false;
+            document.removeEventListener('mousemove', handleResize);
+            document.removeEventListener('mouseup', stopResize);
+        }
+
+        // 更新 Dock 状态
+        function updateDockState(id, active) {
+            const dockItem = document.querySelector(`.dock-item[data-id="${id}"]`);
+            if (dockItem) {
+                if (active) {
+                    dockItem.classList.add('active');
+                } else {
+                    dockItem.classList.remove('active');
                 }
-            });
-        });
+            }
+        }
 
         // 右键菜单
-        const contextMenu = document.getElementById('contextMenu');
-        const desktop = document.getElementById('desktop');
-
-        desktop.addEventListener('contextmenu', (e) => {
+        function showContextMenu(e) {
             e.preventDefault();
-            contextMenu.style.left = e.clientX + 'px';
-            contextMenu.style.top = e.clientY + 'px';
-            contextMenu.classList.add('show');
-        });
+            const menu = document.getElementById('contextMenu');
+            menu.style.left = `${e.clientX}px`;
+            menu.style.top = `${e.clientY}px`;
+            menu.classList.remove('hidden');
+        }
 
-        document.addEventListener('click', () => {
-            contextMenu.classList.remove('show');
-        });
+        function showIconContextMenu(e, app) {
+            e.preventDefault();
+            state.contextMenuTarget = app;
+            const menu = document.getElementById('iconContextMenu');
+            menu.style.left = `${e.clientX}px`;
+            menu.style.top = `${e.clientY}px`;
+            menu.classList.remove('hidden');
+        }
 
-        contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const action = item.dataset.action;
-                if (action === 'refresh') {
-                    location.reload();
-                } else if (action === 'about') {
-                    document.getElementById('overlay').classList.add('show');
-                    document.getElementById('aboutModal').classList.add('show');
-                } else if (action === 'export') {
-                    alert('数据导出功能开发中...');
-                }
-            });
-        });
+        function hideContextMenu() {
+            document.getElementById('contextMenu').classList.add('hidden');
+            document.getElementById('iconContextMenu').classList.add('hidden');
+            state.contextMenuTarget = null;
+        }
+
+        function refreshDesktop() {
+            hideContextMenu();
+            location.reload();
+        }
+
+        function openFromContextMenu() {
+            if (state.contextMenuTarget) {
+                openWindow(state.contextMenuTarget);
+            }
+            hideContextMenu();
+        }
 
         // 关于弹窗
-        document.getElementById('closeAbout').addEventListener('click', () => {
-            document.getElementById('overlay').classList.remove('show');
-            document.getElementById('aboutModal').classList.remove('show');
-        });
-
-        document.getElementById('overlay').addEventListener('click', () => {
-            document.getElementById('overlay').classList.remove('show');
-            document.getElementById('aboutModal').classList.remove('show');
-        });
-
-        // 时间更新
-        function updateTime() {
-            const now = new Date();
-            const time = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
-            const date = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
-            document.getElementById('trayTime').textContent = time;
-            document.getElementById('trayDate').textContent = date;
+        function showAbout() {
+            hideContextMenu();
+            document.getElementById('aboutModal').classList.remove('hidden');
         }
-        updateTime();
-        setInterval(updateTime, 1000);
 
-        // 导出按钮
-        document.getElementById('exportBtn').addEventListener('click', () => {
-            alert('数据导出功能开发中...');
+        function closeAbout() {
+            document.getElementById('aboutModal').classList.add('hidden');
+        }
+
+        // 点击空白处取消选中
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.desktop-icon') && !e.target.closest('.context-menu')) {
+                state.selectedIcon = null;
+                document.querySelectorAll('.desktop-icon').forEach(icon => {
+                    icon.classList.remove('selected');
+                });
+            }
+            hideContextMenu();
+        });
+
+        // ESC 关闭关于弹窗
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeAbout();
+                hideContextMenu();
+            }
         });
 
         // 初始化
         initDesktopIcons();
-
-        // 响应式处理
-        window.addEventListener('resize', () => {
-            if (window.innerWidth <= 768) {
-                windows.forEach(w => {
-                    w.element.style.left = '0';
-                    w.element.style.top = '0';
-                    w.element.style.width = '100%';
-                    w.element.style.height = `calc(100vh - 60px)`;
-                });
+        initDock();
+        
+        // 右键桌面
+        document.addEventListener('contextmenu', (e) => {
+            if (!e.target.closest('.window') && !e.target.closest('.dock') && !e.target.closest('.menu-bar')) {
+                showContextMenu(e);
             }
         });
     </script>
