@@ -3,108 +3,1190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="财务工具箱 - 非税工具箱、财税工具箱、汇报工具箱">
-    <meta name="theme-color" content="#0f172a">
-    <title>财务工具箱</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
+    <title>财务工具箱 - 操作系统风格</title>
     <style>
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{font-family:'PingFang SC','Microsoft YaHei',-apple-system,BlinkMacSystemFont,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;overflow-x:hidden}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
 
-        .bg-particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
-        .bg-particles span{position:absolute;border-radius:50%;background:rgba(147,197,253,.15);animation:float linear infinite}
-        @keyframes float{0%{transform:translateY(100vh) scale(0);opacity:0}50%{opacity:1}100%{transform:translateY(-10vh) scale(1);opacity:0}}
+        :root {
+            --primary: #0ea5e9;
+            --primary-glow: rgba(14, 165, 233, 0.4);
+            --bg-dark: #0f172a;
+            --bg-darker: #020617;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --taskbar-height: 60px;
+            --window-radius: 12px;
+        }
 
-        .hero{position:relative;z-index:1;text-align:center;padding:80px 20px 50px}
-        .hero-logo{display:inline-flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,#3b82f6,#06b6d4);font-size:40px;margin-bottom:24px;box-shadow:0 8px 32px rgba(59,130,246,.3)}
-        .hero h1{font-size:40px;font-weight:800;background:linear-gradient(135deg,#fff 0%,#93c5fd 50%,#06b6d4 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:3px;margin-bottom:12px}
-        .hero .subtitle{font-size:17px;color:#94a3b8;letter-spacing:6px;font-weight:300}
-        .hero .divider{width:60px;height:3px;background:linear-gradient(90deg,#3b82f6,#06b6d4);border-radius:2px;margin:28px auto 0}
+        body {
+            font-family: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
 
-        .main{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:40px 20px 60px}
-        .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
-        @media(max-width:900px){.cards{grid-template-columns:1fr;gap:24px}.hero h1{font-size:28px}.hero .subtitle{font-size:14px;letter-spacing:4px}}
+        /* 桌面背景 */
+        .desktop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: var(--taskbar-height);
+            background: linear-gradient(135deg, var(--bg-darker) 0%, var(--bg-dark) 50%, #1e3a5f 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 20s ease infinite;
+        }
 
-        .card{background:linear-gradient(145deg,rgba(30,41,59,.8),rgba(15,23,42,.9));border:1px solid rgba(148,163,184,.1);border-radius:22px;padding:48px 32px;cursor:pointer;transition:all .4s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;backdrop-filter:blur(10px);text-decoration:none;display:block;text-align:center}
-        .card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;border-radius:22px 22px 0 0;opacity:0;transition:opacity .4s}
-        .card:hover{transform:translateY(-8px);border-color:rgba(148,163,184,.25);box-shadow:0 20px 60px rgba(0,0,0,.3)}
-        .card:hover::before{opacity:1}
-        .card:active{transform:translateY(-3px)}
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
 
-        .card:nth-child(1)::before{background:linear-gradient(90deg,#10b981,#06b6d4)}
-        .card:nth-child(2)::before{background:linear-gradient(90deg,#3b82f6,#8b5cf6)}
-        .card:nth-child(3)::before{background:linear-gradient(90deg,#f97316,#ef4444)}
+        /* 桌面网格背景 */
+        .desktop::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(14, 165, 233, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
 
-        .card .glow{position:absolute;top:-50%;left:-50%;width:200%;height:200%;border-radius:50%;opacity:0;transition:opacity .4s;pointer-events:none}
-        .card:nth-child(1) .glow{background:radial-gradient(circle,rgba(16,185,129,.06),transparent 60%)}
-        .card:nth-child(2) .glow{background:radial-gradient(circle,rgba(59,130,246,.06),transparent 60%)}
-        .card:nth-child(3) .glow{background:radial-gradient(circle,rgba(249,115,22,.06),transparent 60%)}
-        .card:hover .glow{opacity:1}
+        /* 桌面图标容器 */
+        .desktop-icons {
+            display: flex;
+            flex-direction: column;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 10px;
+            padding: 20px;
+            height: 100%;
+            max-height: calc(100vh - 80px);
+        }
 
-        .card-icon{font-size:64px;margin-bottom:24px;display:block}
-        .card-title{font-size:24px;font-weight:700;color:#f1f5f9;margin-bottom:10px;letter-spacing:2px}
-        .card-desc{font-size:14px;color:#94a3b8;line-height:1.7;margin-bottom:28px}
-        .card-link{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:15px;transition:all .3s}
-        .card:nth-child(1) .card-link{color:#34d399}
-        .card:nth-child(2) .card-link{color:#60a5fa}
-        .card:nth-child(3) .card-link{color:#fb923c}
-        .card-link .arrow{display:inline-block;transition:transform .3s}.card:hover .card-link .arrow{transform:translateX(6px)}
+        .icon-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-right: 30px;
+        }
 
-        footer{position:relative;z-index:1;text-align:center;padding:40px 20px 24px;color:#475569;font-size:12px;letter-spacing:1px;line-height:1.8}
-        footer .copyright-line1{color:#64748b}
-        footer .copyright-line2{margin-top:4px;font-size:11px;opacity:.7}
+        .group-title {
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-bottom: 10px;
+            padding: 4px 12px;
+            background: var(--glass-bg);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .desktop-icon {
+            width: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .desktop-icon:hover {
+            transform: scale(1.05);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+        }
+
+        .desktop-icon:hover::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            box-shadow: 0 0 20px var(--primary-glow);
+            pointer-events: none;
+        }
+
+        .desktop-icon:active {
+            transform: scale(0.95);
+        }
+
+        .icon-emoji {
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            backdrop-filter: blur(20px);
+            margin-bottom: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .desktop-icon:hover .icon-emoji {
+            background: rgba(14, 165, 233, 0.2);
+            border-color: var(--primary);
+        }
+
+        .icon-label {
+            color: var(--text-primary);
+            font-size: 11px;
+            text-align: center;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            line-height: 1.3;
+            max-width: 76px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        /* 桌面右键菜单 */
+        .context-menu {
+            position: fixed;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 6px;
+            min-width: 160px;
+            z-index: 9999;
+            display: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .context-menu.show {
+            display: block;
+            animation: fadeIn 0.15s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .context-menu-item {
+            padding: 8px 14px;
+            color: var(--text-primary);
+            font-size: 13px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .context-menu-item:hover {
+            background: rgba(14, 165, 233, 0.2);
+        }
+
+        .context-menu-item .icon {
+            font-size: 14px;
+            width: 20px;
+        }
+
+        /* 任务栏 */
+        .taskbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: var(--taskbar-height);
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px);
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9000;
+            padding: 0 10px;
+        }
+
+        .taskbar-center {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 6px 10px;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .taskbar-item {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .taskbar-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .taskbar-item.active {
+            background: rgba(14, 165, 233, 0.3);
+        }
+
+        .taskbar-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            width: 20px;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        .taskbar-item.open {
+            background: rgba(14, 165, 233, 0.15);
+        }
+
+        .taskbar-divider {
+            width: 1px;
+            height: 30px;
+            background: var(--glass-border);
+            margin: 0 4px;
+        }
+
+        .start-button {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: linear-gradient(135deg, var(--primary), #0284c7);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+        }
+
+        .taskbar-right {
+            position: absolute;
+            right: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .system-tray {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 14px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .tray-btn {
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .tray-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tray-time {
+            color: var(--text-primary);
+            font-size: 12px;
+            font-weight: 500;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .tray-date {
+            color: var(--text-secondary);
+            font-size: 10px;
+            text-align: center;
+        }
+
+        /* 开始菜单 */
+        .start-menu {
+            position: fixed;
+            bottom: calc(var(--taskbar-height) + 10px);
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            width: 380px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 16px;
+            z-index: 9500;
+            display: none;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+
+        .start-menu.show {
+            display: block;
+            animation: slideUp 0.25s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(30px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(20px); }
+        }
+
+        .start-menu-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--glass-border);
+            margin-bottom: 14px;
+        }
+
+        .user-avatar {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--primary), #0284c7);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .user-info h3 {
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .user-info p {
+            color: var(--text-secondary);
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .start-menu-section {
+            margin-bottom: 12px;
+        }
+
+        .start-menu-section-title {
+            color: var(--text-secondary);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            padding-left: 4px;
+        }
+
+        .start-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .start-menu-item:hover {
+            background: rgba(14, 165, 233, 0.2);
+        }
+
+        .start-menu-item .icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            background: var(--glass-bg);
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .start-menu-item .label {
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+
+        .start-menu-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid var(--glass-border);
+            margin-top: 8px;
+        }
+
+        .version-info {
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+
+        .settings-btn {
+            font-size: 14px;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* 窗口系统 */
+        .window {
+            position: fixed;
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--window-radius);
+            box-shadow: 0 25px 80px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 400px;
+            min-height: 300px;
+        }
+
+        .window.opening {
+            animation: windowOpen 0.25s ease forwards;
+        }
+
+        .window.closing {
+            animation: windowClose 0.15s ease forwards;
+        }
+
+        .window.minimizing {
+            animation: windowMinimize 0.2s ease forwards;
+        }
+
+        @keyframes windowOpen {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes windowClose {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.8); }
+        }
+
+        @keyframes windowMinimize {
+            from { opacity: 1; transform: scale(1) translateY(0); }
+            to { opacity: 0; transform: scale(0.5) translateY(100px); }
+        }
+
+        .window-titlebar {
+            height: 42px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            cursor: move;
+            flex-shrink: 0;
+        }
+
+        .window-icon {
+            font-size: 18px;
+            margin-right: 10px;
+        }
+
+        .window-title {
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .window-btn {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            color: transparent;
+        }
+
+        .window-btn:hover {
+            color: rgba(0,0,0,0.7);
+        }
+
+        .window-btn.close {
+            background: #ff5f57;
+        }
+
+        .window-btn.minimize {
+            background: #febc2e;
+        }
+
+        .window-btn.maximize {
+            background: #28c840;
+        }
+
+        .window-content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .window-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        .window-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.9);
+            z-index: 1;
+        }
+
+        .window-loading .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--glass-border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .window-loading .text {
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-top: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .window {
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                height: calc(100vh - var(--taskbar-height)) !important;
+                border-radius: 0;
+            }
+
+            .start-menu {
+                width: calc(100% - 20px);
+            }
+
+            .desktop-icons {
+                justify-content: center;
+            }
+
+            .icon-group {
+                margin-right: 15px;
+            }
+        }
+
+        /* 关于弹窗 */
+        .about-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 30px;
+            width: 360px;
+            z-index: 9999;
+            display: none;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+        }
+
+        .about-modal.show {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .about-modal h2 {
+            color: var(--text-primary);
+            font-size: 18px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .about-modal .version {
+            color: var(--primary);
+            font-size: 12px;
+            background: rgba(14, 165, 233, 0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .about-modal p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.6;
+            margin-top: 12px;
+        }
+
+        .about-modal .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.15s ease;
+        }
+
+        .about-modal .close-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+            display: none;
+        }
+
+        .overlay.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
-
-<div class="bg-particles" id="particles"></div>
-
-<div class="hero">
-    <div class="hero-logo">🧰</div>
-    <h1>财务工具箱</h1>
-    <p class="subtitle">非税 · 财税 · 汇报</p>
-    <div class="divider"></div>
-</div>
-
-<div class="main">
-    <div class="cards">
-        <a class="card" href="non-tax.html">
-            <div class="glow"></div>
-            <span class="card-icon">💼</span>
-            <div class="card-title">非税工具箱</div>
-            <div class="card-desc">应收应付 · 对账管理</div>
-            <span class="card-link">进入 <span class="arrow">→</span></span>
-        </a>
-        <a class="card" href="tax.html">
-            <div class="glow"></div>
-            <span class="card-icon">🔧</span>
-            <div class="card-title">财税工具箱</div>
-            <div class="card-desc">进项核查 · 开票建议 · 合同生成</div>
-            <span class="card-link">进入 <span class="arrow">→</span></span>
-        </a>
-        <a class="card" href="report.html">
-            <div class="glow"></div>
-            <span class="card-icon">📈</span>
-            <div class="card-title">汇报工具箱</div>
-            <div class="card-desc">日报 · 周报 · 月报</div>
-            <span class="card-link">进入 <span class="arrow">→</span></span>
-        </a>
+    <div class="desktop" id="desktop">
+        <div class="desktop-icons" id="desktopIcons"></div>
     </div>
-</div>
 
-<footer>
-    <div class="copyright-line1">© 2026 财务工具箱 · 开发者：张洪杰</div>
-    <div class="copyright-line2">版权所有 · 未经授权禁止复制、传播或商业使用 · 侵权必究</div>
-</footer>
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" data-action="refresh">
+            <span class="icon">🔄</span>
+            <span>刷新桌面</span>
+        </div>
+        <div class="context-menu-item" data-action="about">
+            <span class="icon">💡</span>
+            <span>关于</span>
+        </div>
+        <div class="context-menu-item" data-action="export">
+            <span class="icon">📤</span>
+            <span>导出数据</span>
+        </div>
+    </div>
 
-<script>
-const pc=document.getElementById('particles');
-for(let i=0;i<20;i++){
-    const s=document.createElement('span');
-    const size=Math.random()*4+2;
-    s.style.cssText=`left:${Math.random()*100}%;width:${size}px;height:${size}px;animation-duration:${Math.random()*15+10}s;animation-delay:${Math.random()*10}s`;
-    pc.appendChild(s);
-}
-</script>
+    <div class="taskbar">
+        <div class="taskbar-center">
+            <div class="start-button" id="startButton" title="开始">💼</div>
+            <div class="taskbar-divider"></div>
+            <div id="taskbarItems"></div>
+        </div>
+        <div class="taskbar-right">
+            <div class="system-tray">
+                <span class="tray-btn" id="exportBtn" title="导出数据">📤</span>
+                <div class="tray-time-info">
+                    <div class="tray-time" id="trayTime">00:00</div>
+                    <div class="tray-date" id="trayDate">0000年0月0日</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="start-menu" id="startMenu">
+        <div class="start-menu-header">
+            <div class="user-avatar">👤</div>
+            <div class="user-info">
+                <h3>中合五金供应链</h3>
+                <p>财务工具箱</p>
+            </div>
+        </div>
+        <div class="start-menu-section">
+            <div class="start-menu-section-title">非税工具</div>
+            <div class="start-menu-item" data-tool="purchase-cost">
+                <span class="icon">🧮</span>
+                <span class="label">采购成本计算器</span>
+            </div>
+            <div class="start-menu-item" data-tool="receivable">
+                <span class="icon">📊</span>
+                <span class="label">应收账款分析</span>
+            </div>
+            <div class="start-menu-item" data-tool="voucher-match">
+                <span class="icon">📋</span>
+                <span class="label">出纳凭证匹配</span>
+            </div>
+            <div class="start-menu-item" data-tool="qw-approval">
+                <span class="icon">📈</span>
+                <span class="label">企微审批统计</span>
+            </div>
+            <div class="start-menu-item" data-tool="statement">
+                <span class="icon">🧾</span>
+                <span class="label">对账单生成器</span>
+            </div>
+            <div class="start-menu-item" data-tool="payment-tracker">
+                <span class="icon">💰</span>
+                <span class="label">付款跟踪系统</span>
+            </div>
+        </div>
+        <div class="start-menu-section">
+            <div class="start-menu-section-title">财税工具</div>
+            <div class="start-menu-item" data-tool="tax">
+                <span class="icon">🔧</span>
+                <span class="label">财税工具</span>
+            </div>
+        </div>
+        <div class="start-menu-section">
+            <div class="start-menu-section-title">汇报工具</div>
+            <div class="start-menu-item" data-tool="report">
+                <span class="icon">📊</span>
+                <span class="label">汇报工具</span>
+            </div>
+        </div>
+        <div class="start-menu-footer">
+            <span class="version-info">v2.0.0</span>
+            <span class="settings-btn">⚙️</span>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="about-modal" id="aboutModal">
+        <div class="close-btn" id="closeAbout">✕</div>
+        <h2>💼 财务工具箱 <span class="version">v2.0.0</span></h2>
+        <p>一款专为中合五金供应链打造的财务工具箱，采用现代化操作系统界面设计。</p>
+        <p style="margin-top: 16px; color: var(--text-secondary);">基于原生 HTML/CSS/JS 构建，无需任何外部依赖。深色液态玻璃风格，支持窗口拖拽、最小化、最大化等交互。</p>
+    </div>
+
+    <script>
+        // 工具配置
+        const tools = [
+            { id: 'non-tax', name: '非税工具', icon: '💼', url: 'non-tax.html', group: '工具' },
+            { id: 'tax', name: '财税工具', icon: '🔧', url: 'tax.html', group: '工具' },
+            { id: 'report', name: '汇报工具', icon: '📊', url: 'report.html', group: '工具' }
+        ];
+
+        const groups = ['工具'];
+        let windows = [];
+        let zIndexCounter = 100;
+        let isDragging = false;
+        let dragWindow = null;
+        let dragOffset = { x: 0, y: 0 };
+        let isResizing = false;
+        let resizeWindow = null;
+        let resizeStart = { x: 0, y: 0, w: 0, h: 0 };
+
+        // 初始化桌面图标
+        function initDesktopIcons() {
+            const container = document.getElementById('desktopIcons');
+            container.innerHTML = '';
+
+            groups.forEach(groupName => {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'icon-group';
+                
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'group-title';
+                titleDiv.textContent = groupName;
+                groupDiv.appendChild(titleDiv);
+
+                tools.filter(t => t.group === groupName).forEach(tool => {
+                    const icon = document.createElement('div');
+                    icon.className = 'desktop-icon';
+                    icon.innerHTML = `
+                        <div class="icon-emoji">${tool.icon}</div>
+                        <div class="icon-label">${tool.name}</div>
+                    `;
+                    icon.addEventListener('dblclick', () => openWindow(tool));
+                    groupDiv.appendChild(icon);
+                });
+
+                container.appendChild(groupDiv);
+            });
+        }
+
+        // 打开窗口
+        function openWindow(tool) {
+            const existingWindow = windows.find(w => w.tool.id === tool.id);
+            if (existingWindow) {
+                focusWindow(existingWindow.element);
+                if (existingWindow.minimized) {
+                    restoreWindow(existingWindow);
+                }
+                return;
+            }
+
+            const win = document.createElement('div');
+            win.className = 'window opening';
+            win.style.cssText = `
+                left: ${100 + windows.length * 30}px;
+                top: ${60 + windows.length * 30}px;
+                width: ${window.innerWidth > 768 ? '900px' : '100%'};
+                height: ${window.innerWidth > 768 ? '600px' : 'calc(100vh - 60px)'};
+                z-index: ${++zIndexCounter};
+            `;
+
+            win.innerHTML = `
+                <div class="window-titlebar">
+                    <span class="window-icon">${tool.icon}</span>
+                    <span class="window-title">${tool.name}</span>
+                    <div class="window-controls">
+                        <div class="window-btn minimize" title="最小化">−</div>
+                        <div class="window-btn maximize" title="最大化">□</div>
+                        <div class="window-btn close" title="关闭">×</div>
+                    </div>
+                </div>
+                <div class="window-content">
+                    <div class="window-loading">
+                        <div class="spinner"></div>
+                        <div class="text">加载中...</div>
+                    </div>
+                    <iframe class="window-iframe" src="${tool.url}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+                </div>
+            `;
+
+            document.body.appendChild(win);
+
+            const windowData = {
+                element: win,
+                tool: tool,
+                minimized: false,
+                maximized: false,
+                prevBounds: null
+            };
+            windows.push(windowData);
+
+            // 事件绑定
+            const titlebar = win.querySelector('.window-titlebar');
+            const btnClose = win.querySelector('.window-btn.close');
+            const btnMinimize = win.querySelector('.window-btn.minimize');
+            const btnMaximize = win.querySelector('.window-btn.maximize');
+            const iframe = win.querySelector('.window-iframe');
+
+            // iframe 加载完成
+            iframe.addEventListener('load', () => {
+                const loading = win.querySelector('.window-loading');
+                if (loading) loading.style.display = 'none';
+            });
+
+            // 点击置顶
+            win.addEventListener('mousedown', () => focusWindow(win));
+
+            // 拖拽
+            titlebar.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('window-btn')) return;
+                const windowData = windows.find(w => w.element === win);
+                if (windowData && windowData.maximized) return;
+                startDrag(e, win);
+            });
+
+            // 关闭
+            btnClose.addEventListener('click', () => closeWindow(windowData));
+
+            // 最小化
+            btnMinimize.addEventListener('click', () => minimizeWindow(windowData));
+
+            // 最大化
+            btnMaximize.addEventListener('click', () => toggleMaximize(windowData));
+
+            // 双击标题栏最大化
+            titlebar.addEventListener('dblclick', (e) => {
+                if (!e.target.classList.contains('window-btn')) {
+                    toggleMaximize(windowData);
+                }
+            });
+
+            // 更新任务栏
+            updateTaskbar();
+        }
+
+        // 聚焦窗口
+        function focusWindow(win) {
+            win.style.zIndex = ++zIndexCounter;
+        }
+
+        // 开始拖拽
+        function startDrag(e, win) {
+            isDragging = true;
+            dragWindow = win;
+            const rect = win.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+            document.body.style.cursor = 'move';
+        }
+
+        // 最小化窗口
+        function minimizeWindow(windowData) {
+            windowData.element.classList.add('minimizing');
+            setTimeout(() => {
+                windowData.element.style.display = 'none';
+                windowData.element.classList.remove('minimizing');
+                windowData.minimized = true;
+                updateTaskbar();
+            }, 200);
+        }
+
+        // 恢复窗口
+        function restoreWindow(windowData) {
+            windowData.element.style.display = 'flex';
+            windowData.minimized = false;
+            focusWindow(windowData.element);
+            updateTaskbar();
+        }
+
+        // 最大化/还原
+        function toggleMaximize(windowData) {
+            const win = windowData.element;
+            const taskbarHeight = 60;
+            
+            if (windowData.maximized) {
+                // 还原
+                win.style.left = windowData.prevBounds.left + 'px';
+                win.style.top = windowData.prevBounds.top + 'px';
+                win.style.width = windowData.prevBounds.width + 'px';
+                win.style.height = windowData.prevBounds.height + 'px';
+                win.style.borderRadius = '12px';
+                windowData.maximized = false;
+            } else {
+                // 最大化
+                windowData.prevBounds = {
+                    left: win.offsetLeft,
+                    top: win.offsetTop,
+                    width: win.offsetWidth,
+                    height: win.offsetHeight
+                };
+                win.style.left = '0';
+                win.style.top = '0';
+                win.style.width = '100%';
+                win.style.height = `calc(100vh - ${taskbarHeight}px)`;
+                win.style.borderRadius = '0';
+                windowData.maximized = true;
+            }
+        }
+
+        // 关闭窗口
+        function closeWindow(windowData) {
+            windowData.element.classList.add('closing');
+            setTimeout(() => {
+                windowData.element.remove();
+                windows = windows.filter(w => w !== windowData);
+                updateTaskbar();
+            }, 150);
+        }
+
+        // 更新任务栏
+        function updateTaskbar() {
+            const container = document.getElementById('taskbarItems');
+            container.innerHTML = '';
+
+            windows.forEach(w => {
+                const item = document.createElement('div');
+                item.className = 'taskbar-item';
+                if (w.element.style.zIndex == zIndexCounter && !w.minimized) {
+                    item.classList.add('active');
+                }
+                if (!w.minimized) {
+                    item.classList.add('open');
+                }
+                item.textContent = w.tool.icon;
+                item.title = w.tool.name;
+                item.addEventListener('click', () => {
+                    if (w.minimized) {
+                        restoreWindow(w);
+                    } else {
+                        const windowData = windows.find(win => win.element.style.zIndex == zIndexCounter);
+                        if (w === windowData) {
+                            minimizeWindow(w);
+                        } else {
+                            focusWindow(w.element);
+                        }
+                    }
+                    updateTaskbar();
+                });
+                container.appendChild(item);
+            });
+        }
+
+        // 鼠标移动
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging && dragWindow) {
+                const windowData = windows.find(w => w.element === dragWindow);
+                if (windowData && !windowData.maximized) {
+                    dragWindow.style.left = (e.clientX - dragOffset.x) + 'px';
+                    dragWindow.style.top = (e.clientY - dragOffset.y) + 'px';
+                }
+            }
+            if (isResizing && resizeWindow) {
+                const dx = e.clientX - resizeStart.x;
+                const dy = e.clientY - resizeStart.y;
+                resizeWindow.style.width = Math.max(400, resizeStart.w + dx) + 'px';
+                resizeWindow.style.height = Math.max(300, resizeStart.h + dy) + 'px';
+            }
+        });
+
+        // 鼠标释放
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            dragWindow = null;
+            isResizing = false;
+            resizeWindow = null;
+            document.body.style.cursor = '';
+        });
+
+        // 开始菜单
+        const startButton = document.getElementById('startButton');
+        const startMenu = document.getElementById('startMenu');
+
+        startButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            startMenu.classList.toggle('show');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!startMenu.contains(e.target) && e.target !== startButton) {
+                startMenu.classList.remove('show');
+            }
+        });
+
+        // 开始菜单项点击
+        document.querySelectorAll('.start-menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const toolId = item.dataset.tool;
+                const tool = tools.find(t => t.id === toolId);
+                if (tool) {
+                    openWindow(tool);
+                    startMenu.classList.remove('show');
+                }
+            });
+        });
+
+        // 右键菜单
+        const contextMenu = document.getElementById('contextMenu');
+        const desktop = document.getElementById('desktop');
+
+        desktop.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            contextMenu.style.left = e.clientX + 'px';
+            contextMenu.style.top = e.clientY + 'px';
+            contextMenu.classList.add('show');
+        });
+
+        document.addEventListener('click', () => {
+            contextMenu.classList.remove('show');
+        });
+
+        contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const action = item.dataset.action;
+                if (action === 'refresh') {
+                    location.reload();
+                } else if (action === 'about') {
+                    document.getElementById('overlay').classList.add('show');
+                    document.getElementById('aboutModal').classList.add('show');
+                } else if (action === 'export') {
+                    alert('数据导出功能开发中...');
+                }
+            });
+        });
+
+        // 关于弹窗
+        document.getElementById('closeAbout').addEventListener('click', () => {
+            document.getElementById('overlay').classList.remove('show');
+            document.getElementById('aboutModal').classList.remove('show');
+        });
+
+        document.getElementById('overlay').addEventListener('click', () => {
+            document.getElementById('overlay').classList.remove('show');
+            document.getElementById('aboutModal').classList.remove('show');
+        });
+
+        // 时间更新
+        function updateTime() {
+            const now = new Date();
+            const time = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const date = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+            document.getElementById('trayTime').textContent = time;
+            document.getElementById('trayDate').textContent = date;
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // 导出按钮
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            alert('数据导出功能开发中...');
+        });
+
+        // 初始化
+        initDesktopIcons();
+
+        // 响应式处理
+        window.addEventListener('resize', () => {
+            if (window.innerWidth <= 768) {
+                windows.forEach(w => {
+                    w.element.style.left = '0';
+                    w.element.style.top = '0';
+                    w.element.style.width = '100%';
+                    w.element.style.height = `calc(100vh - 60px)`;
+                });
+            }
+        });
+    </script>
 </body>
 </html>
