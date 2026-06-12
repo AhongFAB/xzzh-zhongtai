@@ -671,6 +671,28 @@
           </table>
         </div>
         
+        <!-- Weekly Breakdown Table -->
+        <div class="glass-card table-container" style="margin-bottom: 30px;">
+          <h3 class="section-title">📅 周度预算执行明细</h3>
+          <table id="weeklyBreakdownTable">
+            <thead>
+              <tr>
+                <th>周次</th>
+                <th>日期范围</th>
+                <th>预算</th>
+                <th>实际(企微)</th>
+                <th>差额</th>
+                <th>累计预算</th>
+                <th>累计实际</th>
+                <th>达成率</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody id="weeklyBreakdownBody"></tbody>
+          </table>
+          <p class="chart-note">实际数据来源于企微审批（付款+报销+借支），不含金蝶直接入账部分；随审批推进实时更新</p>
+        </div>
+        
         <!-- Charts -->
         <div class="chart-grid">
           <div class="glass-card chart-card">
@@ -726,6 +748,16 @@
             </thead>
             <tbody id="departmentTableBody"></tbody>
           </table>
+        </div>
+        
+        <!-- Department Weekly Breakdown -->
+        <div class="glass-card table-container" style="margin-top: 30px;">
+          <h3 class="section-title">📅 部门周度执行明细</h3>
+          <table id="deptWeeklyTable">
+            <thead id="deptWeeklyHead"></thead>
+            <tbody id="deptWeeklyBody"></tbody>
+          </table>
+          <p class="chart-note">预算按天均摊到周；实际=企微审批（付款+报销+借支）按部门汇总</p>
         </div>
       </div>
     </div>
@@ -998,9 +1030,41 @@
           }
         }
         
-        // Step 2: Determine current month and previous month column indices
+        // Step 2: Auto-detect the latest month with REAL data (not placeholder "23")
+        // Find the "收入" row to test for real values
+        let latestDataMonth = null;
+        const testRow = rows.find(r => {
+          const label = String(r[0] || '').trim();
+          return label.includes('收入') && !label.includes('其他') && !label.includes('其它');
+        });
+        if (testRow) {
+          const sortedMonths = Object.keys(monthColMap).sort();
+          for (const mk of sortedMonths) {
+            const val = parseAmount(testRow[monthColMap[mk]]);
+            if (val > 1000) { // Real revenue >> placeholder 23
+              latestDataMonth = mk;
+            }
+          }
+        }
+        
+        // Auto-set currentMonth to the NEXT month after the latest data month
+        // Because: the jueSuan table contains LAST month's actuals, and we're tracking THIS month
+        if (latestDataMonth) {
+          const [ly, lm] = latestDataMonth.split('-').map(Number);
+          const nextMonth = new Date(ly, lm, 1); // lm is 1-based, so new Date(y, m, 1) = next month
+          const nextKey = nextMonth.getFullYear() + '-' + String(nextMonth.getMonth() + 1).padStart(2, '0');
+          if (nextKey !== currentMonth) {
+            currentMonth = nextKey;
+            const select = document.getElementById('monthSelect');
+            if (select.querySelector(`option[value="${nextKey}"]`)) {
+              select.value = nextKey;
+            }
+          }
+        }
+        
+        // Now determine current month and previous month column indices
         const [year, month] = currentMonth.split('-').map(Number);
-        const curKey = currentMonth; // e.g. '2026-05'
+        const curKey = currentMonth; // e.g. '2026-06'
         const prevDate = new Date(year, month - 2, 1);
         const prevKey = prevDate.getFullYear() + '-' + String(prevDate.getMonth() + 1).padStart(2, '0');
         
@@ -1109,7 +1173,7 @@
         const detectedMonths = Object.keys(monthColMap).length;
         document.getElementById('jueSuanStatus').className = 'status success';
         document.getElementById('jueSuanStatus').textContent = '已解析';
-        document.getElementById('jueSuanInfo').textContent = `✓ ${file.name} (${count}个科目, ${detectedMonths}个月份列, 预算=上月实际)`;
+        document.getElementById('jueSuanInfo').textContent = `✓ ${file.name} (${count}个科目, 数据截至${latestDataMonth || '?'}, 自动跟踪${currentMonth}, 预算=上月实际)`;
         document.getElementById('uploadJueSuan').classList.add('uploaded');
         
         updateDashboard();
@@ -1475,6 +1539,58 @@
         });
       });
       
+      // ---- Weekly Breakdown Table ----
+      // Total monthly budget from jueSuan (cost + expense)
+      const totalExpenseBudget = costData.reduce((s, d) => s + d.budget, 0) + expenseData.reduce((s, d) => s + d.budget, 0);
+      const weeklyBudgets = splitBudgetToWeeks(totalExpenseBudget, year, month - 1);
+      
+      // Weekly actual from WeCom (all types)
+      let weeklyHtml = '';
+      let cumBudget = 0, cumActual = 0;
+      weeks.forEach((w, wi) => {
+        const weekActual = weComData
+          .filter(item => item.week === wi + 1)
+          .reduce((sum, item) => sum + item.amount, 0);
+        const weekBudget = weeklyBudgets[wi] ? weeklyBudgets[wi].amount : 0;
+        const diff = weekActual - weekBudget;
+        cumBudget += weekBudget;
+        cumActual += weekActual;
+        const cumRate = cumBudget > 0 ? cumActual / cumBudget : 0;
+        const weekRate = weekBudget > 0 ? weekActual / weekBudget : 0;
+        
+        weeklyHtml += `
+          <tr>
+            <td style="font-weight:600;">${w.label}</td>
+            <td>${month}/${w.start} - ${month}/${w.end}</td>
+            <td>${formatNumber(weekBudget)}</td>
+            <td>${formatNumber(weekActual)}</td>
+            <td class="${diff > 0 ? 'num-negative' : 'num-positive'}">${diff >= 0 ? '+' : ''}${formatNumber(diff)}</td>
+            <td>${formatNumber(cumBudget)}</td>
+            <td>${formatNumber(cumActual)}</td>
+            <td>${formatPercent(cumRate)}</td>
+            <td>${getStatusLight(cumRate, '费用')}</td>
+          </tr>
+        `;
+      });
+      
+      // Monthly total row
+      const totalActual = weComData.reduce((s, item) => s + item.amount, 0);
+      const monthRate = totalExpenseBudget > 0 ? totalActual / totalExpenseBudget : 0;
+      weeklyHtml += `
+        <tr style="background: rgba(79, 172, 254, 0.1); font-weight: 600;">
+          <td>月合计</td>
+          <td>-</td>
+          <td>${formatNumber(totalExpenseBudget)}</td>
+          <td>${formatNumber(totalActual)}</td>
+          <td class="${(totalActual - totalExpenseBudget) > 0 ? 'num-negative' : 'num-positive'}">${totalActual >= totalExpenseBudget ? '+' : ''}${formatNumber(totalActual - totalExpenseBudget)}</td>
+          <td>${formatNumber(totalExpenseBudget)}</td>
+          <td>${formatNumber(totalActual)}</td>
+          <td>${formatPercent(monthRate)}</td>
+          <td>${getStatusLight(monthRate, '费用')}</td>
+        </tr>
+      `;
+      document.getElementById('weeklyBreakdownBody').innerHTML = weeklyHtml;
+      
       // Update charts
       updateCharts(subjectData, weeks);
     }
@@ -1676,6 +1792,58 @@
           });
         });
       });
+      
+      // ---- Department Weekly Breakdown Table ----
+      const departments = Object.keys(deptData);
+      // Build header: 部门 | W1预算/实际 | W2预算/实际 | ... | 月合计
+      let deptWeekHead = '<tr><th>部门</th>';
+      weeks.forEach((w, wi) => {
+        deptWeekHead += `<th>${w.label}(${month}/${w.start}-${w.end})<br><span style="color:var(--primary)">预算</span> / <span style="color:var(--success)">实际</span></th>`;
+      });
+      deptWeekHead += '<th>月合计</th></tr>';
+      document.getElementById('deptWeeklyHead').innerHTML = deptWeekHead;
+      
+      let deptWeekBody = '';
+      departments.forEach(dept => {
+        const deptBudget = deptData[dept].budget;
+        const weeklyDeptBudget = splitBudgetToWeeks(deptBudget, year, month - 1);
+        
+        let rowHtml = `<td style="font-weight:600;">${dept}</td>`;
+        let deptTotalActual = 0;
+        
+        weeks.forEach((w, wi) => {
+          const weekBudget = weeklyDeptBudget[wi] ? weeklyDeptBudget[wi].amount : 0;
+          const weekActual = weComData
+            .filter(item => {
+              const normDept = DEPT_NAME_MAP[item.department] || item.department;
+              return normDept === dept && item.week === wi + 1;
+            })
+            .reduce((sum, item) => sum + item.amount, 0);
+          deptTotalActual += weekActual;
+          
+          const rate = weekBudget > 0 ? weekActual / weekBudget : 0;
+          const colorClass = rate > 1.1 ? 'num-negative' : (rate <= 1 ? 'num-positive' : '');
+          
+          rowHtml += `<td>
+            <span style="color:var(--primary)">${formatNumber(weekBudget)}</span>
+            <span style="color:var(--text-muted)"> / </span>
+            <span style="color:var(--success)">${formatNumber(weekActual)}</span>
+            ${weekBudget > 0 ? `<br><span style="font-size:11px" class="${colorClass}">${formatPercent(rate)}</span>` : ''}
+          </td>`;
+        });
+        
+        const monthRate = deptBudget > 0 ? deptTotalActual / deptBudget : 0;
+        const monthColorClass = monthRate > 1.1 ? 'num-negative' : (monthRate <= 1 ? 'num-positive' : '');
+        rowHtml += `<td>
+          <span style="color:var(--primary)">${formatNumber(deptBudget)}</span>
+          <span style="color:var(--text-muted)"> / </span>
+          <span style="color:var(--success)">${formatNumber(deptTotalActual)}</span>
+          <br><span style="font-size:11px" class="${monthColorClass}">${formatPercent(monthRate)}</span>
+        </td></tr>`;
+        
+        deptWeekBody += rowHtml;
+      });
+      document.getElementById('deptWeeklyBody').innerHTML = deptWeekBody;
       
       // Update department charts
       updateDepartmentCharts(deptData, weeks);
