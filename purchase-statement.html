@@ -157,8 +157,9 @@ footer .c2{opacity:.7;margin-top:4px}
 <script>
 const A={data:null,vendors:{},cur:null,ps:null,pe:null,detail:false,cols:[],filtered:{}};
 const OUR='中合五金商城';
-const CA={amount:['应付金额','金额','采购金额'],date:['单据日期','日期'],docno:['单据号码','单据编号','入库单号'],vendor:['供应商','供货商','供应商名称'],mat:['物料名称','商品名称','品名'],spec:['规格型号','规格','型号'],qty:['数量','入库数量'],unit:['单位'],price:['单价','进价'],settled:['已结算'],unsettled:['未结算'],cancelled:['作废'],audit:['一审'],returnMark:['退货标记','退货'],gift:['赠品'],remark:['备注','单据备注']};
-function rc(cols,k){const a=CA[k]||[k];for(const x of a)if(cols.includes(x))return x;return null}
+const CA={amount:['应付金额','金额','采购金额'],date:['单据日期','日期'],docno:['单据号码','单据编号','入库单号','单据号'],vendor:['供应商','供货商','供应商名称'],mat:['物料名称','商品名称','品名'],spec:['规格型号','规格','型号'],qty:['数量','入库数量'],unit:['单位'],price:['单价','进价','含运费进价'],settled:['已结算'],unsettled:['未结算'],cancelled:['作废'],audit:['一审'],returnMark:['退货标记','退货'],gift:['赠品'],remark:['备注','单据备注']};
+function rc(cols,k){const a=CA[k]||[k];for(const x of a)if(cols.includes(x))return x;
+  for(const x of a)for(const c of cols)if(c.includes(x)||x.includes(c))return c;return null}
 function dOver(e){e.preventDefault();e.currentTarget.classList.add('dragover')}
 function dLeave(e){e.currentTarget.classList.remove('dragover')}
 function dDrop(e){e.preventDefault();e.currentTarget.classList.remove('dragover');if(e.dataTransfer.files[0])proc(e.dataTransfer.files[0])}
@@ -182,7 +183,7 @@ function parse(data){
   const hdr=raw[hi].map(v=>String(v).trim());
   const rows=[];for(let i=hi+1;i<raw.length;i++){
     const r=raw[i];
-    if(!r[0]||String(r[0]).includes('合计')||String(r[0]).includes('制表'))continue;
+    const rDocNo=String(r[4]||r[1]||'');if(rDocNo.includes('合计')||rDocNo.includes('制表'))continue;if(!r.some(v=>v!==''&&v!==undefined&&v!==null))continue;
     const canCol=rc(hdr,'cancelled');if(canCol&&r[hdr.indexOf(canCol)])continue;
     const o={};hdr.forEach((h,idx)=>{o[h]=r[idx]!==undefined?r[idx]:''});rows.push(o)}
   const cols=Object.keys(rows[0]||{});
@@ -198,8 +199,8 @@ function parse(data){
     if(dateC)r._date=pd(String(r[dateC]))||r[dateC];
     const docno=docC?String(r[docC]||''):'';
     r._isReturn=docno.startsWith('CT');
-    r._isGift=r[giftCol]&&String(r[giftCol]).toUpperCase()==='Y';
-    const giftC=rc(cols,'gift');if(giftC)r._isGift=String(r[giftC]).toUpperCase()==='Y';
+    const giftC=rc(cols,'gift');
+    if(giftC)r._isGift=String(r[giftC]).toUpperCase()==='Y';
   });
   const vendors={};const order=[];
   rows.forEach(r=>{const n=String(r[vendC]).trim();if(!n)return;if(!vendors[n]){vendors[n]=[];order.push(n)}vendors[n].push(r)});
