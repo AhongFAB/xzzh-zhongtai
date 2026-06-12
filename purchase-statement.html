@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="采购对账单生成器 - 导入采购入库单数据一键生成标准对账单">
+<meta name="theme-color" content="#0a0a1a">
+<title>采购对账单生成器 - 中合五金</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+:root{--bg:#0a0a1a;--bg-grad:linear-gradient(135deg,#0a0a1a 0%,#0d1b2a 30%,#1b2838 60%,#0a0a1a 100%);--glass:rgba(255,255,255,.06);--glass-s:rgba(255,255,255,.10);--glass-b:rgba(255,255,255,.12);--glass-h:rgba(255,255,255,.18);--glass-sh:0 8px 32px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.2);--blur:20px;--tp:rgba(255,255,255,.92);--ts:rgba(255,255,255,.60);--tm:rgba(255,255,255,.38);--pri:#4facfe;--pri-d:#2d8cf0;--pri-g:rgba(79,172,254,.25);--suc:#43e97b;--suc-d:#38d96a;--warn:#ffa726;--dan:#ff5252;--bdr:rgba(255,255,255,.08);--inp:rgba(255,255,255,.05);--inp-b:rgba(255,255,255,.12);--br:20px;--br-s:14px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'SF Pro Display','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);background-image:var(--bg-grad);color:var(--tp);line-height:1.6;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse 600px 400px at 20% 30%,rgba(79,172,254,.08) 0%,transparent 70%),radial-gradient(ellipse 500px 500px at 80% 70%,rgba(67,233,123,.06) 0%,transparent 70%),radial-gradient(ellipse 400px 300px at 60% 20%,rgba(168,85,247,.05) 0%,transparent 70%);animation:liq 20s ease-in-out infinite alternate;pointer-events:none;z-index:0}
+@keyframes liq{0%{transform:translate(0,0) rotate(0)}33%{transform:translate(2%,-1%) rotate(1deg)}66%{transform:translate(-1%,2%) rotate(-.5deg)}100%{transform:translate(1%,-2%) rotate(.5deg)}}
+.wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:20px}
+.glass{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-b);border-radius:var(--br);box-shadow:var(--glass-sh)}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.top-bar h1{font-size:22px;font-weight:700;color:var(--tp);display:flex;align-items:center;gap:10px}
+.top-bar h1 .emoji{font-size:28px}
+.top-bar .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid var(--glass-b);background:var(--glass);color:var(--tp);cursor:pointer;transition:all .3s;backdrop-filter:blur(10px)}
+.btn:hover{background:var(--glass-s);border-color:var(--glass-h);transform:translateY(-1px);box-shadow:0 4px 15px rgba(0,0,0,.3)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+.btn-p{background:linear-gradient(135deg,var(--pri),var(--pri-d));border-color:rgba(79,172,254,.3);color:#fff;box-shadow:0 4px 15px rgba(79,172,254,.2)}
+.btn-p:hover{box-shadow:0 6px 20px rgba(79,172,254,.35);border-color:rgba(79,172,254,.5)}
+.btn-g{background:linear-gradient(135deg,var(--suc),var(--suc-d));border-color:rgba(67,233,123,.3);color:#fff;box-shadow:0 4px 15px rgba(67,233,123,.2)}
+.btn-g:hover{box-shadow:0 6px 20px rgba(67,233,123,.35);border-color:rgba(67,233,123,.5)}
+.btn-r{background:linear-gradient(135deg,#ff6b6b,#ee5a24);border-color:rgba(255,107,107,.3);color:#fff;box-shadow:0 4px 15px rgba(255,107,107,.2)}
+.btn-r:hover{box-shadow:0 6px 20px rgba(255,107,107,.35)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
+.upload-area{padding:40px 20px;text-align:center;cursor:pointer;transition:all .3s;border:2px dashed var(--glass-b);border-radius:var(--br-s);margin-bottom:20px}
+.upload-area:hover,.upload-area.dragover{border-color:var(--pri);background:rgba(79,172,254,.06)}
+.upload-area .icon{font-size:48px;margin-bottom:12px;display:block}
+.upload-area .hint{color:var(--ts);font-size:14px}
+.upload-area .sub-hint{color:var(--tm);font-size:12px;margin-top:6px}
+.file-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;margin-top:12px}
+.file-badge.ok{background:rgba(67,233,123,.12);color:var(--suc);border:1px solid rgba(67,233,123,.2)}
+.cust-list{width:280px;flex-shrink:0;border-right:1px solid var(--bdr);overflow-y:auto;max-height:calc(100vh - 200px)}
+.cust-list::-webkit-scrollbar{width:5px}
+.cust-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+.cust-hd{padding:14px 16px;font-size:13px;font-weight:700;color:var(--ts);text-transform:uppercase;letter-spacing:2px;border-bottom:1px solid var(--bdr)}
+.cust-item{padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--bdr);transition:all .2s}
+.cust-item:hover{background:var(--glass)}
+.cust-item.active{background:var(--glass-s);border-left:3px solid var(--pri)}
+.cust-item .name{font-size:13px;font-weight:500;color:var(--tp);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cust-item .meta{display:flex;justify-content:space-between;margin-top:4px;font-size:11px}
+.cust-item .meta .cnt{color:var(--tm)}
+.cust-item .meta .amt{font-weight:600}
+.cust-item .meta .amt.pos{color:var(--suc)}
+.cust-item .meta .amt.neg{color:var(--dan)}
+.cust-summary{padding:14px 16px;border-top:1px solid var(--bdr);font-size:12px;display:flex;justify-content:space-between;color:var(--ts)}
+.filter-bar{padding:14px 16px;border-bottom:1px solid var(--bdr);display:flex;flex-direction:column;gap:10px}
+.filter-bar label{font-size:12px;color:var(--ts);display:flex;align-items:center;gap:8px}
+.filter-bar select,.filter-bar input{background:var(--inp);border:1px solid var(--glass-b);border-radius:8px;padding:6px 10px;color:var(--tp);font-size:12px;min-width:120px}
+.filter-bar select:focus,.filter-bar input:focus{outline:none;border-color:var(--pri)}
+.filter-bar input[type="date"]{min-width:130px}
+.preview{flex:1;overflow-y:auto;max-height:calc(100vh - 200px);padding:24px}
+.preview::-webkit-scrollbar{width:5px}
+.preview::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+.empty-state{display:flex;align-items:center;justify-content:center;height:100%;min-height:400px;text-align:center}
+.empty-state .icon{font-size:72px;margin-bottom:16px;opacity:.3}
+.empty-state p{color:var(--tm);font-size:16px}
+.empty-state .sub{font-size:13px;margin-top:8px;color:var(--tm);opacity:.6}
+.recon{font-family:'SimSun','Noto Sans SC',serif;color:#1a1a1a;background:#fff;padding:40px;border-radius:8px;max-width:900px;margin:0 auto;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+.recon .r-title{text-align:center;font-size:22px;font-weight:700;letter-spacing:8px;padding:8px 0 16px;color:#1a1a1a}
+.recon .r-info{font-size:13px;padding:3px 0;line-height:1.8;color:#333}
+.recon .r-info strong{color:#1a1a1a}
+.recon table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px;color:#333}
+.recon th{background:#4472C4;color:#fff;padding:7px 6px;border:1px solid #3a65b0;font-weight:500;text-align:center;font-size:12px}
+.recon td{padding:5px 6px;border:1px solid #c0c0c0;font-size:11px}
+.recon tr.sub td{background:#e8eef8;font-weight:600}
+.recon tr.tot td{background:#4472C4;color:#fff;font-weight:700;font-size:13px}
+.recon tr.return td{background:#ffeaea;color:#c0392b}
+.recon .amt-cn{font-size:13px;font-weight:700;padding:10px 0 6px;color:#1a1a1a}
+.recon .settle{font-size:13px;padding:3px 0;color:#333}
+.recon .confirm{font-size:12px;padding:8px 0;color:#555;line-height:1.8}
+.recon .sign-area{display:flex;gap:60px;margin-top:20px;font-size:12px;color:#333}
+.recon .sign-box{flex:1}
+.recon .sign-box .sign-t{font-weight:700;font-size:13px;margin-bottom:8px;text-align:center;border-bottom:1px solid #ccc;padding-bottom:4px}
+.recon .sign-box .sign-l{padding:4px 0}
+.recon .r-footer{text-align:center;margin-top:24px;font-size:10px;color:#999;padding-top:12px;border-top:1px solid #eee}
+.main-layout{display:flex;gap:0;border-radius:var(--br);overflow:hidden;min-height:calc(100vh - 200px)}
+.main-layout .glass{border-radius:0;border:none}
+.toast{position:fixed;top:20px;right:20px;z-index:10000;padding:12px 24px;border-radius:12px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;backdrop-filter:blur(12px);border:1px solid var(--glass-b);display:flex;align-items:center;gap:8px}
+.toast.show{opacity:1}
+.toast.suc{background:rgba(67,233,123,.15);color:var(--suc);border-color:rgba(67,233,123,.3)}
+.toast.err{background:rgba(255,82,82,.15);color:var(--dan);border-color:rgba(255,82,82,.3)}
+.toast.inf{background:rgba(79,172,254,.15);color:var(--pri);border-color:rgba(79,172,254,.3)}
+.spin{display:inline-block;width:20px;height:20px;border:2px solid var(--glass-b);border-top-color:var(--pri);border-radius:50%;animation:sp .6s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.overview{background:var(--glass);border-radius:var(--br-s);padding:20px;margin-bottom:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.overview-item{background:var(--glass-s);border-radius:var(--br-s);padding:16px;text-align:center;border:1px solid var(--glass-b)}
+.overview-item .label{font-size:12px;color:var(--ts);margin-bottom:6px}
+.overview-item .value{font-size:24px;font-weight:700;color:var(--tp)}
+.overview-item .value.suc{color:var(--suc)}
+.overview-item .value.dan{color:var(--dan)}
+.overview-item .value.pri{color:var(--pri)}
+footer{text-align:center;padding:30px 20px 16px;color:var(--tm);font-size:11px;letter-spacing:1px}
+footer .c1{color:var(--ts)}
+footer .c2{opacity:.7;margin-top:4px}
+@media(max-width:900px){.main-layout{flex-direction:column}.cust-list{width:100%;max-height:200px;border-right:none;border-bottom:1px solid var(--bdr)}.preview{max-height:none}}
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+<div class="wrap">
+  <div class="top-bar glass">
+    <h1><span class="emoji">📦</span>采购对账单生成器</h1>
+    <div class="actions" id="actions" style="display:none">
+      <button class="btn btn-g btn-sm" onclick="expXlsx()">📥 导出 XLSX</button>
+      <button class="btn btn-r btn-sm" onclick="expPdf()">📄 导出 PDF</button>
+      <div style="width:1px;height:20px;background:var(--glass-b);margin:0 4px"></div>
+      <button class="btn btn-sm" onclick="expAllXlsx()" title="批量导出所有供应商XLSX">批量 XLSX</button>
+      <button class="btn btn-sm" onclick="expAllPdf()" title="批量导出所有供应商PDF">批量 PDF</button>
+    </div>
+  </div>
+  <div id="uploadArea" class="upload-area glass" onclick="document.getElementById('fi').click()" ondragover="dOver(event)" ondragleave="dLeave(event)" ondrop="dDrop(event)">
+    <span class="icon">📁</span>
+    <div class="hint">点击或拖拽上传采购入库单文件</div>
+    <div class="sub-hint">支持 .xls / .xlsx 格式（ERP导出的采购入库单·清单）</div>
+    <input type="file" id="fi" accept=".xls,.xlsx" style="display:none" onchange="fSel(event)">
+    <div id="fBadge" style="display:none" class="file-badge ok"></div>
+  </div>
+  <div id="overviewArea" class="overview" style="display:none"></div>
+  <div id="mainArea" class="main-layout glass" style="display:none">
+    <div class="cust-list" id="custList">
+      <div class="cust-hd">供应商列表</div>
+      <div class="filter-bar">
+        <label><span>仅显示：</span><select id="filterUnsettled" onchange="applyFilter()"><option value="all">全部单据</option><option value="unsettled">仅未结算</option></select></label>
+        <label><span>开始日期：</span><input type="date" id="filterDateStart" onchange="applyFilter()"></label>
+        <label><span>结束日期：</span><input type="date" id="filterDateEnd" onchange="applyFilter()"></label>
+      </div>
+      <div id="custItems"></div>
+      <div class="cust-summary" id="custSummary"></div>
+    </div>
+    <div class="preview" id="previewArea">
+      <div class="empty-state" id="emptySt">
+        <div><div class="icon">📦</div><p>选择左侧供应商查看对账单</p><div class="sub">上传文件后自动解析供应商数据</div></div>
+      </div>
+      <div id="previewContent" style="display:none"></div>
+    </div>
+  </div>
+</div>
+<footer>
+  <div class="c1">© 2026 财务工具箱 · 开发者：张洪杰</div>
+  <div class="c2">版权所有 · 未经授权禁止复制、传播或商业使用 · 侵权必究</div>
+</footer>
+<script>
+const A={data:null,vendors:{},cur:null,ps:null,pe:null,detail:false,cols:[],filtered:{}};
+const OUR='中合五金商城';
+const CA={amount:['应付金额','金额','采购金额'],date:['单据日期','日期'],docno:['单据号码','单据编号','入库单号'],vendor:['供应商','供货商','供应商名称'],mat:['物料名称','商品名称','品名'],spec:['规格型号','规格','型号'],qty:['数量','入库数量'],unit:['单位'],price:['单价','进价'],settled:['已结算'],unsettled:['未结算'],cancelled:['作废'],audit:['一审'],returnMark:['退货标记','退货'],gift:['赠品'],remark:['备注','单据备注']};
+function rc(cols,k){const a=CA[k]||[k];for(const x of a)if(cols.includes(x))return x;return null}
+function dOver(e){e.preventDefault();e.currentTarget.classList.add('dragover')}
+function dLeave(e){e.currentTarget.classList.remove('dragover')}
+function dDrop(e){e.preventDefault();e.currentTarget.classList.remove('dragover');if(e.dataTransfer.files[0])proc(e.dataTransfer.files[0])}
+function fSel(e){if(e.target.files[0])proc(e.target.files[0])}
+async function proc(f){
+  if(!['xls','xlsx'].includes(f.name.split('.').pop().toLowerCase())){toast('请上传 xls/xlsx 文件','err');return}
+  try{
+    const d=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(new Uint8Array(e.target.result));r.onerror=rej;r.readAsArrayBuffer(f)});
+    parse(d);
+    document.getElementById('fBadge').style.display='inline-flex';
+    document.getElementById('fBadge').textContent='✅ '+f.name;
+    toast('解析成功！共 '+Object.keys(A.vendors).length+' 个供应商','suc');
+  }catch(err){console.error(err);toast('解析失败：'+err.message,'err')}
+}
+function parse(data){
+  const wb=XLSX.read(data,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  let hi=-1;for(let i=0;i<raw.length;i++){if(raw[i].some(v=>String(v).trim()==='序号')){hi=i;break}}
+  if(hi===-1)throw new Error('未找到表头行');
+  let ps=null,pe=null;
+  for(let i=0;i<hi;i++){const t=raw[i].join(' ');const m=t.match(/(\d{4}[\/-]\d{1,2}[\/-]\d{1,2})\s*至\s*(\d{4}[\/-]\d{1,2}[\/-]\d{1,2})/);if(m){ps=pd(m[1]);pe=pd(m[2]);break}}
+  const hdr=raw[hi].map(v=>String(v).trim());
+  const rows=[];for(let i=hi+1;i<raw.length;i++){
+    const r=raw[i];
+    if(!r[0]||String(r[0]).includes('合计')||String(r[0]).includes('制表'))continue;
+    const canCol=rc(hdr,'cancelled');if(canCol&&r[hdr.indexOf(canCol)])continue;
+    const o={};hdr.forEach((h,idx)=>{o[h]=r[idx]!==undefined?r[idx]:''});rows.push(o)}
+  const cols=Object.keys(rows[0]||{});
+  const amtC=rc(cols,'amount'),dateC=rc(cols,'date'),docC=rc(cols,'docno'),vendC=rc(cols,'vendor'),matC=rc(cols,'mat');
+  if(!amtC)throw new Error('未找到金额列');if(!vendC)throw new Error('未找到供应商列');
+  const detail=!!matC;
+  if(!ps&&dateC){const ds=rows.map(r=>pd(String(r[dateC]))).filter(Boolean).sort();if(ds.length){ps=ds[0];pe=ds[ds.length-1]}}
+  rows.forEach(r=>{
+    r._amt=parseFloat(r[amtC])||0;
+    const sc=rc(cols,'settled'),uc=rc(cols,'unsettled');
+    if(sc)r._settled=parseFloat(r[sc])||0;
+    if(uc)r._unsettled=parseFloat(r[uc])||0;
+    if(dateC)r._date=pd(String(r[dateC]))||r[dateC];
+    const docno=docC?String(r[docC]||''):'';
+    r._isReturn=docno.startsWith('CT');
+    r._isGift=r[giftCol]&&String(r[giftCol]).toUpperCase()==='Y';
+    const giftC=rc(cols,'gift');if(giftC)r._isGift=String(r[giftC]).toUpperCase()==='Y';
+  });
+  const vendors={};const order=[];
+  rows.forEach(r=>{const n=String(r[vendC]).trim();if(!n)return;if(!vendors[n]){vendors[n]=[];order.push(n)}vendors[n].push(r)});
+  const giftCol=rc(cols,'gift');
+  Object.assign(A,{data:rows,vendors,cur:null,ps,pe,detail,cols,filtered:{},giftCol});
+  renderOverview();
+  renderCustList(order);
+  document.getElementById('mainArea').style.display='flex';
+  document.getElementById('actions').style.display='flex';
+  if(order.length)selVendor(order[0]);
+}
+function pd(s){if(!s)return null;const m=String(s).match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);if(m)return new Date(+m[1],+m[2]-1,+m[3]);const n=parseFloat(s);if(!isNaN(n)&&n>40000&&n<60000)return new Date((n-25569)*864e5);return null}
+function fd(d){if(!d)return'';if(d instanceof Date)return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';return String(d)}
+function fds(d){if(!d)return'';if(d instanceof Date)return String(d.getFullYear())+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return String(d)}
+function fdsShort(d){if(!d)return'';if(d instanceof Date)return String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return String(d)}
+function ntoc(n){if(n===0)return'零元整';const neg=n<0;n=Math.abs(n);const dg=['零','壹','贰','叁','肆','伍','陆','柒','捌','玖'],un=['','拾','佰','仟'],bu=['','万','亿'];const ip=Math.floor(n),dp=Math.round((n-ip)*100);let r='';if(ip>0){const gs=[];let t=ip;while(t>0){gs.push(t%10000);t=Math.floor(t/10000)}for(let i=gs.length-1;i>=0;i--){const g=gs[i];if(g===0){if(r&&!r.endsWith('零'))r+='零';continue}let s='';for(let j=3;j>=0;j--){const d=Math.floor(g/Math.pow(10,j))%10;if(d===0){if(s&&!s.endsWith('零'))s+='零'}else s+=dg[d]+un[j]}if(s.endsWith('零'))s=s.slice(0,-1);r+=s+bu[i]}r+='元'}if(dp>0){const j=Math.floor(dp/10),f=dp%10;if(j>0)r+=dg[j]+'角';else if(ip>0)r+='零';if(f>0)r+=dg[f]+'分'}else r+='整';return(neg?'负':'')+r}
+function renderOverview(){
+  const vendors=Object.values(A.vendors).flat();
+  const totalAmt=vendors.reduce((s,r)=>s+r._amt,0);
+  const totalSettled=vendors.reduce((s,r)=>s+(r._settled||0),0);
+  const totalUnsettled=vendors.reduce((s,r)=>s+(r._unsettled||0),0);
+  const returns=vendors.filter(r=>r._isReturn);
+  const returnAmt=returns.reduce((s,r)=>s+r._amt,0);
+  const html=`<div class="overview-item"><div class="label">供应商数量</div><div class="value pri">${Object.keys(A.vendors).length}</div></div>
+<div class="overview-item"><div class="label">单据总数</div><div class="value">${vendors.length}</div></div>
+<div class="overview-item"><div class="label">采购金额</div><div class="value suc">¥${totalAmt.toLocaleString('zh-CN',{minimumFractionDigits:2})}</div></div>
+<div class="overview-item"><div class="label">退货金额</div><div class="value dan">¥${Math.abs(returnAmt).toLocaleString('zh-CN',{minimumFractionDigits:2})}</div></div>
+<div class="overview-item"><div class="label">已结算金额</div><div class="value">¥${totalSettled.toLocaleString('zh-CN',{minimumFractionDigits:2})}</div></div>
+<div class="overview-item"><div class="label">未结算金额</div><div class="value dan">¥${totalUnsettled.toLocaleString('zh-CN',{minimumFractionDigits:2})}</div></div>`;
+  document.getElementById('overviewArea').innerHTML=html;
+  document.getElementById('overviewArea').style.display='grid';
+}
+function renderCustList(order,filtered){
+  const c=document.getElementById('custItems');
+  let ta=0,ts=0,tu=0;
+  const data=filtered||A.vendors;
+  c.innerHTML=Object.keys(data).map(n=>{
+    const r=data[n];const a=r.reduce((s,x)=>s+x._amt,0);const s=r.reduce((s,x)=>s+(x._settled||0),0);const u=r.reduce((s,x)=>s+(x._unsettled||0),0);
+    ta+=a;ts+=s;tu+=u;
+    return`<div class="cust-item" id="c_${hsh(n)}" onclick="selVendor('${esc(n)}')"><div class="name" title="${esc(n)}">${esc(n)}</div><div class="meta"><span class="cnt">${r.length}笔</span><span class="amt ${a>=0?'pos':'neg'}">¥${a.toLocaleString('zh-CN',{minimumFractionDigits:2})}</span></div></div>`
+  }).join('');
+  document.getElementById('custSummary').innerHTML=`<span>供应商：<strong>${Object.keys(data).length}</strong></span><span>总金额：<strong style="color:var(--suc)">¥${ta.toLocaleString('zh-CN',{minimumFractionDigits:2})}</strong></span>`;
+}
+function hsh(s){return s.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g,'_')}
+function esc(s){return s.replace(/'/g,"\\'").replace(/"/g,'&quot;')}
+function selVendor(name){
+  A.cur=name;
+  document.querySelectorAll('.cust-item').forEach(e=>e.classList.remove('active'));
+  const el=document.getElementById('c_'+hsh(name));if(el)el.classList.add('active');
+  renderPreview(name);
+}
+function applyFilter(){
+  const showUnsettled=document.getElementById('filterUnsettled').value==='unsettled';
+  const dateStart=document.getElementById('filterDateStart').value?new Date(document.getElementById('filterDateStart').value):null;
+  const dateEnd=document.getElementById('filterDateEnd').value?new Date(document.getElementById('filterDateEnd').value):null;
+  const filtered={};
+  Object.keys(A.vendors).forEach(v=>{
+    const rows=A.vendors[v].filter(r=>{
+      if(showUnsettled&&r._unsettled===0)return false;
+      if(dateStart&&r._date&&r._date<dateStart)return false;
+      if(dateEnd&&r._date&&r._date>dateEnd)return false;
+      return true;
+    });
+    if(rows.length)filtered[v]=rows;
+  });
+  A.filtered=filtered;
+  renderCustList(Object.keys(filtered),filtered);
+  const order=Object.keys(filtered);
+  if(order.length&&!A.cur){selVendor(order[0]);}
+  else if(order.length&&!filtered[A.cur]){selVendor(order[0]);}
+  else if(!order.length){A.cur=null;document.getElementById('previewContent').style.display='none';document.getElementById('emptySt').style.display='flex';}
+}
+function renderPreview(vn){
+  const rows=A.filtered[vn]||A.vendors[vn];if(!rows)return;
+  const c=document.getElementById('previewContent');
+  const now=new Date();
+  const pstr=A.ps&&A.pe?fd(A.ps)+' 至 '+fd(A.pe):'—';
+  const dateC=rc(A.cols,'date'),docC=rc(A.cols,'docno');
+  const matC=rc(A.cols,'mat'),specC=rc(A.cols,'spec'),qtyC=rc(A.cols,'qty'),unitC=rc(A.cols,'unit'),priceC=rc(A.cols,'price');
+  let h='<div class="recon" id="reconDoc">';
+  h+='<div class="r-title">采 购 对 账 单</div>';
+  h+=`<div class="r-info"><strong>购货方（甲方）：</strong>${OUR}</div>`;
+  h+=`<div class="r-info"><strong>供货方（乙方）：</strong>${vn}</div>`;
+  h+=`<div class="r-info"><strong>对账期间：</strong>${pstr}</div>`;
+  h+=`<div class="r-info"><strong>对账单生成日期：</strong>${fd(now)}</div>`;
+  if(A.detail)h+=detailTbl(rows,dateC,docC,matC,specC,qtyC,unitC,priceC);else h+=summaryTbl(rows,dateC,docC);
+  const purchaseAmt=rows.filter(r=>!r._isReturn).reduce((s,r)=>s+r._amt,0);
+  const returnAmt=rows.filter(r=>r._isReturn).reduce((s,r)=>s+r._amt,0);
+  const settledAmt=rows.reduce((s,r)=>s+(r._settled||0),0);
+  const unsettledAmt=rows.reduce((s,r)=>s+(r._unsettled||0),0);
+  const netAmt=purchaseAmt+returnAmt;
+  h+=`<div class="amt-cn">合计金额（大写）：${ntoc(netAmt)}</div>`;
+  if(purchaseAmt!==0)h+=`<div class="settle">采购金额：<strong style="color:var(--suc)">¥${purchaseAmt.toLocaleString('zh-CN',{minimumFractionDigits:2})}</strong></div>`;
+  if(returnAmt!==0)h+=`<div class="settle">退货金额：<strong style="color:var(--dan)">¥${returnAmt.toLocaleString('zh-CN',{minimumFractionDigits:2})}</strong></div>`;
+  h+=`<div class="settle">已结算金额：<strong>¥${settledAmt.toLocaleString('zh-CN',{minimumFractionDigits:2})}</strong></div>`;
+  h+=`<div class="settle">未结算金额：<strong style="color:#dc2626">¥${unsettledAmt.toLocaleString('zh-CN',{minimumFractionDigits:2})}</strong></div>`;
+  h+='<div style="margin-top:16px;font-weight:700;font-size:14px;color:#1a1a1a">对账确认</div>';
+  h+='<div class="confirm">甲方与乙方经核对，确认上述期间内的采购交易记录无误。乙方对上述交易金额予以确认，并承诺按照约定及时开具发票。本对账单一式两份，甲乙双方各执一份，经双方签章后生效。</div>';
+  h+=`<div class="sign-area"><div class="sign-box"><div class="sign-t">甲方（购货方）</div><div class="sign-l">单位名称：${OUR}</div><div class="sign-l">经办人签字：</div><div class="sign-l">盖章：</div><div class="sign-l">日期：&nbsp;&nbsp;&nbsp;&nbsp;年&nbsp;&nbsp;月&nbsp;&nbsp;日</div></div><div class="sign-box"><div class="sign-t">乙方（供货方）</div><div class="sign-l">单位名称：${vn}</div><div class="sign-l">经办人签字：</div><div class="sign-l">盖章：</div><div class="sign-l">日期：&nbsp;&nbsp;&nbsp;&nbsp;年&nbsp;&nbsp;月&nbsp;&nbsp;日</div></div></div>`;
+  h+=`<div class="r-footer">— ${OUR} · 采购对账单 · 生成时间 ${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} —</div>`;
+  h+='</div>';
+  c.innerHTML=h;c.style.display='block';
+  document.getElementById('emptySt').style.display='none';
+}
+function detailTbl(rows,dateC,docC,matC,specC,qtyC,unitC,priceC){
+  const groups=[];const gm={};
+  rows.forEach(r=>{const k=docC?String(r[docC]):'__all';if(!gm[k]){gm[k]=[];groups.push(k)}gm[k].push(r)});
+  let h='<table><thead><tr><th style="width:36px">序号</th><th style="width:70px">日期</th><th style="width:90px">单据号码</th><th>物料名称</th><th>规格型号</th><th style="width:55px">数量</th><th style="width:40px">单位</th><th style="width:60px">单价</th><th style="width:75px">应付金额</th><th style="width:65px">已结算</th><th style="width:65px">未结算</th><th style="width:40px">赠品</th></tr></thead><tbody>';
+  let seq=1,gt=0;
+  groups.forEach(k=>{
+    const gr=gm[k];
+    const sub=gr.reduce((s,r)=>s+r._amt,0);gt+=sub;
+    gr.forEach(r=>{
+      const dv=dateC?fdsShort(r._date||r[dateC]):'';const docno=docC?String(r[docC]||''):'';
+      const mn=matC?String(r[matC]||''):'';const sp=specC?String(r[specC]||''):'';
+      const qv=qtyC?(parseFloat(r[qtyC])||0):0;const uv=unitC?String(r[unitC]||''):'';
+      const pv=priceC?(parseFloat(r[priceC])||0):0;
+      const isReturn=r._isReturn;
+      const rowClass=isReturn?'return':'';
+      h+=`<tr class="${rowClass}"><td style="text-align:center">${seq++}</td><td style="text-align:center">${dv}</td><td style="text-align:center;${isReturn?'color:#c0392b':''}">${docno}</td><td style="text-align:left;padding-left:6px">${mn}</td><td style="text-align:left;padding-left:6px">${sp}</td><td style="text-align:center">${Number.isInteger(qv)?qv:qv.toFixed(2)}</td><td style="text-align:center">${uv}</td><td style="text-align:right;padding-right:4px">${pv.toFixed(2)}</td><td style="text-align:right;padding-right:4px;${isReturn?'color:#c0392b':''}">${r._amt.toFixed(2)}</td><td style="text-align:right;padding-right:4px">${(r._settled||0).toFixed(2)}</td><td style="text-align:right;padding-right:4px">${(r._unsettled||0).toFixed(2)}</td><td style="text-align:center">${r._isGift?'Y':''}</td></tr>`;
+    });
+    h+=`<tr class="sub"><td colspan="4"></td><td style="text-align:right;padding-right:8px;font-weight:600" colspan="5">小计（${k}）</td><td style="text-align:right;padding-right:4px;font-weight:700" colspan="2">${sub.toFixed(2)}</td><td></td></tr>`;
+  });
+  h+=`<tr class="tot"><td colspan="4"></td><td style="text-align:right;font-size:13px;padding-right:8px" colspan="5">合　计</td><td style="text-align:right;font-size:14px;padding-right:4px" colspan="2">${gt.toFixed(2)}</td><td></td></tr>`;
+  h+='</tbody></table>';return h;
+}
+function summaryTbl(rows,dateC,docC){
+  let h='<table><thead><tr><th style="width:36px">序号</th><th style="width:80px">日期</th><th style="width:100px">单据号码</th><th style="width:70px">类型</th><th style="width:100px">应付金额</th><th style="width:85px">已结算</th><th style="width:85px">未结算</th></tr></thead><tbody>';
+  let gt=0,gs=0,gu=0;
+  rows.forEach((r,i)=>{
+    const dv=dateC?fdsShort(r._date||r[dateC]):'';const docno=docC?String(r[docC]||''):'';
+    const isReturn=r._isReturn;const type=isReturn?'退货':'采购';
+    gt+=r._amt;gs+=r._settled||0;gu+=r._unsettled||0;
+    const rowClass=isReturn?'return':'';
+    h+=`<tr class="${rowClass}"><td style="text-align:center">${i+1}</td><td style="text-align:center">${dv}</td><td style="text-align:center;${isReturn?'color:#c0392b':''}">${docno}</td><td style="text-align:center;${isReturn?'color:#c0392b':''}">${type}</td><td style="text-align:right;padding-right:4px;${isReturn?'color:#c0392b':''}">${r._amt.toFixed(2)}</td><td style="text-align:right;padding-right:4px">${(r._settled||0).toFixed(2)}</td><td style="text-align:right;padding-right:4px">${(r._unsettled||0).toFixed(2)}</td></tr>`;
+  });
+  h+=`<tr class="tot"><td colspan="3"></td><td style="text-align:right;font-size:13px;padding-right:8px">合　计</td><td style="text-align:right;font-size:14px;padding-right:4px">${gt.toFixed(2)}</td><td style="text-align:right;font-size:14px;padding-right:4px">${gs.toFixed(2)}</td><td style="text-align:right;font-size:14px;padding-right:4px">${gu.toFixed(2)}</td></tr>`;
+  h+='</tbody></table>';return h;
+}
+var cols=A.cols;
+function rc2(cols,k){return rc(cols,k)}
+// ========== XLSX 导出 ==========
+async function expXlsx(){if(!A.cur){toast('请先选择供应商','inf');return}await genXlsx(A.cur)}
+async function expAllXlsx(){const ns=Object.keys(A.filtered&&Object.keys(A.filtered).length?A.filtered:A.vendors);if(!ns.length){toast('没有数据','inf');return}for(const n of ns){await genXlsx(n);await new Promise(r=>setTimeout(r,200))}toast(`已导出 ${ns.length} 份 XLSX`,'suc')}
+async function genXlsx(vn){
+  const rows=A.filtered[vn]||A.vendors[vn];
+  const wb=new ExcelJS.Workbook();
+  const ws=wb.addWorksheet('对账单',{pageSetup:{paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,margins:{left:.5,right:.5,top:.5,bottom:.5}}});
+  ws.columns=[{width:5},{width:10},{width:14},{width:26},{width:18},{width:8},{width:6},{width:10},{width:12},{width:10},{width:10},{width:6}];
+  let ri=1;const now=new Date(),pstr=A.ps&&A.pe?fd(A.ps)+' 至 '+fd(A.pe):'—';
+  ws.mergeCells(`A${ri}:L${ri}`);const tc=ws.getCell(`A${ri}`);tc.value='采 购 对 账 单';tc.font={name:'黑体',size:18,bold:true};tc.alignment={horizontal:'center',vertical:'middle'};ws.getRow(ri).height=36;ri++;
+  ri++;
+  [[`购货方（甲方）：${OUR}`],[`供货方（乙方）：${vn}`],[`对账期间：${pstr}`],[`对账单生成日期：${fd(now)}`]].forEach(t=>{ws.mergeCells(`A${ri}:L${ri}`);ws.getCell(`A${ri}`).value=t[0];ws.getCell(`A${ri}`).font={name:'宋体',size:11};ws.getCell(`A${ri}`).alignment={horizontal:'left',vertical:'middle'};ws.getRow(ri).height=22;ri++});
+  ri++;
+  const hs={font:{name:'宋体',size:10,bold:true,color:{argb:'FFFFFFFF'}},fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FF4472C4'}},alignment:{horizontal:'center',vertical:'middle'},border:tb()};
+  const ss={font:{name:'宋体',size:9,bold:true},fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FFE8EEF8'}},border:tb()};
+  const ts2={font:{name:'宋体',size:10,bold:true,color:{argb:'FFFFFFFF'}},fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FF4472C4'}},border:tb()};
+  const rs={font:{name:'宋体',size:9,bold:true,color:{argb:'FFC0392B'}},fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FFFFEaea'}},border:tb()};
+  if(A.detail){
+    const hdr=['序号','日期','单据号码','物料名称','规格型号','数量','单位','单价','应付金额','已结算','未结算','赠品'];
+    const hr=ws.getRow(ri);hdr.forEach((h,i)=>{const c=hr.getCell(i+1);c.value=h;Object.assign(c,hs);c.border=tb()});hr.height=24;ri++;
+    const dateC=rc(A.cols,'date'),docC=rc(A.cols,'docno'),matC=rc(A.cols,'mat'),specC=rc(A.cols,'spec'),qtyC=rc(A.cols,'qty'),unitC=rc(A.cols,'unit'),priceC=rc(A.cols,'price');
+    const groups=[];const gm={};rows.forEach(r=>{const k=docC?String(r[docC]):'__all';if(!gm[k]){gm[k]=[];groups.push(k)}gm[k].push(r)});
+    let seq=1,gt=0;
+    groups.forEach(k=>{
+      const gr=gm[k];const sub=gr.reduce((s,r)=>s+r._amt,0);gt+=sub;
+      gr.forEach(r=>{
+        const dr=ws.getRow(ri);
+        dr.getCell(1).value=seq++;dr.getCell(2).value=dateC?fdsShort(r._date||r[dateC]):'';dr.getCell(3).value=docC?String(r[docC]||''):'';
+        dr.getCell(4).value=matC?String(r[matC]||''):'';dr.getCell(5).value=specC?String(r[specC]||''):'';
+        const qv=qtyC?(parseFloat(r[qtyC])||0):0,uv=unitC?String(r[unitC]||''):'';
+        dr.getCell(6).value=Number.isInteger(qv)?qv:qv.toFixed(2);dr.getCell(7).value=uv;
+        dr.getCell(8).value=priceC?(parseFloat(r[priceC])||0):0;
+        dr.getCell(9).value=r._amt;dr.getCell(10).value=r._settled||0;dr.getCell(11).value=r._unsettled||0;
+        dr.getCell(12).value=r._isGift?'Y':'';
+        const isReturn=r._isReturn;
+        for(let c=1;c<=12;c++){const cl=dr.getCell(c);const cellStyle=isReturn?rs:{font:{name:'宋体',size:9}};Object.assign(cl,cellStyle);cl.border=tb();if(c===4||c===5)cl.alignment={horizontal:'left',vertical:'middle'};else if(c>=8){cl.alignment={horizontal:'right',vertical:'middle'};cl.numFmt='#,##0.00'}else cl.alignment={horizontal:'center',vertical:'middle'}}ri++;
+      });
+      const sr=ws.getRow(ri);ws.mergeCells(`A${ri}:E${ri}`);sr.getCell(1).value='';sr.getCell(6).value=`小计（${k}）`;ws.mergeCells(`F${ri}:H${ri}`);sr.getCell(6).value='';sr.getCell(9).value=sub;
+      for(let c=1;c<=12;c++){const cl=sr.getCell(c);Object.assign(cl,ss);cl.border=tb();if(c===6)cl.alignment={horizontal:'right',vertical:'middle'};else if(c===9){cl.alignment={horizontal:'right',vertical:'middle'};cl.numFmt='#,##0.00'}else cl.alignment={horizontal:'center',vertical:'middle'}}ri++;
+    });
+    const tr=ws.getRow(ri);ws.mergeCells(`A${ri}:E${ri}`);tr.getCell(1).value='';tr.getCell(6).value='合　计';ws.mergeCells(`F${ri}:H${ri}`);tr.getCell(6).value='';tr.getCell(9).value=gt;
+    for(let c=1;c<=12;c++){const cl=tr.getCell(c);Object.assign(cl,ts2);cl.border=tb();if(c===6)cl.alignment={horizontal:'right',vertical:'middle'};else if(c===9){cl.alignment={horizontal:'right',vertical:'middle'};cl.numFmt='#,##0.00'}else cl.alignment={horizontal:'center',vertical:'middle'}}ri++;
+  }else{
+    const hdr=['序号','日期','单据号码','类型','应付金额','已结算','未结算'];
+    const hr=ws.getRow(ri);hdr.forEach((h,i)=>{const c=hr.getCell(i+1);c.value=h;Object.assign(c,hs);c.border=tb()});ws.mergeCells(`H${ri}:L${ri}`);hr.height=24;ri++;
+    let gt=0,gs=0,gu=0;rows.forEach((r,i)=>{const dr=ws.getRow(ri);
+      dr.getCell(1).value=i+1;dr.getCell(2).value=dateC?fdsShort(r._date||r[dateC]):'';dr.getCell(3).value=docC?String(r[docC]||''):'';
+      dr.getCell(4).value=r._isReturn?'退货':'采购';dr.getCell(5).value=r._amt;dr.getCell(6).value=r._settled||0;dr.getCell(7).value=r._unsettled||0;
+      ws.mergeCells(`H${ri}:L${ri}`);gt+=r._amt;gs+=r._settled||0;gu+=r._unsettled||0;
+      const isReturn=r._isReturn;
+      for(let c=1;c<=12;c++){const cl=dr.getCell(c);const cellStyle=isReturn?rs:{font:{name:'宋体',size:9}};Object.assign(cl,cellStyle);cl.border=tb();if(c===4)cl.alignment={horizontal:'center',vertical:'middle',color:{argb:isReturn?'FFC0392B':'FF000000'}};else if(c>=5){cl.alignment={horizontal:'right',vertical:'middle'};cl.numFmt='#,##0.00'}else cl.alignment={horizontal:'center',vertical:'middle'}}ri++});
+    const tr=ws.getRow(ri);ws.mergeCells(`A${ri}:D${ri}`);tr.getCell(1).value='';tr.getCell(5).value='合　计';ws.mergeCells(`F${ri}:L${ri}`);tr.getCell(6).value=gt;tr.getCell(7).value=gs;tr.getCell(8).value=gu;
+    for(let c=1;c<=12;c++){const cl=tr.getCell(c);Object.assign(cl,ts2);cl.border=tb();if(c===5)cl.alignment={horizontal:'right',vertical:'middle'};else if(c>=6){cl.alignment={horizontal:'right',vertical:'middle'};cl.numFmt='#,##0.00'}else cl.alignment={horizontal:'center',vertical:'middle'}}ri++;
+  }
+  ri++;
+  const gt=rows.reduce((s,r)=>s+r._amt,0);
+  ws.mergeCells(`A${ri}:L${ri}`);ws.getCell(`A${ri}`).value=`合计金额（大写）：${ntoc(gt)}`;ws.getCell(`A${ri}`).font={name:'宋体',size:11,bold:true};ri++;
+  const settledAmt=rows.reduce((s,r)=>s+(r._settled||0),0);
+  const unsettledAmt=rows.reduce((s,r)=>s+(r._unsettled||0),0);
+  ri++;ws.mergeCells(`A${ri}:L${ri}`);ws.getCell(`A${ri}`).value=`已结算金额：¥${settledAmt.toLocaleString('zh-CN',{minimumFractionDigits:2})}`;ws.getCell(`A${ri}`).font={name:'宋体',size:11};ri++;
+  ws.mergeCells(`A${ri}:L${ri}`);ws.getCell(`A${ri}`).value=`未结算金额：¥${unsettledAmt.toLocaleString('zh-CN',{minimumFractionDigits:2})}`;ws.getCell(`A${ri}`).font={name:'宋体',size:11,bold:true};ri++;ri++;
+  ws.mergeCells(`A${ri}:L${ri}`);ws.getCell(`A${ri}`).value='对账确认';ws.getCell(`A${ri}`).font={name:'黑体',size:12,bold:true};ri++;
+  ws.mergeCells(`A${ri}:L${ri}`);ws.getCell(`A${ri}`).value='甲方与乙方经核对，确认上述期间内的采购交易记录无误。乙方对上述交易金额予以确认，并承诺按照约定及时开具发票。本对账单一式两份，甲乙双方各执一份，经双方签章后生效。';ws.getCell(`A${ri}`).font={name:'宋体',size:10};ws.getRow(ri).height=40;ri++;ri++;
+  ws.getCell(`A${ri}`).value='甲方（购货方）';ws.getCell(`A${ri}`).font={name:'宋体',size:11,bold:true};ws.mergeCells(`C${ri}:L${ri}`);ws.getCell(`C${ri}`).value='乙方（供货方）';ws.getCell(`C${ri}`).font={name:'宋体',size:11,bold:true};ri++;
+  const sl=[['单位名称：'+OUR,'单位名称：'+vn],['经办人签字：','经办人签字：'],['盖章：','盖章：'],['日期：      年   月   日','日期：      年   月   日']];
+  sl.forEach(l=>{ws.mergeCells(`A${ri}:B${ri}`);ws.getCell(`A${ri}`).value=l[0];ws.getCell(`A${ri}`).font={name:'宋体',size:10};ws.mergeCells(`C${ri}:L${ri}`);ws.getCell(`C${ri}`).value=l[1];ws.getCell(`C${ri}`).font={name:'宋体',size:10};ws.getRow(ri).height=20;ri++});
+  const buf=await wb.xlsx.writeBuffer();const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const sn=vn.replace(/[\\\/:*?"<>|]/g,'_').substring(0,30);saveAs(blob,`purchase_statement_${sn}.xlsx`);toast(`已导出：${vn}`,'suc');
+}
+function tb(){return{top:{style:'thin',color:{argb:'FFB0B0B0'}},left:{style:'thin',color:{argb:'FFB0B0B0'}},bottom:{style:'thin',color:{argb:'FFB0B0B0'}},right:{style:'thin',color:{argb:'FFB0B0B0'}}}}
+// ========== PDF 导出 ==========
+async function expPdf(){if(!A.cur){toast('请先选择供应商','inf');return}await genPdf(A.cur)}
+async function expAllPdf(){const ns=Object.keys(A.filtered&&Object.keys(A.filtered).length?A.filtered:A.vendors);if(!ns.length){toast('没有数据','inf');return}for(const n of ns){selVendor(n);await new Promise(r=>setTimeout(r,150));await genPdf(n);await new Promise(r=>setTimeout(r,400))}toast(`已导出 ${ns.length} 份 PDF`,'suc')}
+async function genPdf(vn){
+  if(A.cur!==vn)selVendor(vn);await new Promise(r=>setTimeout(r,200));
+  const el=document.getElementById('reconDoc');if(!el){toast('预览内容为空','err');return}
+  const sn=vn.replace(/[\\\/:*?"<>|]/g,'_').substring(0,30);
+  try{
+    const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false});
+    const imgData=canvas.toDataURL('image/jpeg',0.98);
+    const imgW=canvas.width;const imgH=canvas.height;
+    const pdfW=297;const pdfH=(imgH*pdfW)/imgW;
+    const{jsPDF}=window.jspdf;
+    const pdf=new jsPDF({unit:'mm',format:[pdfW,pdfH],orientation:'landscape'});
+    pdf.addImage(imgData,'JPEG',0,0,pdfW,pdfH,null,'FAST');
+    pdf.save(`purchase_statement_${sn}.pdf`);
+    toast(`已导出 PDF：${vn}`,'suc');
+  }catch(e){console.error(e);toast('PDF 导出失败：'+e.message,'err')}
+}
+function toast(msg,type='inf'){const t=document.getElementById('toast');t.textContent=msg;t.className=`toast ${type} show`;setTimeout(()=>t.classList.remove('show'),3000)}
+</script>
+</body>
+</html>
