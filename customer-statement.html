@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>客户对账单生成器 - 中合五金</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+.header{background:linear-gradient(135deg,#1e293b,#0f172a);border-bottom:1px solid #334155;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:18px;font-weight:600;color:#f8fafc}
+.header h1 span{color:#38bdf8}
+.header .sub{font-size:12px;color:#94a3b8;margin-top:2px}
+.main{max-width:960px;margin:0 auto;padding:20px}
+.upload-zone{border:2px dashed #334155;border-radius:14px;padding:40px;text-align:center;cursor:pointer;transition:.3s;background:#1e293b}
+.upload-zone:hover{border-color:#38bdf8}
+.upload-zone.dragging{border-color:#38bdf8;background:rgba(56,189,248,.05)}
+.upload-zone .icon{font-size:42px;margin-bottom:12px}
+.upload-zone .t1{font-size:15px;color:#f8fafc;margin-bottom:6px}
+.upload-zone .t2{font-size:12px;color:#64748b}
+.upload-zone input{display:none}
+.stats{display:flex;gap:12px;margin:16px 0;flex-wrap:wrap}
+.stat{flex:1;min-width:100px;background:#1e293b;border-radius:10px;padding:12px;border:1px solid #334155}
+.stat .l{font-size:11px;color:#64748b;margin-bottom:2px}
+.stat .v{font-size:20px;font-weight:700;color:#38bdf8}
+.stat .v.warn{color:#f59e0b}
+.actions{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;align-items:center}
+.btn{padding:9px 20px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:.2s;display:inline-flex;align-items:center;gap:6px}
+.btn-p{background:linear-gradient(135deg,#0ea5e9,#38bdf8);color:#fff}
+.btn-p:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(14,165,233,.3)}
+.btn-p:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-s{background:#334155;color:#e2e8f0}
+.btn-s:hover{background:#475569}
+.cutoff{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:13px;color:#94a3b8}
+.cutoff input[type=date]{background:#1e293b;color:#e2e8f0;border:1px solid #334155;padding:6px 10px;border-radius:6px;font-size:13px}
+.cutoff .tag{background:#0ea5e9;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.tab{padding:5px 12px;border-radius:6px;font-size:12px;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;transition:.2s;white-space:nowrap}
+.tab:hover{border-color:#38bdf8;color:#e2e8f0}
+.tab.on{background:#0ea5e9;border-color:#0ea5e9;color:#fff}
+.tab .b{display:inline-block;background:rgba(255,255,255,.2);padding:0 5px;border-radius:3px;font-size:10px;margin-left:3px}
+.preview{background:#1e293b;border-radius:14px;padding:20px;border:1px solid #334155;min-height:160px;display:flex;justify-content:center;align-items:flex-start;overflow:auto}
+.preview .empty{color:#64748b;font-size:13px}
+.pbar{width:100%;height:3px;background:#334155;border-radius:2px;margin:10px 0;overflow:hidden;display:none}
+.pbar .f{height:100%;background:linear-gradient(90deg,#0ea5e9,#38bdf8);border-radius:2px;transition:width .3s;width:0}
+.ptxt{font-size:12px;color:#64748b;display:none}
+
+/* === Statement Card (captured as image) === */
+.stmt{width:580px;background:#fff;color:#1a1a1a;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;font-size:12px;border-radius:6px;overflow:hidden}
+.stmt .hd{background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center}
+.stmt .hd .co{font-size:17px;font-weight:700;letter-spacing:2px}
+.stmt .hd .dt{font-size:12px;opacity:.9}
+.stmt .bd{padding:14px 18px}
+.stmt .cust{font-size:15px;font-weight:700;color:#1e40af;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e5e7eb}
+.stmt .meta{display:flex;gap:16px;margin-bottom:10px;font-size:12px;color:#6b7280}
+.stmt .meta b{color:#111827}
+.stmt table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px}
+.stmt table th{background:#f1f5f9;color:#475569;font-weight:600;padding:6px 4px;text-align:center;border:1px solid #e2e8f0;white-space:nowrap}
+.stmt table td{padding:5px 4px;border:1px solid #e2e8f0;text-align:center;vertical-align:middle}
+.stmt table td.nm{text-align:left;max-width:180px;word-break:break-all}
+.stmt table td.amt{text-align:right;font-weight:600}
+.stmt table td.amt.pos{color:#dc2626}
+.stmt table td.amt.neg{color:#16a34a}
+.stmt table tr.dh td{background:#eff6ff;font-weight:600;color:#1e40af;font-size:11px;padding:6px 4px}
+.stmt table tr.dh td:first-child{text-align:left}
+.stmt table tr.dh-ret td{background:#fef2f2;color:#991b1b}
+.stmt .ft{background:#f8fafc;border-top:2px solid #e5e7eb;padding:10px 18px;display:flex;justify-content:space-between;align-items:center}
+.stmt .ft .tl{font-size:13px;color:#6b7280}
+.stmt .ft .tv{font-size:18px;font-weight:700;color:#dc2626}
+.stmt .ft .tv.neg{color:#16a34a}
+.stmt .rm{background:#fffbeb;border-top:1px solid #fde68a;padding:8px 18px;font-size:11px;color:#92400e;text-align:center}
+.stmt .wm{text-align:center;padding:5px;font-size:10px;color:#94a3b8;border-top:1px solid #e5e7eb}
+
+.toast{position:fixed;top:16px;right:16px;padding:10px 18px;border-radius:8px;font-size:13px;z-index:9999;transform:translateX(120%);transition:transform .3s}
+.toast.show{transform:translateX(0)}
+.toast.ok{background:#065f46;color:#a7f3d0}
+.toast.err{background:#7f1d1d;color:#fca5a5}
+.toast.inf{background:#1e3a5f;color:#93c5fd}
+
+@media(max-width:640px){
+.main{padding:10px}
+.upload-zone{padding:20px}
+.stmt{width:100%;min-width:340px}
+}
+</style>
+</head>
+<body>
+
+<a class="back-btn" onclick="if(window.history.length>1){history.back()}else{location.href='non-tax.html'}" href="javascript:void(0)" style="position:fixed;top:12px;left:12px;z-index:9999;padding:6px 16px;border-radius:16px;border:1px solid rgba(56,189,248,.3);background:rgba(15,23,42,.85);backdrop-filter:blur(12px);color:#38bdf8;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;box-shadow:0 4px 15px rgba(0,0,0,.3);transition:.3s">← 非税工具箱</a>
+
+<div class="header">
+  <div>
+    <h1>客户对账<span>单生成器</span></h1>
+    <div class="sub">上传ERP销售出库单明细，按客户生成未收款对账卡片</div>
+  </div>
+  <div style="font-size:12px;color:#64748b">中合五金商城</div>
+</div>
+
+<div class="main">
+  <div class="upload-zone" id="upZone">
+    <div class="icon">📋</div>
+    <div class="t1">拖放或点击上传ERP导出的Excel文件</div>
+    <div class="t2">支持 .xls / .xlsx · 销售出库单清单明细导出</div>
+    <input type="file" id="fInput" accept=".xls,.xlsx">
+  </div>
+
+  <div class="stats" id="stats" style="display:none">
+    <div class="stat"><div class="l">截止日期</div><div class="v" id="sDate">-</div></div>
+    <div class="stat"><div class="l">客户数</div><div class="v" id="sCust">0</div></div>
+    <div class="stat"><div class="l">未收单据</div><div class="v" id="sDoc">0</div></div>
+    <div class="stat"><div class="l">未收金额</div><div class="v warn" id="sAmt">0</div></div>
+  </div>
+
+  <div class="actions" id="acts" style="display:none">
+    <button class="btn btn-p" id="btnAll" onclick="exportAll()">📦 一键导出全部对账单</button>
+    <button class="btn btn-s" onclick="exportCur()">📥 导出当前对账单</button>
+    <div class="cutoff">
+      <span class="tag">截止日</span>
+      <label>发单日期：</label>
+      <input type="date" id="cutoffInput" onchange="recalc()">
+      <span style="font-size:11px;color:#64748b">（自动前推5天）</span>
+    </div>
+  </div>
+
+  <div class="pbar" id="pbar"><div class="f" id="pfill"></div></div>
+  <div class="ptxt" id="ptxt"></div>
+
+  <div id="area" style="display:none">
+    <div style="font-size:13px;color:#94a3b8;margin-bottom:8px">点击客户名预览对账单</div>
+    <div class="tabs" id="tabs"></div>
+    <div class="preview" id="pv"><div class="empty">点击上方客户名预览</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div id="rnd" style="position:absolute;left:-9999px;top:0"></div>
+
+<script>
+let ALL=[],cMap={},curCust=null,cutoffDate='';
+
+const upZone=document.getElementById('upZone');
+const fInput=document.getElementById('fInput');
+upZone.onclick=()=>fInput.click();
+upZone.ondragover=e=>{e.preventDefault();upZone.classList.add('dragging')};
+upZone.ondragleave=()=>upZone.classList.remove('dragging');
+upZone.ondrop=e=>{e.preventDefault();upZone.classList.remove('dragging');if(e.dataTransfer.files.length)loadFile(e.dataTransfer.files[0])};
+fInput.onchange=e=>{if(e.target.files.length)loadFile(e.target.files[0])};
+
+function loadFile(f){
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      parse(raw);
+    }catch(err){toast('文件解析失败：'+err.message,'err')}
+  };
+  r.readAsArrayBuffer(f);
+}
+
+function parse(raw){
+  let hi=-1,hdr=[];
+  for(let i=0;i<Math.min(10,raw.length);i++){
+    const row=raw[i];
+    if(row.some(c=>String(c).includes('单据号码'))||row.some(c=>String(c).includes('物料名称'))){hi=i;hdr=row.map(c=>String(c).trim());break}
+  }
+  if(hi===-1){toast('未找到表头行','err');return}
+
+  const col={};
+  const mp={'单据日期':'date','单据号码':'docNum','客户':'customer','业务员':'salesman','出库类型':'type','物料名称':'itemName','规格型号':'spec','已结算':'settled','未结算':'unsettled','数量':'qty','单位':'unit','单价':'price','应收金额':'recv','单据备注':'docRemark','制单人':'creator','制单时间':'createTime','表格备注':'remark'};
+  hdr.forEach((h,i)=>{for(const[n,k]of Object.entries(mp)){if(h.includes(n)&&!col[k])col[k]=i}});
+
+  ALL=[];
+  for(let i=hi+1;i<raw.length;i++){
+    const row=raw[i];
+    const dn=col.docNum!==undefined?String(row[col.docNum]||'').trim():'';
+    if(!dn||dn==='合计'||dn.includes('制表'))continue;
+    const cust=col.customer!==undefined?String(row[col.customer]||'').trim():'';
+    if(!cust)continue;
+    const dt=col.date!==undefined?pDate(row[col.date]):'';
+    const type=col.type!==undefined?String(row[col.type]||'').trim():'销售';
+    const name=col.itemName!==undefined?String(row[col.itemName]||'').trim():'';
+    const spec=col.spec!==undefined?String(row[col.spec]||'').trim():'';
+    const qty=col.qty!==undefined?parseFloat(row[col.qty])||0:0;
+    const unit=col.unit!==undefined?String(row[col.unit]||'').trim():'';
+    const price=col.price!==undefined?parseFloat(row[col.price])||0:0;
+    const settled=col.settled!==undefined?parseFloat(row[col.settled])||0:0;
+    const unsettled=col.unsettled!==undefined?parseFloat(row[col.unsettled])||0:0;
+    const salesman=col.salesman!==undefined?String(row[col.salesman]||'').trim():'';
+    const remark=col.remark!==undefined?String(row[col.remark]||'').trim():'';
+    const docRemark=col.docRemark!==undefined?String(row[col.docRemark]||'').trim():'';
+    const creator=col.creator!==undefined?String(row[col.creator]||'').trim():'';
+    
+    // Amount: unsettled takes priority (means not yet collected), fallback to settled+unsettled or qty*price
+    let amt=unsettled;
+    if(amt===0&&settled!==0) amt=0; // fully settled
+    else if(amt===0&&settled===0&&qty!==0&&price!==0) amt=qty*price;
+
+    ALL.push({date:dt,docNum:dn,customer:cust,type,name,spec,qty,unit,price,settled,unsettled,amt,salesman,remark,docRemark,creator});
+  }
+
+  if(!ALL.length){toast('未解析到有效数据','err');return}
+
+  // Set default cutoff = today - 5 days
+  const d=new Date();d.setDate(d.getDate()-5);
+  document.getElementById('cutoffInput').value=d.toISOString().slice(0,10);
+  recalc();
+  toast(`解析成功！${ALL.length}行数据`,'ok');
+}
+
+function pDate(v){
+  if(!v)return'';
+  const s=String(v).trim();
+  if(/^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}/.test(s))return s.replace(/\//g,'-').replace(/-(\d)-/g,'-0$1-').replace(/-(\d)$/,'-0$1');
+  if(typeof v==='number'&&v>40000){const d=new Date((v-25569)*864e5);return d.toISOString().slice(0,10)}
+  return s;
+}
+
+function recalc(){
+  cutoffDate=document.getElementById('cutoffInput').value;
+  if(!cutoffDate)return;
+
+  // Filter: date <= cutoff, and has unsettled amount
+  const filtered=ALL.filter(r=>r.date&&r.date<=cutoffDate&&r.amt!==0);
+  
+  cMap={};
+  filtered.forEach(r=>{
+    if(!cMap[r.customer])cMap[r.customer]=[];
+    cMap[r.customer].push(r);
+  });
+
+  updateUI();
+}
+
+function updateUI(){
+  document.getElementById('stats').style.display='flex';
+  document.getElementById('acts').style.display='flex';
+  document.getElementById('area').style.display='block';
+
+  let totalAmt=0;const dSet=new Set();
+  Object.values(cMap).forEach(rows=>rows.forEach(r=>{totalAmt+=r.amt;dSet.add(r.docNum)}));
+
+  document.getElementById('sDate').textContent=cutoffDate;
+  document.getElementById('sCust').textContent=Object.keys(cMap).length;
+  document.getElementById('sDoc').textContent=dSet.size;
+  document.getElementById('sAmt').textContent='¥'+totalAmt.toFixed(2);
+
+  renderTabs();
+  curCust=null;
+  document.getElementById('pv').innerHTML='<div class="empty">点击上方客户名预览对账单</div>';
+}
+
+function renderTabs(){
+  const c=document.getElementById('tabs');
+  const entries=Object.entries(cMap).sort((a,b)=>b[1].reduce((s,r)=>s+r.amt,0)-a[1].reduce((s,r)=>s+r.amt,0));
+  c.innerHTML=entries.map(([n,rows])=>{
+    const docs=new Set(rows.map(r=>r.docNum));
+    const short=n.length>10?n.slice(0,10)+'…':n;
+    return`<div class="tab" data-c="${esc(n)}" onclick="sel('${esc(n)}')">${esc(short)}<span class="b">${docs.size}单</span></div>`;
+  }).join('');
+}
+
+function sel(name){
+  curCust=name;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.c===name));
+  const rows=cMap[name]||[];
+  document.getElementById('pv').innerHTML=genCard(name,rows);
+}
+
+function genCard(cust,rows){
+  // Group by doc
+  const docs={};
+  rows.forEach(r=>{if(!docs[r.docNum])docs[r.docNum]=[];docs[r.docNum].push(r)});
+
+  let total=0;let idx=0;let tbody='';
+  const docEntries=Object.entries(docs).sort((a,b)=>a[1][0].date.localeCompare(b[1][0].date));
+
+  docEntries.forEach(([dn,items])=>{
+    const f=items[0];
+    const docAmt=items.reduce((s,r)=>s+r.amt,0);
+    total+=docAmt;
+    const isRet=f.type==='退货';
+    tbody+=`<tr class="${isRet?'dh-ret':'dh'}"><td colspan="5" style="text-align:left">${isRet?'【退货】':''}${f.docNum} | ${f.date} | 业务员：${esc(f.salesman)}${f.docRemark?' | '+esc(f.docRemark):''}</td><td class="amt ${docAmt>=0?'pos':'neg'}">${fm(docAmt)}</td></tr>`;
+    items.forEach(it=>{
+      idx++;
+      tbody+=`<tr><td>${idx}</td><td class="nm">${esc(it.name)}</td><td>${esc(it.spec)}</td><td>${it.qty}${esc(it.unit)}</td><td>${it.price?fm(it.price):'-'}</td><td class="amt ${it.amt>=0?'pos':'neg'}">${fm(it.amt)}</td></tr>`;
+    });
+  });
+
+  const now=new Date();
+  const ts=`${now.getFullYear()}/${p2(now.getMonth()+1)}/${p2(now.getDate())} ${p2(now.getHours())}:${p2(now.getMinutes())}`;
+  const cls=total<0?'neg':'';
+
+  return`<div class="stmt" id="card">
+<div class="hd"><div class="co">中合五金商城</div><div class="dt">对账截止：${cutoffDate}</div></div>
+<div class="bd">
+<div class="cust">📋 ${esc(cust)}</div>
+<div class="meta"><span>未收单据共 <b>${docEntries.length}</b> 张</span><span>商品明细共 <b>${rows.length}</b> 行</span><span>单据日期：<b>${docEntries.length?docEntries[0][1][0].date+' ~ '+docEntries[docEntries.length-1][1][0].date:'-'}</b></span></div>
+<table><thead><tr><th style="width:28px">序号</th><th>商品名称</th><th style="width:70px">规格型号</th><th style="width:52px">数量</th><th style="width:52px">单价</th><th style="width:62px">未收金额</th></tr></thead><tbody>${tbody}</tbody></table>
+</div>
+<div class="ft"><div class="tl">未收款合计</div><div class="tv ${cls}">¥${Math.abs(total).toFixed(2)}${total<0?' (退款)':''}</div></div>
+<div class="rm">💡 请核对以上明细，如无疑问请及时安排付款，感谢支持！</div>
+<div class="wm">生成时间：${ts} · 中合五金商城</div>
+</div>`;
+}
+
+async function exportCur(){
+  if(!curCust){toast('请先选择客户','inf');return}
+  const el=document.getElementById('card');
+  if(!el){toast('没有可导出的对账单','err');return}
+  toast('正在生成图片...','inf');
+  try{
+    const c=await html2canvas(el,{scale:2,backgroundColor:'#fff',useCORS:true});
+    c.toBlob(b=>{saveAs(b,fn(curCust)+'_对账单.png');toast('导出成功！','ok')});
+  }catch(e){toast('导出失败：'+e.message,'err')}
+}
+
+async function exportAll(){
+  const cKeys=Object.keys(cMap);
+  if(!cKeys.length){toast('没有数据','err');return}
+  const btn=document.getElementById('btnAll');
+  btn.disabled=true;btn.textContent='⏳ 生成中...';
+  showP(true);
+
+  const zip=new JSZip();const rnd=document.getElementById('rnd');
+  let done=0;
+
+  for(const c of cKeys){
+    updP(done/cKeys.length,`${c.slice(0,12)}... (${done+1}/${cKeys.length})`);
+    rnd.innerHTML=genCard(c,cMap[c]);
+    await new Promise(r=>setTimeout(r,120));
+    const el=rnd.querySelector('.stmt');
+    if(!el)continue;
+    try{
+      const cv=await html2canvas(el,{scale:2,backgroundColor:'#fff',useCORS:true});
+      const bl=await new Promise(r=>cv.toBlob(r,'image/png'));
+      zip.file(fn(c)+'.png',bl);
+    }catch(e){console.error(e)}
+    done++;
+  }
+  rnd.innerHTML='';
+  updP(1,'打包中...');
+
+  try{
+    const ct=await zip.generateAsync({type:'blob'});
+    saveAs(ct,`客户对账单_截止${cutoffDate}.zip`);
+    toast(`导出完成！${cKeys.length}个客户对账单已打包`,'ok');
+  }catch(e){toast('打包失败：'+e.message,'err')}
+
+  btn.disabled=false;btn.textContent='📦 一键导出全部对账单';
+  showP(false);
+}
+
+function fm(v){if(!v&&v!==0)return'-';return v.toFixed(2)}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function fn(n){return String(n).replace(/[\\/:*?"<>|]/g,'_').replace(/\s+/g,'').slice(0,50)}
+function p2(n){return String(n).padStart(2,'0')}
+function toast(m,t){const e=document.getElementById('toast');e.textContent=m;e.className='toast '+t+' show';setTimeout(()=>e.classList.remove('show'),3000)}
+function showP(s){document.getElementById('pbar').style.display=s?'block':'none';document.getElementById('ptxt').style.display=s?'block':'none';if(!s)document.getElementById('pfill').style.width='0%'}
+function updP(r,t){document.getElementById('pfill').style.width=Math.round(r*100)+'%';document.getElementById('ptxt').textContent=t}
+</script>
+</body>
+</html>
