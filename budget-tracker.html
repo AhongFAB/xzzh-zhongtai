@@ -659,9 +659,9 @@
               <tr>
                 <th>科目</th>
                 <th>类别</th>
-                <th>本月预算</th>
-                <th>本月实际</th>
-                <th>上月实际</th>
+                <th>本月预算<br><span style="font-weight:400;color:var(--text-muted)">=上月实际</span></th>
+                <th>本月实际<br><span style="font-weight:400;color:var(--text-muted)">企微数据</span></th>
+                <th>上月实际<br><span style="font-weight:400;color:var(--text-muted)">决算/金蝶</span></th>
                 <th>环比</th>
                 <th>达成率</th>
                 <th>状态</th>
@@ -1343,56 +1343,48 @@
       let totalActual = 0;
       
       // Get data for each subject
+      // Logic: jueSuan/kdee = LAST month data = budget & lastMonthActual
+      //        weCom = THIS month data = actual
       const subjectData = SUBJECT_MAPPING.map(sub => {
         let budget = 0;
-        let actual = 0;
         let lastMonthActual = 0;
-        let thisMonthActual = 0;
         
-        // Budget & monthly data from JueSuan
+        // Budget & lastMonthActual from JueSuan (both are last month's actual)
         if (jueSuanData) {
-          // Match jueSuan label to subject - prefer exact match, then fuzzy
           let matchedLabel = null;
           const jsLabels = Object.keys(jueSuanData.labels);
-          
-          // Exact match first
           matchedLabel = jsLabels.find(l => l === sub.label);
-          
-          // Then try jueSuan label contains subject label
-          if (!matchedLabel) {
-            matchedLabel = jsLabels.find(l => l.includes(sub.label));
-          }
-          
-          // Then try subject label contains jueSuan label (strip suffixes)
-          if (!matchedLabel) {
-            matchedLabel = jsLabels.find(l => sub.label.includes(l.replace(/(汇总|\(含税\))/g, '')));
-          }
+          if (!matchedLabel) matchedLabel = jsLabels.find(l => l.includes(sub.label));
+          if (!matchedLabel) matchedLabel = jsLabels.find(l => sub.label.includes(l.replace(/(汇总|\(含税\))/g, '')));
           
           if (matchedLabel) {
-            budget = jueSuanData.labels[matchedLabel].budget;
+            budget = jueSuanData.labels[matchedLabel].budget;     // = lastMonth actual (set in parser)
             lastMonthActual = jueSuanData.labels[matchedLabel].lastMonth || 0;
-            thisMonthActual = jueSuanData.labels[matchedLabel].thisMonth || 0;
           }
         }
         
-        // Actual from Kdee (overwrites jueSuan thisMonthActual if available)
+        // Supplement/cross-check lastMonthActual from Kdee
         if (kdeeData && sub.kdeeCodes) {
+          let kdeeVal = 0;
           for (const code of sub.kdeeCodes) {
             if (kdeeData[code]) {
-              actual += sub.side === 'credit' ? kdeeData[code].credit : kdeeData[code].debit;
+              kdeeVal += sub.side === 'credit' ? kdeeData[code].credit : kdeeData[code].debit;
             }
           }
-          // If kdee provided actual, use it; otherwise fall back to jueSuan thisMonthActual
-          if (actual === 0 && thisMonthActual > 0) {
-            actual = thisMonthActual;
+          // Kdee is also last month's data, use as lastMonthActual if jueSuan didn't provide
+          if (lastMonthActual === 0 && kdeeVal > 0) {
+            lastMonthActual = kdeeVal;
           }
-        } else if (thisMonthActual > 0) {
-          // No kdee data, use jueSuan thisMonthActual
-          actual = thisMonthActual;
+          // If budget from jueSuan is 0 but kdee has data, use kdee as budget too
+          if (budget === 0 && kdeeVal > 0) {
+            budget = kdeeVal;
+          }
         }
         
-        // Add WeCom actual for expenses (supplementary, not replacement)
-        // Removed: double-counting with kdee. WeCom data used only in department view.
+        // THIS month's actual from WeCom only
+        // WeCom data is at aggregate level (付款/报销/借支), can't map to individual subjects
+        // Individual subjects get actual=0, actual is shown at category summary level
+        let actual = 0;
         
         // 环比 = (本月实际 - 上月实际) / |上月实际|
         let momChange = 0;
@@ -1424,11 +1416,15 @@
       const expenseData = groups['费用'];
       
       const incomeBudget = incomeData.reduce((sum, s) => sum + s.budget, 0);
-      const incomeActual = incomeData.reduce((sum, s) => sum + s.actual, 0);
       const costBudget = costData.reduce((sum, s) => sum + s.budget, 0);
-      const costActual = costData.reduce((sum, s) => sum + s.actual, 0);
       const expenseBudget = expenseData.reduce((sum, s) => sum + s.budget, 0);
-      const expenseActual = expenseData.reduce((sum, s) => sum + s.actual, 0);
+      
+      // WeCom actuals (THIS month)
+      const weComPaymentAll = weComData.filter(i => i.type === '调货付款' || i.type === '付款申请').reduce((s, i) => s + i.amount, 0);
+      const weComExpenseAll = weComData.filter(i => i.type === '费用报销').reduce((s, i) => s + i.amount, 0);
+      const costActual = weComPaymentAll;     // 本月实际成本 = 企微付款
+      const expenseActual = weComExpenseAll;  // 本月实际费用 = 企微报销
+      const incomeActual = 0;                 // 收入无企微来源，需手工补充
       
       totalBudget = incomeBudget;
       totalActual = incomeActual - costActual - expenseActual;
@@ -1438,12 +1434,12 @@
         <div class="glass-card kpi-card">
           <div class="label">收入预算</div>
           <div class="value" style="color: var(--primary)">${formatNumber(incomeBudget)}</div>
-          <div class="sub">万元</div>
+          <div class="sub">万元（上月实际）</div>
         </div>
         <div class="glass-card kpi-card">
-          <div class="label">成本费用</div>
+          <div class="label">成本费用(本月)</div>
           <div class="value" style="color: var(--danger)">${formatNumber(costActual + expenseActual)}</div>
-          <div class="sub">万元</div>
+          <div class="sub">万元（企微实际）</div>
         </div>
         <div class="glass-card kpi-card">
           <div class="label">净利润</div>
@@ -1467,21 +1463,37 @@
       // Render table
       let tableHtml = '';
       
+      // WeCom actuals by type for category summary rows
+      const weComPayment = weComData.filter(i => i.type === '调货付款' || i.type === '付款申请').reduce((s, i) => s + i.amount, 0);
+      const weComExpense = weComData.filter(i => i.type === '费用报销').reduce((s, i) => s + i.amount, 0);
+      const weComTotal = weComData.reduce((s, i) => s + i.amount, 0);
+      
       for (const [catName, items] of Object.entries(groups)) {
-        const catActual = items.reduce((sum, s) => sum + s.actual, 0);
         const catBudget = items.reduce((sum, s) => sum + s.budget, 0);
+        const catLastMonth = items.reduce((sum, s) => s + (s.lastMonthActual || 0), 0);
+        // Category actual from WeCom aggregate
+        let catActual = 0;
+        if (catName === '成本') catActual = weComPayment;
+        else if (catName === '费用') catActual = weComExpense;
+        // 收入 has no WeCom source
         
         // Category summary row
+        const catRate = catBudget > 0 ? catActual / catBudget : 0;
+        const catMom = catLastMonth > 0 ? (catActual - catLastMonth) / catLastMonth : 0;
+        const catMomHtml = catLastMonth > 0
+          ? `<span style="color: ${(catActual - catLastMonth) >= 0 ? (catName === '收入' ? 'var(--success)' : 'var(--danger)') : (catName === '收入' ? 'var(--danger)' : 'var(--success)')}">${formatPercent(catMom)}</span>`
+          : '-';
+        
         tableHtml += `
           <tr style="background: rgba(79, 172, 254, 0.1); font-weight: 600;">
             <td>${catName}小计</td>
             <td>-</td>
             <td>${formatNumber(catBudget)}</td>
             <td>${formatNumber(catActual)}</td>
-            <td>${formatNumber(items.reduce((s, i) => s + (i.lastMonthActual || 0), 0))}</td>
-            <td>${formatPercent(items.reduce((s, i) => s + (i.lastMonthActual || 0), 0) > 0 ? (catActual - items.reduce((s, i) => s + (i.lastMonthActual || 0), 0)) / items.reduce((s, i) => s + (i.lastMonthActual || 0), 0) : 0)}</td>
-            <td>${formatPercent(catBudget > 0 ? catActual / catBudget : 0)}</td>
-            <td>${getStatusLight(catBudget > 0 ? catActual / catBudget : 0, catName)}</td>
+            <td>${formatNumber(catLastMonth)}</td>
+            <td>${catMomHtml}</td>
+            <td>${formatPercent(catRate)}</td>
+            <td>${getStatusLight(catRate, catName)}</td>
           </tr>
         `;
         
