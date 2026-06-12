@@ -785,7 +785,24 @@
       { label: '办公费', kdeeCodes: ['550201'], side: 'debit', category: '费用', parent: '管理费用' },
     ];
     
-    // Department Budget Mapping
+    // Department name normalization (WeCom -> standard name)
+    const DEPT_NAME_MAP = {
+      '总经办': '总经办',
+      '业务部': '业务部',
+      '业务一部': '业务部',
+      '业务二部': '业务部',
+      '大客户部': '业务部',
+      '销售部': '业务部',
+      '财务部': '财务部',
+      '内勤部': '内勤部',
+      '仓储物流部': '仓储物流部',
+      '仓储部': '仓储物流部',
+      '物流部': '仓储物流部',
+      '采购部': '采购部',
+      '线上运营部': '线上运营部',
+    };
+    
+    // Department Budget Mapping (legacy, kept for config modal compatibility)
     let DEPT_BUDGET_MAPPING = {
       '采购部': ['主营业务成本', '变动成本', '物流成本'],
       '总经办': ['固定成本', '日常费用', '生活费', '业务招待费'],
@@ -1035,6 +1052,14 @@
           { key: '财务费用', pattern: '财务费用' },
           { key: '利润(汇总)', pattern: '六、利润' },
           { key: '净利润', pattern: '八、净利润' },
+          // Department wages (extracted to deptWages after parsing)
+          { key: '总经办工资', pattern: '总经办', isDeptWage: true, deptName: '总经办' },
+          { key: '业务部工资', pattern: '业务部工资', isDeptWage: true, deptName: '业务部' },
+          { key: '财务部工资', pattern: '财务部工资', isDeptWage: true, deptName: '财务部' },
+          { key: '内勤部工资', pattern: '内勤部工资', isDeptWage: true, deptName: '内勤部' },
+          { key: '仓储物流部工资', pattern: '仓储物流部工资', isDeptWage: true, deptName: '仓储物流部' },
+          { key: '采购部工资', pattern: '采购部工资', isDeptWage: true, deptName: '采购部' },
+          { key: '线上运营部工资', pattern: '线上运营部工资', isDeptWage: true, deptName: '线上运营部' },
         ];
         
         const result = { labels: {}, monthColumns: monthColMap };
@@ -1064,6 +1089,18 @@
               break; // Only match first pattern
             }
           }
+        });
+        
+        // Extract department wages into separate structure
+        result.deptWages = {};
+        const deptWageKeys = Object.keys(result.labels).filter(k => {
+          const pattern = labelPatterns.find(p => p.key === k);
+          return pattern && pattern.isDeptWage;
+        });
+        deptWageKeys.forEach(key => {
+          const pattern = labelPatterns.find(p => p.key === key);
+          result.deptWages[pattern.deptName] = result.labels[key];
+          delete result.labels[key]; // Remove from main labels to avoid double counting
         });
         
         jueSuanData = result;
@@ -1177,14 +1214,16 @@
               amount = parseAmount(row[9]); // C10
             }
             
-            if (dept) departments.add(dept);
+            if (dept) departments.add(DEPT_NAME_MAP[dept] || dept);
             
             const week = getWeekNumber(submitDate, year, month - 1);
+            const normDept = DEPT_NAME_MAP[dept] || dept;
             
             allData.push({
               type,
               amount,
-              department: dept,
+              department: normDept,
+              rawDepartment: dept,
               expenseType,
               submitDate,
               week: week + 1,
@@ -1197,7 +1236,7 @@
         
         document.getElementById('weComStatus').className = 'status success';
         document.getElementById('weComStatus').textContent = '已解析';
-        document.getElementById('weComInfo').textContent = `✓ ${files.length}个文件 (${allData.length}条审批，覆盖${departments.size}个部门)`;
+        document.getElementById('weComInfo').textContent = `✓ ${files.length}个文件 (${allData.length}条审批，覆盖${departments.size}个部门，已标准化名称)`;
         document.getElementById('uploadWeCom').classList.add('uploaded');
         
         updateDashboard();
@@ -1445,37 +1484,117 @@
       const [year, month] = currentMonth.split('-').map(Number);
       const weeks = getWeeksOfMonth(year, month - 1);
       
-      // Calculate department data
-      const deptData = {};
+      // ====== Three-layer department split logic ======
+      // Layer 1: 人工成本 → jueSuan department wage rows directly
+      // Layer 2: 变动成本/费用 → split by WeCom department ratios
+      // Layer 3: 固定成本 → split by wage headcount ratios
       
-      // Init departments
-      Object.keys(DEPT_BUDGET_MAPPING).forEach(dept => {
-        deptData[dept] = { budget: 0, actual: 0, items: {} };
-      });
+      const allDepts = new Set();
       
-      // Calculate budget from JueSuan mapping
-      if (jueSuanData) {
-        Object.entries(DEPT_BUDGET_MAPPING).forEach(([dept, subjects]) => {
-          subjects.forEach(sub => {
-            const label = Object.keys(jueSuanData.labels).find(l => 
-              l.includes(sub) || sub.includes(l.replace(/(汇总)/g, ''))
-            );
-            if (label) {
-              deptData[dept].budget += jueSuanData.labels[label].budget;
-            }
-          });
+      // --- Layer 1: Department wages from jueSuan ---
+      const deptWages = {}; // { deptName: { budget, thisMonth, lastMonth } }
+      if (jueSuanData && jueSuanData.deptWages) {
+        Object.entries(jueSuanData.deptWages).forEach(([dept, data]) => {
+          deptWages[dept] = { budget: data.budget || 0, actual: data.thisMonth || 0 };
+          allDepts.add(dept);
         });
       }
+      const totalWageActual = Object.values(deptWages).reduce((s, d) => s + d.actual, 0);
       
-      // Calculate actual from WeCom
+      // --- Layer 2: WeCom actual by department & type ---
+      const weComByDept = {}; // { normalizedDept: { payment, expense, loan } }
       weComData.forEach(item => {
-        const dept = item.department;
-        if (deptData[dept]) {
-          deptData[dept].actual += item.amount;
+        const rawDept = item.department;
+        if (!rawDept || rawDept === '未分配') return;
+        // Normalize department name
+        const dept = DEPT_NAME_MAP[rawDept] || rawDept;
+        allDepts.add(dept);
+        if (!weComByDept[dept]) weComByDept[dept] = { payment: 0, expense: 0, loan: 0 };
+        if (item.type === '调货付款' || item.type === '付款申请') {
+          weComByDept[dept].payment += item.amount;
+        } else if (item.type === '费用报销') {
+          weComByDept[dept].expense += item.amount;
+        } else if (item.type === '借支') {
+          weComByDept[dept].loan += item.amount;
         }
       });
       
-      // Render KPIs
+      const totalWeComPayment = Object.values(weComByDept).reduce((s, d) => s + d.payment, 0);
+      const totalWeComExpense = Object.values(weComByDept).reduce((s, d) => s + d.expense, 0);
+      
+      // --- Get jueSuan totals for budget splitting ---
+      let variableCostBudget = 0;  // 变动成本 = 主营业务成本 + 物流成本
+      let expenseBudget = 0;       // 费用 = 日常费用 + 销售费用 + 财务费用
+      let fixedCostBudget = 0;     // 固定成本 = 折旧 + 房租
+      let variableCostActual = 0;
+      let expenseActual = 0;
+      let fixedCostActual = 0;
+      
+      if (jueSuanData) {
+        const l = jueSuanData.labels;
+        variableCostBudget = (l['主营业务成本']?.budget || 0) + (l['物流成本']?.budget || 0);
+        variableCostActual = (l['主营业务成本']?.thisMonth || 0) + (l['物流成本']?.thisMonth || 0);
+        
+        expenseBudget = (l['日常费用(汇总)']?.budget || 0) + (l['销售费用']?.budget || 0) + (l['财务费用']?.budget || 0);
+        expenseActual = (l['日常费用(汇总)']?.thisMonth || 0) + (l['销售费用']?.thisMonth || 0) + (l['财务费用']?.thisMonth || 0);
+        
+        fixedCostBudget = (l['折旧']?.budget || 0) + (l['房租']?.budget || 0);
+        fixedCostActual = (l['折旧']?.thisMonth || 0) + (l['房租']?.thisMonth || 0);
+      }
+      
+      // --- Layer 3: Build department data with breakdown ---
+      const deptData = {};
+      const deptOrder = ['总经办', '业务部', '财务部', '内勤部', '仓储物流部', '采购部', '线上运营部'];
+      
+      // Sort: known depts first, then any WeCom-only depts
+      const sortedDepts = [...allDepts].sort((a, b) => {
+        const ai = deptOrder.indexOf(a);
+        const bi = deptOrder.indexOf(b);
+        if (ai >= 0 && bi >= 0) return ai - bi;
+        if (ai >= 0) return -1;
+        if (bi >= 0) return 1;
+        return a.localeCompare(b);
+      });
+      
+      sortedDepts.forEach(dept => {
+        // 人工成本: direct from jueSuan dept wages
+        const wage = deptWages[dept] || { budget: 0, actual: 0 };
+        const wageRatio = totalWageActual > 0 ? wage.actual / totalWageActual : 
+                          (sortedDepts.length > 0 ? 1 / sortedDepts.length : 0);
+        
+        // 变动成本: budget split by WeCom payment ratio (fallback to wage ratio)
+        const paymentRatio = totalWeComPayment > 0 && weComByDept[dept]
+          ? weComByDept[dept].payment / totalWeComPayment : wageRatio;
+        const varCost = {
+          budget: variableCostBudget * paymentRatio,
+          actual: weComByDept[dept]?.payment || 0
+        };
+        
+        // 费用: budget split by WeCom expense ratio (fallback to wage ratio)
+        const expenseRatio = totalWeComExpense > 0 && weComByDept[dept]
+          ? weComByDept[dept].expense / totalWeComExpense : wageRatio;
+        const expense = {
+          budget: expenseBudget * expenseRatio,
+          actual: weComByDept[dept]?.expense || 0
+        };
+        
+        // 固定成本: split by wage headcount ratio
+        const fixed = {
+          budget: fixedCostBudget * wageRatio,
+          actual: fixedCostActual * wageRatio
+        };
+        
+        const totalBudget = wage.budget + varCost.budget + expense.budget + fixed.budget;
+        const totalActual = wage.actual + varCost.actual + expense.actual + fixed.actual;
+        
+        deptData[dept] = {
+          wage, variableCost: varCost, expense, fixed,
+          budget: totalBudget,
+          actual: totalActual
+        };
+      });
+      
+      // --- Render KPIs ---
       let kpiHtml = '';
       Object.entries(deptData).forEach(([dept, data]) => {
         const rate = data.budget > 0 ? data.actual / data.budget : 0;
@@ -1492,17 +1611,29 @@
           </div>
         `;
       });
+      
+      // Add split methodology note
+      kpiHtml += `
+        <div class="glass-card kpi-card" style="font-size: 12px; color: var(--text-muted); text-align: left; padding: 16px;">
+          <div style="font-weight: 600; margin-bottom: 8px; color: var(--primary);">📐 分摊规则</div>
+          <div>👤 人工成本 → 决算表部门工资行</div>
+          <div>📦 变动成本 → 企微付款部门占比</div>
+          <div>💰 费用 → 企微报销部门占比</div>
+          <div>🏗️ 固定成本 → 工资人数比例</div>
+        </div>
+      `;
       document.getElementById('departmentKpi').innerHTML = kpiHtml;
       
-      // Render table
+      // --- Render table with expandable detail rows ---
       let tableHtml = '';
       Object.entries(deptData).forEach(([dept, data]) => {
         const rate = data.budget > 0 ? data.actual / data.budget : 0;
         const diff = data.actual - data.budget;
         
+        // Summary row (clickable to expand)
         tableHtml += `
-          <tr>
-            <td>${dept}</td>
+          <tr class="expand-row" data-expand="dept-${dept}" style="cursor:pointer;">
+            <td style="font-weight:600;">${dept}</td>
             <td>${formatNumber(data.budget)}</td>
             <td>${formatNumber(data.actual)}</td>
             <td class="${diff >= 0 ? 'num-negative' : 'num-positive'}">${diff >= 0 ? '+' : ''}${formatNumber(diff)}</td>
@@ -1510,8 +1641,41 @@
             <td>${getStatusLight(rate, '费用')}</td>
           </tr>
         `;
+        
+        // Detail rows: breakdown by cost type
+        const breakdown = [
+          { name: '👤 人工成本', data: data.wage },
+          { name: '📦 变动成本', data: data.variableCost },
+          { name: '💰 费用', data: data.expense },
+          { name: '🏗️ 固定成本', data: data.fixed },
+        ];
+        
+        breakdown.forEach(item => {
+          const itemRate = item.data.budget > 0 ? item.data.actual / item.data.budget : 0;
+          const itemDiff = item.data.actual - item.data.budget;
+          tableHtml += `
+            <tr class="detail-row" data-parent="dept-${dept}">
+              <td style="padding-left: 32px; color: var(--text-muted);">　└ ${item.name}</td>
+              <td>${formatNumber(item.data.budget)}</td>
+              <td>${formatNumber(item.data.actual)}</td>
+              <td class="${itemDiff >= 0 ? 'num-negative' : 'num-positive'}" style="font-size:12px;">${itemDiff >= 0 ? '+' : ''}${formatNumber(itemDiff)}</td>
+              <td style="font-size:12px;">${formatPercent(itemRate)}</td>
+              <td>-</td>
+            </tr>
+          `;
+        });
       });
       document.getElementById('departmentTableBody').innerHTML = tableHtml;
+      
+      // Setup expand rows
+      document.querySelectorAll('.expand-row[data-expand^="dept-"]').forEach(row => {
+        row.addEventListener('click', () => {
+          const parentId = row.dataset.expand;
+          document.querySelectorAll(`[data-parent="${parentId}"]`).forEach(dr => {
+            dr.classList.toggle('show');
+          });
+        });
+      });
       
       // Update department charts
       updateDepartmentCharts(deptData, weeks);
@@ -1650,7 +1814,10 @@
       const deptDatasets = departments.map((dept, i) => {
         const weeklyData = weeks.map((w, wi) => {
           return weComData
-            .filter(item => item.department === dept && item.week === wi + 1)
+            .filter(item => {
+              const normDept = DEPT_NAME_MAP[item.department] || item.department;
+              return normDept === dept && item.week === wi + 1;
+            })
             .reduce((sum, item) => sum + item.amount, 0) / 10000;
         });
         
