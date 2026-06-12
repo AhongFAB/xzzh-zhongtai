@@ -118,6 +118,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
   <div class="actions" id="acts" style="display:none">
     <button class="btn btn-p" id="btnAll" onclick="exportAll()">📦 一键导出全部对账单</button>
     <button class="btn btn-s" onclick="exportCur()">📥 导出当前对账单</button>
+    <button class="btn btn-s" onclick="exportList()">📋 导出发送清单</button>
     <div class="cutoff">
       <span class="tag">截止日</span>
       <label>发单日期：</label>
@@ -346,10 +347,15 @@ async function exportAll(){
   rnd.innerHTML='';
   updP(1,'打包中...');
 
+  // Add sending list to zip
+  const list=buildSendList(cKeys);
+  zip.file('sending_list.json',JSON.stringify(list,null,2));
+  zip.file('sending_list.csv',listToCSV(list));
+
   try{
     const ct=await zip.generateAsync({type:'blob'});
     saveAs(ct,`客户对账单_截止${cutoffDate}.zip`);
-    toast(`导出完成！${cKeys.length}个客户对账单已打包`,'ok');
+    toast(`导出完成！${cKeys.length}个客户对账单 + 发送清单已打包`,'ok');
   }catch(e){toast('打包失败：'+e.message,'err')}
 
   btn.disabled=false;btn.textContent='📦 一键导出全部对账单';
@@ -363,6 +369,45 @@ function p2(n){return String(n).padStart(2,'0')}
 function toast(m,t){const e=document.getElementById('toast');e.textContent=m;e.className='toast '+t+' show';setTimeout(()=>e.classList.remove('show'),3000)}
 function showP(s){document.getElementById('pbar').style.display=s?'block':'none';document.getElementById('ptxt').style.display=s?'block':'none';if(!s)document.getElementById('pfill').style.width='0%'}
 function updP(r,t){document.getElementById('pfill').style.width=Math.round(r*100)+'%';document.getElementById('ptxt').textContent=t}
+
+// === Send List for automation ===
+function buildSendList(cKeys){
+  return{
+    generateTime:new Date().toISOString(),
+    cutoffDate,
+    totalCustomers:cKeys.length,
+    customers:cKeys.map(c=>{
+      const rows=cMap[c];
+      const docs=new Set(rows.map(r=>r.docNum));
+      const total=rows.reduce((s,r)=>s+r.amt,0);
+      const dates=rows.map(r=>r.date).filter(Boolean).sort();
+      return{
+        customer:c,
+        documentCount:docs.size,
+        itemCount:rows.length,
+        totalUnsettled:Math.round(total*100)/100,
+        dateRange:dates.length?dates[0]+'~'+dates[dates.length-1]:'',
+        imageFile:fn(c)+'.png',
+        documents:[...new Set(rows.map(r=>r.docNum))].sort()
+      };
+    }).sort((a,b)=>b.totalUnsettled-a.totalUnsettled)
+  };
+}
+
+function listToCSV(list){
+  const h='客户名称,单据数,明细行数,未收金额,单据日期范围,图片文件名,单据编号';
+  const rows=list.customers.map(c=>`"${c.customer}",${c.documentCount},${c.itemCount},${c.totalUnsettled},"${c.dateRange}",${c.imageFile},"${c.documents.join(';')}"`);
+  return[h,...rows].join('\n');
+}
+
+function exportList(){
+  const cKeys=Object.keys(cMap);
+  if(!cKeys.length){toast('没有数据','err');return}
+  const list=buildSendList(cKeys);
+  const blob=new Blob([JSON.stringify(list,null,2)],{type:'application/json'});
+  saveAs(blob,`发送清单_截止${cutoffDate}.json`);
+  toast(`发送清单已导出！${cKeys.length}个客户`,'ok');
+}
 </script>
 </body>
 </html>
