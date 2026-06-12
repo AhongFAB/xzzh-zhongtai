@@ -190,8 +190,33 @@ function parse(raw){
   if(hi===-1){toast('未找到表头行','err');return}
 
   const col={};
-  const mp={'单据日期':'date','单据号码':'docNum','客户':'customer','业务员':'salesman','出库类型':'type','物料名称':'itemName','规格型号':'spec','已结算':'settled','未结算':'unsettled','数量':'qty','单位':'unit','单价':'price','应收金额':'recv','单据备注':'docRemark','制单人':'creator','制单时间':'createTime','表格备注':'remark'};
+  const mp={'单据日期':'date','单据号码':'docNum','客户':'customer','业务员':'salesman','出库类型':'type','物料名称':'itemName','规格型号':'spec','已结算':'settled','未结算':'unsettled','数量':'qty','单位':'unit','单价':'price','应收金额':'recv','单据备注':'docRemark','制单人':'creator','制单时间':'createTime','表格备注':'remark','制表单位':'reportUnit'};
   hdr.forEach((h,i)=>{for(const[n,k]of Object.entries(mp)){if(h.includes(n)&&!col[k])col[k]=i}});
+
+  // Extract reportUnit from data
+  let reportUnit='中合五金商城';
+  // First: check if "制表单位" is a column in the header
+  if(col.reportUnit!==undefined){
+    for(let i=hi+1;i<raw.length;i++){
+      const val=String(raw[i][col.reportUnit]||'').trim();
+      if(val&&val!=='合计'&&!val.includes('制表')){reportUnit=val}
+    }
+  }
+  // Second: scan all rows for "制表单位" text (footer rows)
+  for(let i=raw.length-1;i>hi;i--){
+    const row=raw[i];
+    const rowStr=row.map(c=>String(c||'')).join('');
+    const match=rowStr.match(/制表单位[：:]\s*(.+)/);
+    if(match){reportUnit=match[1].trim();break}
+    // Also check if any cell contains "制表单位" and the next cell has the name
+    for(let j=0;j<row.length-1;j++){
+      if(String(row[j]||'').includes('制表单位')){
+        const nxt=String(row[j+1]||'').trim();
+        if(nxt){reportUnit=nxt;break}
+      }
+    }
+  }
+  window.__reportUnit=reportUnit;
 
   ALL=[];
   for(let i=hi+1;i<raw.length;i++){
@@ -314,8 +339,10 @@ function genCard(cust,rows){
   const ts=`${now.getFullYear()}/${p2(now.getMonth()+1)}/${p2(now.getDate())} ${p2(now.getHours())}:${p2(now.getMinutes())}`;
   const cls=total<0?'neg':'';
 
+  const coName=window.__reportUnit||'中合五金商城';
+
   return`<div class="stmt" id="card">
-<div class="hd"><div class="co">中合五金商城</div><div class="dt">对账截止：${cutoffDate}</div></div>
+<div class="hd"><div class="co">${esc(coName)}</div><div class="dt">对账截止：${cutoffDate}</div></div>
 <div class="bd">
 <div class="cust">📋 ${esc(cust)}</div>
 <div class="meta"><span>未收单据共 <b>${docEntries.length}</b> 张</span><span>商品明细共 <b>${rows.length}</b> 行</span><span>单据日期：<b>${docEntries.length?docEntries[0][1][0].date+' ~ '+docEntries[docEntries.length-1][1][0].date:'-'}</b></span></div>
@@ -323,7 +350,7 @@ function genCard(cust,rows){
 </div>
 <div class="ft"><div class="tl">未收款合计</div><div class="tv ${cls}">¥${Math.abs(total).toFixed(2)}${total<0?' (退款)':''}</div></div>
 <div class="rm">💡 请核对以上明细，如无疑问请及时安排付款，感谢支持！</div>
-<div class="wm">生成时间：${ts} · 中合五金商城</div>
+<div class="wm">生成时间：${ts} · ${esc(coName)}</div>
 </div>`;
 }
 
