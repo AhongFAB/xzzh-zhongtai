@@ -111,8 +111,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
         <b style="color:#38bdf8">第一步：</b>从ERP导出销售出库单明细Excel（.xls/.xlsx）<br>
         <b style="color:#38bdf8">第二步：</b>上传Excel到本工具，自动按客户分组生成对账卡片<br>
         <b style="color:#38bdf8">第三步：</b>点击<b style="color:#f8fafc">「一键导出全部对账单」</b>，下载ZIP压缩包<br>
-        <b style="color:#38bdf8">第四步：</b>解压ZIP，每张图片文件名就是客户名<br>
-        <b style="color:#38bdf8">第五步：</b>文件夹中搜索对应客户名 → 找到图片 → 微信发送<br>
+        <b style="color:#38bdf8">第四步：</b>解压ZIP，按业务员分文件夹，每张图片文件名就是客户名<br>
+        <b style="color:#38bdf8">第五步：</b>进入对应业务员文件夹，搜索客户名 → 找到图片 → 微信发送<br>
         <br>
         <span style="color:#64748b">💡 截止日默认=今天-5天，可手动修改｜点击客户名可预览对账单｜话术参考：「您好，这是截止X月X日的未结算对账单，请核对，如无误请及时安排付款，感谢支持！」</span>
       </div>
@@ -348,24 +348,38 @@ async function exportAll(){
   const zip=new JSZip();const rnd=document.getElementById('rnd');
   let done=0;
 
-  for(const c of cKeys){
-    updP(done/cKeys.length,`${c.slice(0,12)}... (${done+1}/${cKeys.length})`);
-    rnd.innerHTML=genCard(c,cMap[c]);
-    await new Promise(r=>setTimeout(r,120));
-    const el=rnd.querySelector('.stmt');
-    if(!el)continue;
-    try{
-      const cv=await html2canvas(el,{scale:2,backgroundColor:'#fff',useCORS:true});
-      const bl=await new Promise(r=>cv.toBlob(r,'image/png'));
-      zip.file(fn(c)+'.png',bl);
-    }catch(e){console.error(e)}
-    done++;
+  // Group customers by salesman
+  const sMap={};
+  cKeys.forEach(c=>{
+    const rows=cMap[c];
+    // Pick the most common salesman for this customer
+    const smCount={};
+    rows.forEach(r=>{const sm=r.salesman||'未分配';smCount[sm]=(smCount[sm]||0)+1});
+    const mainSM=Object.entries(smCount).sort((a,b)=>b[1]-a[1])[0][0];
+    if(!sMap[mainSM])sMap[mainSM]=[];
+    sMap[mainSM].push(c);
+  });
+
+  for(const sm of Object.keys(sMap)){
+    for(const c of sMap[sm]){
+      updP(done/cKeys.length,`${c.slice(0,12)}... (${done+1}/${cKeys.length})`);
+      rnd.innerHTML=genCard(c,cMap[c]);
+      await new Promise(r=>setTimeout(r,120));
+      const el=rnd.querySelector('.stmt');
+      if(!el)continue;
+      try{
+        const cv=await html2canvas(el,{scale:2,backgroundColor:'#fff',useCORS:true});
+        const bl=await new Promise(r=>cv.toBlob(r,'image/png'));
+        zip.file(fn(sm)+'/'+fn(c)+'.png',bl);
+      }catch(e){console.error(e)}
+      done++;
+    }
   }
   rnd.innerHTML='';
   updP(1,'打包中...');
 
   // Add sending list to zip
-  const list=buildSendList(cKeys);
+  const list=buildSendList(cKeys,sMap);
   zip.file('sending_list.json',JSON.stringify(list,null,2));
   zip.file('sending_list.csv',listToCSV(list));
 
@@ -388,7 +402,19 @@ function showP(s){document.getElementById('pbar').style.display=s?'block':'none'
 function updP(r,t){document.getElementById('pfill').style.width=Math.round(r*100)+'%';document.getElementById('ptxt').textContent=t}
 
 // === Send List for automation ===
-function buildSendList(cKeys){
+function buildSendList(cKeys,sMap){
+  // Build salesman -> customers map if not provided
+  if(!sMap){
+    sMap={};
+    cKeys.forEach(c=>{
+      const rows=cMap[c];
+      const smCount={};
+      rows.forEach(r=>{const sm=r.salesman||'未分配';smCount[sm]=(smCount[sm]||0)+1});
+      const mainSM=Object.entries(smCount).sort((a,b)=>b[1]-a[1])[0][0];
+      if(!sMap[mainSM])sMap[mainSM]=[];
+      sMap[mainSM].push(c);
+    });
+  }
   return{
     generateTime:new Date().toISOString(),
     cutoffDate,
@@ -398,13 +424,17 @@ function buildSendList(cKeys){
       const docs=new Set(rows.map(r=>r.docNum));
       const total=rows.reduce((s,r)=>s+r.amt,0);
       const dates=rows.map(r=>r.date).filter(Boolean).sort();
+      // Find salesman for this customer
+      let cSalesman='';
+      for(const[sm,cs]of Object.entries(sMap)){if(cs.includes(c)){cSalesman=sm;break}}
       return{
         customer:c,
+        salesman:cSalesman||'未分配',
         documentCount:docs.size,
         itemCount:rows.length,
         totalUnsettled:Math.round(total*100)/100,
         dateRange:dates.length?dates[0]+'~'+dates[dates.length-1]:'',
-        imageFile:fn(c)+'.png',
+        imageFile:fn(cSalesman||'未分配')+'/'+fn(c)+'.png',
         documents:[...new Set(rows.map(r=>r.docNum))].sort()
       };
     }).sort((a,b)=>b.totalUnsettled-a.totalUnsettled)
@@ -412,8 +442,8 @@ function buildSendList(cKeys){
 }
 
 function listToCSV(list){
-  const h='客户名称,单据数,明细行数,未收金额,单据日期范围,图片文件名,单据编号';
-  const rows=list.customers.map(c=>`"${c.customer}",${c.documentCount},${c.itemCount},${c.totalUnsettled},"${c.dateRange}",${c.imageFile},"${c.documents.join(';')}"`);
+  const h='业务员,客户名称,单据数,明细行数,未收金额,单据日期范围,图片文件名,单据编号';
+  const rows=list.customers.map(c=>`"${c.salesman}","${c.customer}",${c.documentCount},${c.itemCount},${c.totalUnsettled},"${c.dateRange}",${c.imageFile},"${c.documents.join(';')}"`);
   return[h,...rows].join('\n');
 }
 
