@@ -767,13 +767,16 @@
       { label: '主营业务收入', kdeeCodes: ['5101'], side: 'credit', category: '收入' },
       { label: '其他业务收入', kdeeCodes: ['5102'], side: 'credit', category: '收入' },
       { label: '主营业务成本', kdeeCodes: ['5401'], side: 'debit', category: '成本' },
+      { label: '物流成本', jueSuanOnly: true, category: '成本' },
+      { label: '固定成本', jueSuanOnly: true, category: '成本' },
       { label: '销售费用', kdeeCodes: ['5501'], side: 'debit', category: '费用' },
       { label: '管理费用', kdeeCodes: ['5502'], side: 'debit', category: '费用', hasDetail: true },
       { label: '财务费用', kdeeCodes: ['5503'], side: 'debit', category: '费用' },
+      // 管理费用明细
       { label: '工资', kdeeCodes: ['550221'], side: 'debit', category: '费用', parent: '管理费用' },
       { label: '折旧', kdeeCodes: ['550202'], side: 'debit', category: '费用', parent: '管理费用' },
       { label: '房租', kdeeCodes: ['550204'], side: 'debit', category: '费用', parent: '管理费用' },
-      { label: '车辆油费', kdeeCodes: ['550231'], side: 'debit', category: '费用', parent: '管理费用' },
+      { label: '车辆使用费', kdeeCodes: ['550231'], side: 'debit', category: '费用', parent: '管理费用' },
       { label: '生活费', kdeeCodes: ['550205'], side: 'debit', category: '费用', parent: '管理费用' },
       { label: '发票税点', kdeeCodes: ['550220'], side: 'debit', category: '费用', parent: '管理费用' },
       { label: '业务招待费', kdeeCodes: ['550209'], side: 'debit', category: '费用', parent: '管理费用' },
@@ -944,36 +947,121 @@
     async function parseJueSuan(file) {
       try {
         const data = await readFileAsync(file);
-        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+        const workbook = XLSX.read(data, { type: 'array', cellDates: false });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
         
-        const result = {
-          labels: {},
-          lastMonth: {},
-          thisMonth: {}
-        };
+        // New table structure: columns are (amount, revenue_ratio) pairs per month
+        // C1=label, C2=全年合计, C3=占收入比, C4/C5=1月/占比, C6/C7=2月/占比, ...
+        // Header row (R2) has Excel date serial numbers in even columns (C4, C6, C8...)
         
-        // Row mapping (1-indexed -> 0-indexed)
-        const rowMap = {
-          '收入(汇总)': 1, '主营业务收入': 3, '其他业务收入': 4,
-          '成本(汇总)': 17, '变动成本': 18, '人工成本': 19,
-          '直接成本(汇总)': 29, '主营业务成本': 30, '物流成本': 32,
-          '固定成本(汇总)': 36, '折旧': 37, '房租': 38,
-          '门店毛利': 40, '日常费用(汇总)': 41,
-          '利润(汇总)': 68, '净利润': 69
-        };
+        // Step 1: Parse header row to build month column map
+        const headerRow = rows[1] || rows[0]; // R2 typically, fallback R1
+        const monthColMap = {}; // { 'YYYY-MM': colIndex } where colIndex is the 0-based index for the amount column
         
-        // Find labels by scanning first column
+        for (let c = 3; c < (headerRow ? headerRow.length : 0); c += 2) {
+          const val = headerRow[c];
+          let dateStr = '';
+          
+          if (typeof val === 'number' && val > 40000) {
+            // Excel date serial number -> date
+            const date = new Date((val - 25569) * 86400 * 1000);
+            const y = date.getUTCFullYear();
+            const m = date.getUTCMonth() + 1;
+            dateStr = y + '-' + String(m).padStart(2, '0');
+          } else if (typeof val === 'string') {
+            const match = val.match(/(\d{4})[.-](\d{1,2})/);
+            if (match) {
+              dateStr = match[1] + '-' + match[2].padStart(2, '0');
+            }
+          }
+          
+          if (dateStr) {
+            monthColMap[dateStr] = c; // 0-based index for the amount column
+          }
+        }
+        
+        // Step 2: Determine current month and previous month column indices
+        const [year, month] = currentMonth.split('-').map(Number);
+        const curKey = currentMonth; // e.g. '2026-05'
+        const prevDate = new Date(year, month - 2, 1);
+        const prevKey = prevDate.getFullYear() + '-' + String(prevDate.getMonth() + 1).padStart(2, '0');
+        
+        const curColIdx = monthColMap[curKey];
+        const prevColIdx = monthColMap[prevKey];
+        
+        // Also try: if curKey not found, try shifting by 1 year (Excel date mismatch)
+        let actualCurKey = curKey;
+        let actualPrevKey = prevKey;
+        let actualCurColIdx = curColIdx;
+        let actualPrevColIdx = prevColIdx;
+        
+        if (curColIdx === undefined) {
+          // Try year-1
+          const altCurKey = (year - 1) + '-' + String(month).padStart(2, '0');
+          const altPrevKey = (prevDate.getFullYear() - 1) + '-' + String(prevDate.getMonth() + 1).padStart(2, '0');
+          if (monthColMap[altCurKey] !== undefined) {
+            actualCurKey = altCurKey;
+            actualPrevKey = altPrevKey;
+            actualCurColIdx = monthColMap[altCurKey];
+            actualPrevColIdx = monthColMap[altPrevKey];
+          }
+        }
+        
+        // Step 3: Build label-to-row mapping by scanning first column
+        // New table has MORE detailed rows including department-level wages
+        const labelPatterns = [
+          { key: '收入(汇总)', pattern: '收入' },
+          { key: '主营业务收入', pattern: '主营业务收入' },
+          { key: '其他业务收入', pattern: '其它业务收入' },
+          { key: '成本(汇总)', pattern: '二、成本' },
+          { key: '变动成本', pattern: '变动成本' },
+          { key: '人工成本', pattern: '人工成本' },
+          { key: '直接成本(汇总)', pattern: '直接成本' },
+          { key: '主营业务成本', pattern: '主营业务成本' },
+          { key: '物流成本', pattern: '物流成本' },
+          { key: '固定成本(汇总)', pattern: '固定成本' },
+          { key: '折旧', pattern: '折旧费' },
+          { key: '房租', pattern: '房租费' },
+          { key: '门店毛利', pattern: '门店毛利' },
+          { key: '日常费用(汇总)', pattern: '日常费用' },
+          { key: '广告宣传费', pattern: '广告宣传费' },
+          { key: '业务招待费', pattern: '业务招待费' },
+          { key: '差旅费', pattern: '差旅费' },
+          { key: '车辆使用费', pattern: '车辆使用费' },
+          { key: '办公费', pattern: '办公费' },
+          { key: '生活费', pattern: '生活费' },
+          { key: '发票税点', pattern: '发票税点' },
+          { key: '财务费用', pattern: '财务费用' },
+          { key: '利润(汇总)', pattern: '六、利润' },
+          { key: '净利润', pattern: '八、净利润' },
+        ];
+        
+        const result = { labels: {}, monthColumns: monthColMap };
+        
         rows.forEach((row, idx) => {
+          if (idx < 2) return; // Skip header rows
           const firstCol = String(row[0] || '').trim();
-          for (const [label, rowIdx] of Object.entries(rowMap)) {
-            if (firstCol.includes(label) && idx === rowIdx) {
-              result.labels[label] = {
-                lastMonth: parseAmount(row[8]),  // C9 = index 8
-                thisMonth: parseAmount(row[10]), // C11 = index 10
-                manager: row[11] || ''            // C12 = index 11
+          if (!firstCol) return;
+          
+          for (const { key, pattern } of labelPatterns) {
+            if (firstCol.includes(pattern)) {
+              // 预算 = 上月实际 (per user instruction)
+              const prevVal = actualPrevColIdx !== undefined ? parseAmount(row[actualPrevColIdx]) : 0;
+              const curVal = actualCurColIdx !== undefined ? parseAmount(row[actualCurColIdx]) : 0;
+              
+              // Filter out placeholder values (like "23")
+              const isPlaceholder = (actualCurColIdx !== undefined && 
+                (curVal === 23 || curVal < 50) && 
+                !['算薪人数', '人均利润'].includes(key));
+              
+              result.labels[key] = {
+                lastMonth: prevVal,
+                thisMonth: isPlaceholder ? 0 : curVal,
+                budget: prevVal,  // 当月预算 = 上月实际
+                manager: ''
               };
+              break; // Only match first pattern
             }
           }
         });
@@ -981,9 +1069,10 @@
         jueSuanData = result;
         
         const count = Object.keys(result.labels).length;
+        const detectedMonths = Object.keys(monthColMap).length;
         document.getElementById('jueSuanStatus').className = 'status success';
         document.getElementById('jueSuanStatus').textContent = '已解析';
-        document.getElementById('jueSuanInfo').textContent = `✓ ${file.name} (${count}个科目)`;
+        document.getElementById('jueSuanInfo').textContent = `✓ ${file.name} (${count}个科目, ${detectedMonths}个月份列, 预算=上月实际)`;
         document.getElementById('uploadJueSuan').classList.add('uploaded');
         
         updateDashboard();
@@ -1154,39 +1243,66 @@
       const subjectData = SUBJECT_MAPPING.map(sub => {
         let budget = 0;
         let actual = 0;
+        let lastMonthActual = 0;
+        let thisMonthActual = 0;
         
-        // Budget from JueSuan
+        // Budget & monthly data from JueSuan
         if (jueSuanData) {
-          const label = Object.keys(jueSuanData.labels).find(l => 
-            l.includes(sub.label) || sub.label.includes(l.replace(/(汇总)/g, ''))
-          );
-          if (label) {
-            budget = jueSuanData.labels[label].thisMonth;
+          // Match jueSuan label to subject - prefer exact match, then fuzzy
+          let matchedLabel = null;
+          const jsLabels = Object.keys(jueSuanData.labels);
+          
+          // Exact match first
+          matchedLabel = jsLabels.find(l => l === sub.label);
+          
+          // Then try jueSuan label contains subject label
+          if (!matchedLabel) {
+            matchedLabel = jsLabels.find(l => l.includes(sub.label));
+          }
+          
+          // Then try subject label contains jueSuan label (strip suffixes)
+          if (!matchedLabel) {
+            matchedLabel = jsLabels.find(l => sub.label.includes(l.replace(/(汇总|\(含税\))/g, '')));
+          }
+          
+          if (matchedLabel) {
+            budget = jueSuanData.labels[matchedLabel].budget;
+            lastMonthActual = jueSuanData.labels[matchedLabel].lastMonth || 0;
+            thisMonthActual = jueSuanData.labels[matchedLabel].thisMonth || 0;
           }
         }
         
-        // Actual from Kdee
+        // Actual from Kdee (overwrites jueSuan thisMonthActual if available)
         if (kdeeData) {
           for (const code of sub.kdeeCodes) {
             if (kdeeData[code]) {
               actual += sub.side === 'credit' ? kdeeData[code].credit : kdeeData[code].debit;
             }
           }
+          // If kdee provided actual, use it; otherwise fall back to jueSuan thisMonthActual
+          if (actual === 0 && thisMonthActual > 0) {
+            actual = thisMonthActual;
+          }
+        } else if (thisMonthActual > 0) {
+          // No kdee data, use jueSuan thisMonthActual
+          actual = thisMonthActual;
         }
         
-        // Add WeCom actual for expenses
-        if (['费用'].includes(sub.category)) {
-          weComData.forEach(item => {
-            if (item.type === '费用报销' || item.type === '调货付款') {
-              actual += item.amount;
-            }
-          });
+        // Add WeCom actual for expenses (supplementary, not replacement)
+        // Removed: double-counting with kdee. WeCom data used only in department view.
+        
+        // 环比 = (本月实际 - 上月实际) / |上月实际|
+        let momChange = 0;
+        if (lastMonthActual > 0) {
+          momChange = (actual - lastMonthActual) / lastMonthActual;
         }
         
         return {
           ...sub,
           budget,
           actual,
+          lastMonthActual,
+          momChange,
           rate: budget > 0 ? actual / budget : 0,
           weeks: splitBudgetToWeeks(budget, year, month - 1).map(w => w.amount)
         };
@@ -1259,8 +1375,8 @@
             <td>-</td>
             <td>${formatNumber(catBudget)}</td>
             <td>${formatNumber(catActual)}</td>
-            <td>-</td>
-            <td>-</td>
+            <td>${formatNumber(items.reduce((s, i) => s + (i.lastMonthActual || 0), 0))}</td>
+            <td>${formatPercent(items.reduce((s, i) => s + (i.lastMonthActual || 0), 0) > 0 ? (catActual - items.reduce((s, i) => s + (i.lastMonthActual || 0), 0)) / items.reduce((s, i) => s + (i.lastMonthActual || 0), 0) : 0)}</td>
             <td>${formatPercent(catBudget > 0 ? catActual / catBudget : 0)}</td>
             <td>${getStatusLight(catBudget > 0 ? catActual / catBudget : 0, catName)}</td>
           </tr>
@@ -1269,6 +1385,9 @@
         items.forEach(item => {
           const isExpandable = item.hasDetail;
           const rate = item.budget > 0 ? item.actual / item.budget : 0;
+          const momHtml = item.lastMonthActual > 0 
+            ? `<span style="color: ${(item.actual - item.lastMonthActual) >= 0 ? (item.category === '收入' ? 'var(--success)' : 'var(--danger)') : (item.category === '收入' ? 'var(--danger)' : 'var(--success)')}">${formatPercent(item.momChange)}</span>`
+            : '-';
           
           tableHtml += `
             <tr class="${isExpandable ? 'expand-row' : ''}" data-expand="${isExpandable}">
@@ -1276,8 +1395,8 @@
               <td>${item.category}</td>
               <td>${formatNumber(item.budget)}</td>
               <td>${formatNumber(item.actual)}</td>
-              <td>-</td>
-              <td>-</td>
+              <td>${formatNumber(item.lastMonthActual)}</td>
+              <td>${momHtml}</td>
               <td>${formatPercent(rate)}</td>
               <td>${getStatusLight(rate, item.category)}</td>
             </tr>
@@ -1294,8 +1413,8 @@
                   <td>明细</td>
                   <td>${formatNumber(detail.budget)}</td>
                   <td>${formatNumber(detail.actual)}</td>
-                  <td>-</td>
-                  <td>-</td>
+                  <td>${formatNumber(detail.lastMonthActual)}</td>
+                  <td>${detail.lastMonthActual > 0 ? `<span style="color: ${(detail.actual - detail.lastMonthActual) >= 0 ? 'var(--danger)' : 'var(--success)'}">${formatPercent(detail.momChange)}</span>` : '-'}</td>
                   <td>${formatPercent(dRate)}</td>
                   <td>${getStatusLight(dRate, '费用')}</td>
                 </tr>
@@ -1342,7 +1461,7 @@
               l.includes(sub) || sub.includes(l.replace(/(汇总)/g, ''))
             );
             if (label) {
-              deptData[dept].budget += jueSuanData.labels[label].thisMonth;
+              deptData[dept].budget += jueSuanData.labels[label].budget;
             }
           });
         });
