@@ -1312,7 +1312,7 @@
         }
         
         // Actual from Kdee (overwrites jueSuan thisMonthActual if available)
-        if (kdeeData) {
+        if (kdeeData && sub.kdeeCodes) {
           for (const code of sub.kdeeCodes) {
             if (kdeeData[code]) {
               actual += sub.side === 'credit' ? kdeeData[code].credit : kdeeData[code].debit;
