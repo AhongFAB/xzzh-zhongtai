@@ -190,7 +190,7 @@ function parse(raw){
   if(hi===-1){toast('未找到表头行','err');return}
 
   const col={};
-  const mp={'单据日期':'date','单据号码':'docNum','客户':'customer','业务员':'salesman','出库类型':'type','物料名称':'itemName','规格型号':'spec','已结算':'settled','未结算':'unsettled','数量':'qty','单位':'unit','单价':'price','应收金额':'recv','单据备注':'docRemark','制单人':'creator','制单时间':'createTime','表格备注':'remark','制表单位':'reportUnit'};
+  const mp={'单据日期':'date','单据号码':'docNum','客户':'customer','业务员':'salesman','出库类型':'type','物料名称':'itemName','规格型号':'spec','已结算':'settled','未结算':'unsettled','数量':'qty','单位':'unit','单价':'price','应收金额':'recv','单据备注':'docRemark','表格备注':'remark','制表单位':'reportUnit'};
   hdr.forEach((h,i)=>{for(const[n,k]of Object.entries(mp)){if(h.includes(n)&&!col[k])col[k]=i}});
 
   // Extract reportUnit from data
@@ -237,14 +237,13 @@ function parse(raw){
     const salesman=col.salesman!==undefined?String(row[col.salesman]||'').trim():'';
     const remark=col.remark!==undefined?String(row[col.remark]||'').trim():'';
     const docRemark=col.docRemark!==undefined?String(row[col.docRemark]||'').trim():'';
-    const creator=col.creator!==undefined?String(row[col.creator]||'').trim():'';
     
     // Amount: unsettled takes priority (means not yet collected), fallback to settled+unsettled or qty*price
     let amt=unsettled;
     if(amt===0&&settled!==0) amt=0; // fully settled
     else if(amt===0&&settled===0&&qty!==0&&price!==0) amt=qty*price;
 
-    ALL.push({date:dt,docNum:dn,customer:cust,type,name,spec,qty,unit,price,settled,unsettled,amt,salesman,remark,docRemark,creator});
+    ALL.push({date:dt,docNum:dn,customer:cust,type,name,spec,qty,unit,price,settled,unsettled,amt,salesman,remark,docRemark});
   }
 
   if(!ALL.length){toast('未解析到有效数据','err');return}
