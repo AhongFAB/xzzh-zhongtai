@@ -199,23 +199,31 @@ function parse(raw){
   if(col.reportUnit!==undefined){
     for(let i=hi+1;i<raw.length;i++){
       const val=String(raw[i][col.reportUnit]||'').trim();
-      if(val&&val!=='合计'&&!val.includes('制表')){reportUnit=val}
+      if(val&&val!=='合计'){reportUnit=val}
     }
   }
   // Second: scan all rows for "制表单位" text (footer rows)
   for(let i=raw.length-1;i>hi;i--){
     const row=raw[i];
-    const rowStr=row.map(c=>String(c||'')).join('');
-    const match=rowStr.match(/制表单位[：:]\s*(.+)/);
-    if(match){reportUnit=match[1].trim();break}
-    // Also check if any cell contains "制表单位" and the next cell has the name
-    for(let j=0;j<row.length-1;j++){
-      if(String(row[j]||'').includes('制表单位')){
-        const nxt=String(row[j+1]||'').trim();
-        if(nxt){reportUnit=nxt;break}
+    // Check each cell for "制表单位"
+    for(let j=0;j<row.length;j++){
+      const cell=String(row[j]||'').trim();
+      if(cell.includes('制表单位')){
+        // Extract value from same cell: "制表单位：XXX" → "XXX"
+        const sameCell=cell.replace(/制表单位[：:]\s*/,'').trim();
+        if(sameCell&&!sameCell.includes('制表人')&&!sameCell.includes('打印时间')){reportUnit=sameCell}
+        // Or check next cell
+        else if(j+1<row.length){
+          const nxt=String(row[j+1]||'').trim();
+          if(nxt){reportUnit=nxt}
+        }
+        break;
       }
     }
+    if(reportUnit!=='中合五金商城'&&reportUnit.length<30)break;
   }
+  // Clean up: remove any trailing "制表人/打印时间" that got mixed in
+  reportUnit=reportUnit.replace(/制表人.*/,'').replace(/打印时间.*/,'').trim()||'中合五金商城';
   window.__reportUnit=reportUnit;
 
   ALL=[];
